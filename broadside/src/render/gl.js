@@ -6,7 +6,7 @@ import { hullShape, foamCollarGeometry } from './shapes.js';
 // Renderer, shared materials and the instanced pools every frame writes into.
 export const R = {
   renderer: null, scene: null, camera: null, water: null, pools: null,
-  toonRamp: null, inkMat: null, vcToon: null, C3: null,
+  toonRamp: null, inkMat: null, vcToon: null, C3: null, hemi: null, sun: null,
 };
 
 const matCache = new Map();
@@ -44,10 +44,12 @@ export function initGL() {
     stone: new THREE.Color('#a39b8d'), minePlayer: new THREE.Color('#6fc0ff'), mineEnemy: new THREE.Color('#ff4a3a'),
   };
   const scene = R.scene;
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x6a9cc0, 1.6));
-  const sun = new THREE.DirectionalLight(0xfff4e0, 2.4);
-  sun.position.set(-0.55, 1, 0.45);
-  scene.add(sun);
+  // Weather (render/weather.js) recolours and re-aims these per battle.
+  R.hemi = new THREE.HemisphereLight(0xffffff, 0x6a9cc0, 1.6);
+  scene.add(R.hemi);
+  R.sun = new THREE.DirectionalLight(0xfff4e0, 2.4);
+  R.sun.position.set(-0.55, 1, 0.45);
+  scene.add(R.sun);
 
   R.water = makeWater();
   scene.add(R.water);
