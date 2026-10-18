@@ -101,14 +101,14 @@ await B(() => {
   const swift = G.ships.find((s) => s.name === 'Swift');
   const e = G.ships.find((s) => s.team === 'enemy' && s.state === 'afloat');
   swift.path = []; swift.pivot = swift.h; swift.hp = Math.round(swift.maxHp * 0.25); swift.marines = 4;
-  e.passive = false; e.pivot = e.h; e.marines = 15; e.hp = e.maxHp;
-  e.x = swift.x + Math.cos(swift.h + Math.PI / 2) * 55; e.y = swift.y + Math.sin(swift.h + Math.PI / 2) * 55;
+  e.passive = false; e.pivot = null; e.v = 0; e.marines = 15; e.hp = e.maxHp;
+  e.x = swift.x + Math.cos(swift.h + Math.PI / 2) * 160; e.y = swift.y + Math.sin(swift.h + Math.PI / 2) * 160;
   G.ships.filter((s) => s.team === 'player').forEach((s) => { s.reload = [99, 99]; });
   e.reload = [99, 99];
 });
 let taken = false;
-for (let i = 0; i < 20 && !taken; i++) taken = await B(() => { window.__broadside.sim(30); return window.__broadside.G.ships.find((s) => s.name === 'Swift').team === 'enemy'; });
-check(taken, 'a Spanish ship boards and takes a crippled English sloop', failures);
+for (let i = 0; i < 40 && !taken; i++) taken = await B(() => { window.__broadside.sim(30); return window.__broadside.G.ships.find((s) => s.name === 'Swift').team === 'enemy'; });
+check(taken, 'a Spanish ship closes, boards and takes a crippled English sloop', failures);
 await B(() => window.__broadside.step(1));
 const swiftCard = await B(() => { const c = window.__broadside.S.hud.cards.find((c) => c.ship && c.ship.name === 'Swift'); return !!c; });
 check(swiftCard, 'the captured ship still shows in the fleet list', failures);

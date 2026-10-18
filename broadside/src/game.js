@@ -5,7 +5,7 @@ import { clearParticles } from './sim/particles.js';
 import { R } from './render/gl.js';
 import { worldSize, fitCamera, isLandscape } from './render/camera.js';
 import { buildScene, addShipMesh } from './render/scene.js';
-import { sizeHud } from './hud/hud.js';
+import { sizeHud, resetTip } from './hud/hud.js';
 
 S.hooks.onSpawn = addShipMesh;
 
@@ -30,6 +30,7 @@ function resetTransient() {
   S.selected = S.G.ships.find((s) => s.team === 'player') || null;
   S.drag = null; S.toast = null; S.banner = null;
   S.floaters.length = 0; S.kick = 0; S.slowmo = null; S.selectAll = false;
+  resetTip();
 }
 
 export function resize() {

@@ -64,6 +64,15 @@ export function aiSteer(s, dt) {
     s.targetId = best ? best.id : null; t = best; s.aiT = 1.5;
   }
   if (!t) return null;
+  // A crippled English ship close by, with too few marines to hold her: run alongside and board.
+  if (!s.boss && s.marines > 0) {
+    for (const o of G.ships) {
+      if (o.team === s.team || !afloat(o) || o.hp > o.maxHp * 0.4 || Math.hypot(o.x - s.x, o.y - s.y) > 220) continue;
+      if (s.marines > Math.round(o.marines * (0.6 + 0.4 * o.hp / o.maxHp)) * 1.2) {
+        return avoidIslands(s, Math.atan2(o.y - s.y, o.x - s.x), 160);
+      }
+    }
+  }
   const dx = t.x - s.x, dy = t.y - s.y, d = Math.hypot(dx, dy);
   const bearing = Math.atan2(dy, dx);
   const ideal = s.range * s.ideal;

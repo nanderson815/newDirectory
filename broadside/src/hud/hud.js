@@ -8,6 +8,7 @@ import { landingFor } from '../sim/forts.js';
 import { boardingTarget, defence } from '../sim/boarding.js';
 import { AMMO, BOARDING } from '../config/ammo.js';
 import { R } from '../render/gl.js';
+import { save, writeSave } from '../save.js';
 
 // The 2D layer over the 3D sea: courses, arcs, health bars, fleet cards, wind, buttons and messages.
 const hudCv = document.getElementById('hud');
@@ -195,6 +196,49 @@ function drawBoss() {
   if (k > 0) { ctx.fillStyle = '#e2483a'; roundRect(x0 + 10, 34, Math.max(4, (w - 20) * k), 8, 4); ctx.fill(); }
 }
 
+// One-time tips: the first time a mechanic shows up in battle, say how to use it. Remembered in the save.
+const TIPS = {
+  fleet: 'Tap Whole fleet, then draw one course to move every ship together.',
+  ammo: 'This ship carries special shot. Chain cuts rigging; Grape thins the crew before you board.',
+  mine: 'Tap Drop mine to leave a mine astern. Lure an enemy across it.',
+  land: 'Tap Land troops: your ship anchors and the boats row ashore.',
+  board: 'She’s crippled! Tap Board! to send your marines across. More marines than defenders wins.',
+};
+let tip = null;
+function offerTip(id) {
+  save.tips = save.tips || [];
+  if (tip || save.tips.includes(id) || S.G.tut) return;
+  save.tips.push(id);
+  writeSave();
+  tip = { text: TIPS[id], until: S.clock + 6.5 };
+}
+function drawTip() {
+  if (!tip) return;
+  if (S.clock > tip.until) { tip = null; return; }
+  const { cw, ch } = S.view;
+  const w = Math.min(cw - 32, 360), x = (cw - w) / 2, y = Math.round(ch * 0.62);
+  ctx.globalAlpha = clamp(Math.min((tip.until - S.clock) * 2, 1), 0, 1);
+  ctx.font = `600 14px "Nunito", "Trebuchet MS", sans-serif`;
+  const lines = wrap(tip.text, w - 28);
+  const h = 22 + lines.length * 19;
+  ctx.fillStyle = COL.parchment; roundRect(x, y, w, h, 14); ctx.fill();
+  ctx.lineWidth = 3; ctx.strokeStyle = COL.ink; ctx.stroke();
+  ctx.fillStyle = COL.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  lines.forEach((ln, i) => ctx.fillText(ln, x + 14, y + 11 + i * 19));
+  ctx.globalAlpha = 1;
+}
+function wrap(text, maxW) {
+  const out = [];
+  let line = '';
+  for (const word of text.split(' ')) {
+    const t = line ? line + ' ' + word : word;
+    if (ctx.measureText(t).width > maxW && line) { out.push(line); line = word; } else line = t;
+  }
+  if (line) out.push(line);
+  return out;
+}
+export const resetTip = () => { tip = null; };
+
 function objectiveLines() {
   const G = S.G;
   const ships = G.ships.filter((s) => s.team === 'enemy' && afloat(s)).length;
@@ -265,6 +309,7 @@ export function drawHUD() {
   }
   // Fleet orders: select every ship, then one drawn course moves the whole squadron.
   if (G.ships.filter((s) => s.team === 'player' && afloat(s)).length > 1) {
+    if (G.phase === 'play' && G.t > 3) offerTip('fleet');
     ctx.fillStyle = S.selectAll ? 'rgba(242,182,50,0.92)' : COL.hud; roundRect(x, y, w, 26, 10); ctx.fill();
     ctx.lineWidth = 2; ctx.strokeStyle = S.selectAll ? COL.ink : 'rgba(255,255,255,0.35)'; ctx.stroke();
     ctx.font = `13px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -306,15 +351,17 @@ export function drawHUD() {
   // Action buttons for the selected ship: drop a mine, land troops at a silenced fort.
   if (sel && playing) {
     const acts = [];
-    if (sel.mines > 0) acts.push({ kind: 'mine', label: `Drop mine ×${sel.mines}`, ready: true });
+    if (sel.mines > 0) { acts.push({ kind: 'mine', label: `Drop mine ×${sel.mines}`, ready: true }); offerTip('mine'); }
     const prey = boardingTarget(sel);
     if (prey) {
       const d = defence(prey);
       acts.push({ kind: 'board', shipId: prey.id, ready: sel.marines > d, label: `Board! ${sel.marines} vs ${d}` });
+      offerTip('board');
     }
     const fort = landingFor(sel);
     if (fort) {
       const busy = !!fort.capture, ok = sel.marines >= fort.need && !busy;
+      offerTip('land');
       acts.push({ kind: 'land', fortId: fort.id, ready: ok, label: busy ? 'Landing…' : ok ? `Land troops (${fort.need})` : `Need ${fort.need} marines` });
     }
     const bw = 158, bh = 46, ax = cw - 16 - bw;
@@ -326,6 +373,7 @@ export function drawHUD() {
     }
     // Shot selector, bottom left, for ships that carry more than round shot.
     if (sel.ammoKinds.length > 1 && !S.selectAll) {
+      offerTip('ammo');
       const cwid = 62, chh = 38, cy = ch - 14 - chh - (S.fireMode === 'manual' ? 64 : 0);
       let cx = 16;
       outlinedText('Shot', cx + 2, cy - 12, 12, COL.white, 'left');
@@ -365,6 +413,8 @@ export function drawHUD() {
     ctx.restore();
     ctx.globalAlpha = 1;
   }
+
+  if (playing) drawTip();
 
   // First-time hint (the tutorial has its own coach)
   if (playing && !G.tut && !G.dragged && G.t < 14) {
