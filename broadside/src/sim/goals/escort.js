@@ -24,7 +24,8 @@ export default {
   hud: (o, G) => [`Merchantmen through: ${o.got}/${o.need}`, `Still sailing: ${sailing(o, G)}`],
   brief(o) {
     const names = o.ships.map((d) => d.name).join(' and ');
-    return `Bring ${o.need === o.ships.length ? 'both' : `${o.need} of the ${o.ships.length}`} merchantmen (${names}) out through the exit at the top of the chart. They sail themselves; keep the raiders off them.`;
+    const all = o.ships.length === 2 ? 'both' : `all ${o.ships.length}`;
+    return `Bring ${o.need === o.ships.length ? all : o.need === 1 ? 'at least one of the' : `${o.need} of the ${o.ships.length}`} merchantmen (${names}) out through the exit at the top of the chart. They sail themselves; keep the raiders off them.`;
   },
   won: () => 'The merchantmen make harbour with their cargo safe.',
   lost: { escort: 'The merchantmen are lost with all their cargo. Refit at the shipyard and try again.' },

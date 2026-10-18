@@ -22,6 +22,9 @@ export default {
       ? `Take ${forts[0].name}: shoot it silent, then land troops.`
       : `Take all ${forts.length} forts: shoot each one silent, then land troops.`;
   },
-  won: (o, B) => `The English flag flies over ${B.forts.length > 1 ? 'every fort' : B.forts[0].name}.`,
+  won(o, B) {
+    const forts = B.forts.filter((f) => f.team !== 'player');
+    return `The English flag flies over ${forts.length === 1 ? forts[0].name : forts.length === 2 ? 'both forts' : 'every fort'}.`;
+  },
   lost: { marines: 'No ship has enough marines left to take the fort. Buy marines at the shipyard and try again.' },
 };
