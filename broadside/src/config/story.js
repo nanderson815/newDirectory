@@ -1,5 +1,6 @@
 // The captain's log: one entry before each battle and one after a win, plus what each boss shouts on the
 // intro card. Keyed by battle id (see battles.js); the year comes from the battle, the day and month from here.
+// `her: true` marks a boss the text should call "her"; `who` is how a sentence names the boss, if not by name.
 // The through-line: a junior English captain at newly taken Port Royal (1655) works up from a borrowed sloop
 // to breaking La Gran Armada (1665), collecting a captain's hat from every enemy flagship along the way.
 
@@ -68,7 +69,7 @@ export const STORY = {
     after: 'The chests are aboard and the pirates are swimming home. One chest held nothing but Spanish love letters, which the crew are now reading aloud. Loudly.',
   },
   kate: {
-    date: '18 April',
+    date: '18 April', her: true,
     before: 'Calico Kate, queen of the Brethren, has sworn to burn my squadron to the waterline. She sends fireships ahead of her Black Wyvern, which is cheating, and she knows it.',
     taunt: 'Nice hats, Captain. Mine’s better. Come and take it.',
     after: 'The Black Wyvern is sunk and Kate rowed away laughing, minus her hat. She has a spare, I am told. Her crew say Spain has been paying the raiders, and that an old enemy is stirring in the west.',
@@ -100,7 +101,7 @@ export const STORY = {
     after: 'Resolute broke the line and the Admiral has his count. It is a large number. He read it twice, then called for more powder, and more claret.',
   },
   armada: {
-    date: '23 April',
+    date: '23 April', who: 'the Capitán General',
     before: 'This is it. The Capitán General flies his flag in the Real Felipe under the guns of the Castillo del Morro, with the whole Armada around him. Every hat in my cabin has been dusted for luck.',
     taunt: 'I have sunk finer fleets than yours before breakfast. Today, I skip breakfast.',
     after: 'The Real Felipe is sunk and La Gran Armada is scattered to the four winds. The Capitán General’s crown hat sits at the head of my collection, and the Caribbean is England’s. Hobbs says we should retire. Hobbs, I suspect, wants my cabin.',

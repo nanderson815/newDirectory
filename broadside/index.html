@@ -26,7 +26,7 @@
   <div class="panel">
     <p class="eyebrow">The Caribbean · 1655</p>
     <h1>Broadside!</h1>
-    <p class="lede">Command a small English squadron against the might of Spain. Beat three Spanish captains and take their hats.</p>
+    <p class="lede">Command a small English squadron against Spain, the pirates of the Brethren and, at last, La Gran Armada. Beat their captains and take their hats.</p>
     <div class="hat-strip" id="menuHats"></div>
     <div class="setting">
       <span class="setting-label" id="fireLabelA">Gunnery</span>
@@ -63,22 +63,18 @@
 </div>
 
 <!-- Sea chart: pick a battle -->
-<div class="overlay" id="chartScreen" hidden>
-  <div class="panel wide">
-    <div class="panel-head">
-      <div>
-        <p class="eyebrow">Sea chart</p>
-        <h2>Choose your next battle</h2>
-      </div>
-      <p class="purse" id="chartGold"></p>
+<div class="overlay chart-screen" id="chartScreen" hidden>
+  <div class="chart-frame">
+    <button type="button" class="btn quiet small chart-back" id="chartBack">Menu</button>
+    <div class="chart-title">
+      <p class="eyebrow">Sea chart</p>
+      <h2>Choose your next battle</h2>
     </div>
-    <div class="chart" id="chartList"></div>
-    <div class="row">
+    <p class="purse" id="chartGold"></p>
+    <div class="chart" id="chartList" role="group" aria-label="Sea chart of the Caribbean. Each battle is a button; scroll or drag to pan."></div>
+    <div class="chart-nav">
       <button type="button" class="btn quiet" id="yardBtn">Shipyard</button>
       <button type="button" class="btn quiet" id="hatsBtn">Hats</button>
-    </div>
-    <div class="row">
-      <button type="button" class="btn quiet small" id="chartBack">Main menu</button>
     </div>
   </div>
 </div>
@@ -119,6 +115,10 @@
   <div class="panel">
     <p class="eyebrow" id="briefEyebrow"></p>
     <h1 class="title-sm" id="briefTitle"></h1>
+    <div class="log" id="briefLog" hidden>
+      <p class="log-date" id="briefLogDate"></p>
+      <p class="log-text" id="briefLogText"></p>
+    </div>
     <p class="lede" id="briefText"></p>
     <div class="boss-card" id="briefBoss" hidden></div>
     <ul class="orders" id="briefOrders"></ul>
@@ -177,6 +177,10 @@
     <h1 id="endTitle">Victory!</h1>
     <div class="stars big" id="endStars" aria-hidden="true"></div>
     <p class="lede" id="endText"></p>
+    <div class="log" id="endLog" hidden>
+      <p class="log-date" id="endLogDate"></p>
+      <p class="log-text" id="endLogText"></p>
+    </div>
     <p class="reward" id="endReward" hidden></p>
     <div class="hat-won" id="endHat" hidden></div>
     <dl class="stats">
@@ -190,6 +194,9 @@
     </div>
   </div>
 </div>
+
+<!-- Boss intro card: shown for a moment when a boss battle begins; tap to skip -->
+<div class="boss-intro" id="bossIntro" hidden role="dialog" aria-label="Boss battle" aria-live="assertive"></div>
 
 <script type="module" src="/src/main.js"></script>
 </body>
