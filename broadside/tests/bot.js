@@ -29,7 +29,8 @@
       const boss = enemies.find((s) => s.boss);
       const hostileForts = G.forts.filter((f) => f.team === 'enemy' && f.state === 'active');
       const silent = G.forts.filter((f) => f.state !== 'active');
-      if (lander && !live(lander)) lander = null;
+      // Give up on a lander that sank, was taken by boarders or no longer has the marines for any fort.
+      if (lander && (!live(lander) || lander.team !== 'player' || !silent.some((q) => lander.marines >= q.need || q.capture))) lander = null;
       for (const s of ships) {
         // Landing party: anchor beside a silenced fort and send the marines in.
         if (silent.length && (!lander || lander === s)) {

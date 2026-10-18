@@ -125,6 +125,8 @@ console.log('Fort capture');
 {
   const page = await open(browser, { save: save({ stars: { tutorial: 3, tortuga: 3, cayman: 3, rojo: 3 } }) });
   await page.evaluate(() => window.__broadside.startBattle('sanlucas'));
+  // A sturdy test fleet: this checks the capture mechanics, not the battle's balance.
+  await page.evaluate(() => window.__broadside.G.ships.filter((s) => s.team === 'player').forEach((s) => { s.hp = s.maxHp = s.maxHp * 6; }));
   await page.evaluate(() => window.__broadside.step(240));
   await shot(page, '10-fort');
   let silenced = false, captured = false;

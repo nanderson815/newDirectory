@@ -30,14 +30,14 @@ export const BATTLES = [
 
   {
     id: 'tortuga', region: 'windward', roman: 'I', year: 1655, name: 'The Tortuga Narrows', foe: 'Spanish patrol',
-    reward: 120, wind: 0,
+    reward: 130, wind: 0,
     brief: 'Two Spanish brigs guard the narrows. Sink them both.',
     enemy: [
       { type: 'brig', name: 'Santa Rosa', x: 0.32, y: 0.2, h: 90 },
       { type: 'brig', name: 'El Halcón', x: 0.68, y: 0.2, h: 90 },
     ],
     islands: [{ x: 0.27, y: 0.48, r: 42 }, { x: 0.76, y: 0.42, r: 38 }, { x: 0.6, y: 0.64, r: 24 }],
-    ai: { spread: 0.14, reloadMul: 1.25, dmgMul: 0.9, hpMul: 1 },
+    ai: { spread: 0.14, reloadMul: 1.25, dmgMul: 0.6, hpMul: 2.2 },
   },
   {
     id: 'cayman', region: 'windward', roman: 'II', year: 1656, name: 'Cayman Shoals', foe: 'brig squadron',
@@ -49,19 +49,19 @@ export const BATTLES = [
       { type: 'brig', name: 'San Telmo', x: 0.8, y: 0.18, h: 90 },
     ],
     islands: [{ x: 0.3, y: 0.4, r: 32 }, { x: 0.72, y: 0.36, r: 30 }, { x: 0.5, y: 0.55, r: 36 }, { x: 0.2, y: 0.66, r: 22 }],
-    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 1, hpMul: 1 },
+    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.52, hpMul: 1.7 },
   },
   {
     id: 'rojo', region: 'windward', roman: 'III', year: 1656, name: 'La Bruja', foe: 'Capitán Rojo',
     goal: 'boss', hat: 'rojo', reward: 220, wind: 20,
     brief: 'Capitán Rojo’s galleon La Bruja carries bow chasers, so don’t linger in front of her. Sink her and his red tricorne is yours.',
     enemy: [
-      { type: 'galleon', name: 'La Bruja', x: 0.5, y: 0.16, h: 90, hp: 230, chasers: 2, reloadMul: 0.9,
+      { type: 'galleon', name: 'La Bruja', x: 0.5, y: 0.16, h: 90, hp: 340, chasers: 2, reloadMul: 0.9,
         boss: { captain: 'Capitán Rojo', title: 'La Bruja', hat: 'rojo' } },
       { type: 'brig', name: 'El Lobo', x: 0.25, y: 0.22, h: 90 },
     ],
     islands: [{ x: 0.28, y: 0.5, r: 40 }, { x: 0.74, y: 0.52, r: 40 }],
-    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 1, hpMul: 1 },
+    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 0.63, hpMul: 1.6 },
   },
 
   {
@@ -73,8 +73,8 @@ export const BATTLES = [
       { type: 'brig', name: 'Santa Clara', x: 0.7, y: 0.18, h: 90 },
     ],
     islands: [{ x: 0.5, y: 0.38, r: 50 }, { x: 0.2, y: 0.62, r: 26 }, { x: 0.82, y: 0.6, r: 26 }],
-    forts: [{ island: 0, name: 'Fort San Lucas', hp: 120, guns: 2, need: 10 }],
-    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 1, hpMul: 1 },
+    forts: [{ island: 0, name: 'Fort San Lucas', hp: 470, guns: 2, need: 10 }],
+    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 1.0, hpMul: 2.4 },
   },
   {
     id: 'silver', region: 'main', roman: 'V', year: 1657, name: 'The Silver Fleet', foe: 'treasure convoy',
@@ -86,14 +86,14 @@ export const BATTLES = [
       { type: 'brig', name: 'La Golondrina', x: 0.5, y: 0.25, h: 90 },
     ],
     islands: [{ x: 0.25, y: 0.42, r: 34 }, { x: 0.76, y: 0.55, r: 36 }],
-    ai: { spread: 0.11, reloadMul: 1.05, dmgMul: 1.05, hpMul: 1.05 },
+    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.7, hpMul: 1.3 },
   },
   {
     id: 'comodoro', region: 'main', roman: 'VI', year: 1658, name: 'San Cristóbal', foe: 'El Comodoro',
     goal: 'boss', hat: 'comodoro', reward: 320, wind: 0,
     brief: 'El Comodoro keeps his flagship between two forts. Take the forts first, or dash in and sink him.',
     enemy: [
-      { type: 'galleon', name: 'San Cristóbal', x: 0.5, y: 0.12, h: 90, hp: 280, chasers: 1,
+      { type: 'galleon', name: 'San Cristóbal', x: 0.5, y: 0.12, h: 90, hp: 400, chasers: 1,
         boss: { captain: 'El Comodoro', title: 'San Cristóbal', hat: 'comodoro' } },
       { type: 'brig', name: 'El Alcón', x: 0.3, y: 0.24, h: 90 },
       { type: 'brig', name: 'La Garza', x: 0.7, y: 0.24, h: 90 },
@@ -103,7 +103,7 @@ export const BATTLES = [
       { island: 0, name: 'Fort Santa Fe', hp: 110, guns: 2, need: 10 },
       { island: 1, name: 'Fort Santa Inés', hp: 110, guns: 2, need: 10 },
     ],
-    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.1, hpMul: 1.05 },
+    ai: { spread: 0.12, reloadMul: 1.05, dmgMul: 0.68, hpMul: 1.3 },
   },
 
   {
@@ -116,8 +116,8 @@ export const BATTLES = [
       { type: 'brig', name: 'La Centella', x: 0.78, y: 0.2, h: 90 },
     ],
     islands: [{ x: 0.6, y: 0.33, r: 48 }, { x: 0.27, y: 0.45, r: 28 }, { x: 0.72, y: 0.6, r: 24 }, { x: 0.36, y: 0.64, r: 22 }],
-    forts: [{ island: 0, name: 'Fort San Felipe', hp: 150, guns: 3, need: 15 }],
-    ai: { spread: 0.1, reloadMul: 1, dmgMul: 1.1, hpMul: 1.1 },
+    forts: [{ island: 0, name: 'Fort San Felipe', hp: 400, guns: 3, need: 15 }],
+    ai: { spread: 0.09, reloadMul: 1, dmgMul: 1.25, hpMul: 2.2 },
   },
   {
     id: 'santamarta', region: 'golden', roman: 'VIII', year: 1659, name: 'Twin Towers of Santa Marta', foe: 'coastal batteries',
@@ -130,23 +130,23 @@ export const BATTLES = [
     ],
     islands: [{ x: 0.31, y: 0.32, r: 46 }, { x: 0.69, y: 0.44, r: 46 }, { x: 0.5, y: 0.63, r: 24 }],
     forts: [
-      { island: 0, name: 'North Tower', hp: 140, guns: 3, need: 10 },
-      { island: 1, name: 'South Tower', hp: 140, guns: 3, need: 10 },
+      { island: 0, name: 'North Tower', hp: 170, guns: 3, need: 10 },
+      { island: 1, name: 'South Tower', hp: 170, guns: 3, need: 10 },
     ],
-    ai: { spread: 0.09, reloadMul: 1, dmgMul: 1.15, hpMul: 1.1 },
+    ai: { spread: 0.09, reloadMul: 1, dmgMul: 0.88, hpMul: 1.4 },
   },
   {
     id: 'oro', region: 'golden', roman: 'IX', year: 1659, name: 'Santísima Trinidad', foe: 'Almirante de Oro',
     goal: 'boss', hat: 'oro', reward: 500, wind: 0,
     brief: 'The Almirante’s man-o’-war lays sea mines in her wake and carries bow chasers. Beat her and the Caribbean is yours.',
     enemy: [
-      { type: 'manowar', name: 'Santísima Trinidad', x: 0.5, y: 0.12, h: 90, hp: 420, chasers: 2, mineEvery: 7,
+      { type: 'manowar', name: 'Santísima Trinidad', x: 0.5, y: 0.12, h: 90, hp: 450, chasers: 2, mineEvery: 7,
         boss: { captain: 'Almirante de Oro', title: 'Santísima Trinidad', hat: 'oro' } },
       { type: 'galleon', name: 'San Lorenzo', x: 0.24, y: 0.18, h: 90 },
       { type: 'galleon', name: 'San Nicolás', x: 0.76, y: 0.18, h: 90 },
     ],
     islands: [{ x: 0.27, y: 0.48, r: 36 }, { x: 0.73, y: 0.48, r: 36 }, { x: 0.5, y: 0.64, r: 24 }],
-    ai: { spread: 0.08, reloadMul: 0.95, dmgMul: 1.2, hpMul: 1.15 },
+    ai: { spread: 0.11, reloadMul: 1.1, dmgMul: 0.875, hpMul: 1 },
   },
 ];
 
