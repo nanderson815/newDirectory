@@ -4,6 +4,8 @@ import { dropMine } from '../combat.js';
 // Drops a mine astern whenever an enemy ship is within `range`, every `every` seconds.
 export default {
   id: 'mineLayer',
+  about: 'Drops a mine astern while an enemy is near.',
+  params: { every: 'seconds between mines', range: 'how near an enemy must be' },
   defaults: { every: 8, range: 300 },
   init(s, a) { a.t = a.every; },
   update(s, a, dt) {

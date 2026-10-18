@@ -5,6 +5,8 @@ const targets = (G) => G.forts.filter((f) => f.origTeam === 'enemy');
 const held = (f) => f.team === 'player' && f.state === 'active';
 export default {
   id: 'capture',
+  about: 'Take every enemy fort: shoot it silent, then land troops.',
+  params: {},
   done: (o, G) => targets(G).length > 0 && targets(G).every(held),
   // Out of marines: no ship afloat can still land at a fort you need.
   failed(o, G) {

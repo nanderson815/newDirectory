@@ -6,6 +6,8 @@ import { spawnShip } from '../spawn.js';
 // keeping at most `max` of them afloat. Calico Kate uses it to send in her fireships.
 export default {
   id: 'launcher',
+  about: 'Puts another ship over the side every so often (fireships by default).',
+  params: { type: 'ship type to launch', name: 'their name', every: 'seconds between launches', max: 'most afloat at once', range: 'only while an enemy is this close', banner: '[title, subtitle] shown on launch, or null' },
   defaults: { type: 'fireship', name: 'Fireship', every: 16, max: 3, range: 520, banner: ['Fireship!', 'Sink her before she reaches you'] },
   init(s, a) { a.t = a.every * 0.5; },
   update(s, a, dt) {

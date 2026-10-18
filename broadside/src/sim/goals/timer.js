@@ -2,6 +2,8 @@
 const clock = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 export default {
   id: 'timer',
+  about: 'Meet the battle\'s other goals before time runs out.',
+  params: { secs: 'seconds allowed' },
   done: () => true,
   failed: (o, G) => (G.t > o.secs ? 'time' : null),
   hud: (o, G) => [`Time left: ${clock(Math.max(0, o.secs - G.t))}`],

@@ -19,6 +19,8 @@ function nearestFoe(s) {
 
 export default {
   id: 'fireship',
+  about: 'Steers for the nearest enemy and explodes alongside; any sinking sets off a blast.',
+  params: { dmg: 'ramming damage', splash: 'blast damage at the centre', radius: 'blast radius' },
   defaults: { dmg: 45, splash: 18, radius: 70 },
   init(s) { s.fireship = true; s.burning = true; },
   steer(s) {

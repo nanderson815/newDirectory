@@ -19,6 +19,8 @@ export function spawnWave(n) {
 
 export default {
   id: 'waves',
+  about: 'Endless Skirmish: wave after wave; never won, ends when the fleet is gone.',
+  params: {},
   endless: true,
   setup(o, G) { G.wave = 1; G.wavesCleared = 0; G.nextWaveAt = null; },
   update(o, G) {

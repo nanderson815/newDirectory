@@ -8,7 +8,8 @@ import oars from './oars.js';
 // A ship type lists them in TYPES[type].abilities, a battle ship in its def's `abilities`, both as
 // { abilityId: config | true }; the battle's config is merged over the type's.
 //
-// An ability is { id, defaults, init?, update?, steer?, wind?, sunk? }:
+// An ability is { id, about, params, defaults, init?, update?, steer?, wind?, sunk? }:
+//   about / params    a one-line description and { param: description }, for docs and validation
 //   init(s, a)        once when the ship is built; `a` is this ship's copy of defaults + config, and is also
 //                     where the ability keeps its own state (it is saved with the battle)
 //   update(s, a, dt)  every tick while she's afloat, not a hulk and not locked in a boarding action

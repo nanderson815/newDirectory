@@ -13,6 +13,8 @@ const MIN_RANGE = 110;
 
 export default {
   id: 'mortar',
+  about: 'Lobs shells over islands onto a spot; the HUD rings where they land.',
+  params: { range: 'max range', reload: 'seconds between shells', dmg: 'damage at the centre', radius: 'burst radius' },
   defaults: { range: 430, reload: 6.5, dmg: 22, radius: 36 },
   init(s, a) { a.t = rand(2, 4); if (!s.boss) s.standoff = a.range * 0.75; },
   update(s, a, dt) {

@@ -12,6 +12,8 @@ const carried = (G) => G.ships.reduce((n, s) => n + (s.team === 'enemy' && afloa
 
 export default {
   id: 'treasure',
+  about: 'Haul up floating chests by sailing over them; salvors carry chests until sunk or boarded.',
+  params: { need: 'chests to haul up', chests: 'chest positions [{ x, y }] (portrait fractions)' },
   tip: 'chest',
   setup(o, G, ctx) {
     o.got = 0;

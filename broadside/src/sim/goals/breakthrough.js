@@ -4,6 +4,8 @@ import { showBanner } from '../../state.js';
 // the chart. Lose her and the battle is lost; enemy captains go for her first.
 export default {
   id: 'breakthrough',
+  about: 'Get the flagship out through the exit at the top of the chart.',
+  params: { ship: 'which of your ships is the flagship (default 0, the first)' },
   exit: true,
   tip: 'exit',
   setup(o, G) {

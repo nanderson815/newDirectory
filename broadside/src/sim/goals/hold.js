@@ -6,6 +6,8 @@ const held = (G) => G.forts.some((f) => f.team === 'player' && f.state === 'acti
 const clock = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 export default {
   id: 'hold',
+  about: 'Hold your forts (team: \'player\') until the clock runs out.',
+  params: { secs: 'seconds to hold', grace: 'seconds to retake a silenced fort (default 18)' },
   aiForts: true,
   setup(o) { o.grace = o.grace || 18; o.t = 0; o.down = 0; },
   update(o, G, dt) {

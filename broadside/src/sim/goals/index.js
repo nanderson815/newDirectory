@@ -12,7 +12,8 @@ import waves from './waves.js';
 // Battle goals. A battle lists one or more as `goals: [{ kind, ...params }]` (or the shorthand
 // `goal: 'boss'`); it is won when every goal is met and lost when any goal fails or the fleet is gone.
 //
-// A goal is { id, setup?, update?, done, failed?, hud?, brief, won?, lost?, ... }:
+// A goal is { id, about, params, setup?, update?, done, failed?, hud?, brief, won?, lost?, ... }:
+//   about / params         a one-line description and { param: description }, for docs and validation
 //   setup(o, G, ctx)       build its state on `o` (this battle's copy of the goal def). ctx.place(x, y) maps
 //                          portrait fractions to the map, ctx.add(def, team) adds a ship
 //   update(o, G, dt)       every tick

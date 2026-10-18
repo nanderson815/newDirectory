@@ -5,6 +5,8 @@ import { afloat, showBanner } from '../../state.js';
 const sailing = (o, G) => G.ships.filter((s) => o.ids.includes(s.id) && s.team === 'player' && afloat(s)).length;
 export default {
   id: 'escort',
+  about: 'Bring merchantmen out through the exit at the top of the chart.',
+  params: { need: 'how many must get through', ships: 'the merchantmen (ship defs); they sail themselves' },
   exit: true,
   tip: 'exit',
   setup(o, G, ctx) {
