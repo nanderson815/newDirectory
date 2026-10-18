@@ -1,4 +1,4 @@
-import { S, afloat } from '../../state.js';
+import { S, afloat, selfSailing } from '../../state.js';
 import sink from './sink.js';
 import boss from './boss.js';
 import capture from './capture.js';
@@ -8,6 +8,10 @@ import hold from './hold.js';
 import breakthrough from './breakthrough.js';
 import timer from './timer.js';
 import waves from './waves.js';
+import protect from './protect.js';
+import hunt from './hunt.js';
+import reach from './reach.js';
+import survive from './survive.js';
 
 // Battle goals. A battle lists one or more as `goals: [{ kind, ...params }]` (or the shorthand
 // `goal: 'boss'`); it is won when every goal is met and lost when any goal fails or the fleet is gone.
@@ -22,12 +26,14 @@ import waves from './waves.js';
 //   hud(o, G)              objective lines for the top-right of the screen
 //   brief(o, B)            the order on the briefing screen; won(o, B) the line on the victory screen
 //   lost: { reason: text } the line on the defeat screen for each failure reason
-// Optional: exit (draw the exit band), tip (a one-time HUD tip id), aiForts (enemy captains attack forts),
-// weigh(o, G, s, t, d) (bias an enemy captain's choice of target t at distance d), steer(o, G, s)
-// (override an enemy captain's heading), sunk(o, G, s), escaped(o, G, s), endless (never won; the battle
-// ends when the fleet is gone).
+// Optional: draw(o, G, api) (chart markers: the exit band, chests, rings; api is the HUD's drawing kit, see
+// drawMarkers in src/hud/hud.js), tip (a one-time HUD tip id), aiForts (enemy captains attack forts; true or a
+// function of o), weigh(o, G, s, t, d) (bias an enemy captain's choice of target t at distance d),
+// steer(o, G, s) (override an enemy captain's heading), sunk(o, G, s), escaped(o, G, s) (a ship left the
+// battle: through the exit, or a runner over the edge), endless (never won; the battle ends when the fleet is
+// gone).
 // To add one: write a module like these, then list it here.
-export const GOALS = Object.fromEntries([sink, boss, capture, treasure, escort, hold, breakthrough, timer, waves].map((g) => [g.id, g]));
+export const GOALS = Object.fromEntries([sink, boss, capture, treasure, escort, hold, breakthrough, timer, waves, protect, hunt, reach, survive].map((g) => [g.id, g]));
 
 export const goalsOf = (B) => B.goals || [{ kind: B.goal || 'sink' }];
 export const mainGoal = (B) => goalsOf(B)[0].kind;
@@ -45,7 +51,8 @@ export function setupGoals(G, B, ctx) {
 export function eachGoal(G, hook, fn) {
   for (const o of G.goals || []) { const g = GOALS[o.kind]; if (g && g[hook]) fn(g, o); }
 }
-export const hasGoalFlag = (G, flag) => (G.goals || []).some((o) => GOALS[o.kind] && GOALS[o.kind][flag]);
+// A flag is true or false, or a function of the goal's def (protect only sets aiForts when it guards forts).
+export const hasGoalFlag = (G, flag) => (G.goals || []).some((o) => { const f = GOALS[o.kind] && GOALS[o.kind][flag]; return typeof f === 'function' ? f(o) : !!f; });
 
 export const updateGoals = (G, dt) => eachGoal(G, 'update', (g, o) => g.update(o, G, dt));
 export const goalsSunk = (G, s) => eachGoal(G, 'sunk', (g, o) => g.sunk(o, G, s));
@@ -60,8 +67,8 @@ export function judge(G) {
   }
   const endless = hasGoalFlag(G, 'endless');
   if (!endless && G.goals.every((o) => GOALS[o.kind] && GOALS[o.kind].done(o, G))) return { result: 'win' };
-  // Merchantmen under escort don't count as the fleet: they can't fight the battle for you.
-  const fleet = G.ships.some((s) => s.team === 'player' && afloat(s) && !s.escort);
+  // Merchantmen under escort and allies don't count as the fleet: you can't fight the battle with them.
+  const fleet = G.ships.some((s) => s.team === 'player' && afloat(s) && !selfSailing(s));
   if (!fleet) return endless ? { result: 'end' } : { result: 'lose', reason: 'fleet' };
   return null;
 }

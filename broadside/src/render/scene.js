@@ -85,7 +85,8 @@ export function syncScene() {
   for (const s of G.ships) {
     const m = shipMeshes.get(s.id);
     if (!m) continue;
-    if (s.state === 'sunk') { m.g.visible = false; continue; }
+    // Sunk, or a runner that got clean away over the edge of the chart.
+    if (s.state === 'sunk' || (s.fled && s.fledT > 1.8)) { m.g.visible = false; continue; }
     const sinkK = s.state === 'sinking' ? clamp(s.sinkT / 3.2, 0, 1) : 0;
     m.g.position.set(wx(s.x), 0, wz(s.y));
     m.g.rotation.y = -s.h;

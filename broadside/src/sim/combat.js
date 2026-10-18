@@ -1,4 +1,4 @@
-import { S, afloat, alive, shipById, unitById, fortById, showBanner, addDamage } from '../state.js';
+import { S, afloat, alive, shipById, unitById, fortById, showBanner, addDamage, selfSailing } from '../state.js';
 import { BALL_SPEED, BALL_DMG, MINE_DMG, FORT } from '../config/ships.js';
 import { AMMO } from '../config/ammo.js';
 import { PI, clamp, lerp, rand, angDiff, reduceMotion } from '../util.js';
@@ -213,7 +213,7 @@ export function sinkShip(e) {
   }
   abilitiesSunk(e);
   goalsSunk(G, e);
-  if (S.selected === e) S.selected = G.ships.find((s) => s.team === 'player' && afloat(s) && !s.escort) || null;
+  if (S.selected === e) S.selected = G.ships.find((s) => s.team === 'player' && afloat(s) && !selfSailing(s)) || null;
 }
 
 export function hitFort(f, b) {

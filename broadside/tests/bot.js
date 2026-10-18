@@ -46,6 +46,29 @@
       const fort = c.G.forts.find((f) => f.team === 'player') || s;
       return c.enemies.length ? { target: nearest(fort, c.enemies) } : null;
     },
+    // Fight whoever is closest to what you're guarding.
+    protect(s, o, c) {
+      const ward = [...c.G.ships.filter((q) => (o.ids || []).includes(q.id) && live(q)), ...c.G.forts.filter((f) => [].concat(o.forts || []).includes(f.name))];
+      const w = nearest(s, ward);
+      return w && c.enemies.length ? { target: nearest(w, c.enemies) } : null;
+    },
+    // Chase the quarry, the nearest first; the rest of the enemy can wait.
+    hunt(s, o, c) {
+      const q = nearest(s, c.enemies.filter((e) => [].concat(o.ships).includes(e.name)));
+      return q ? { target: q } : null;
+    },
+    // The named ship (or whichever ship is closest) sails into the ring; the others fight on.
+    reach(s, o, c) {
+      if (o.got) return null;
+      const runner = o.ship ? c.ships.find((q) => q.name === o.ship) : nearest({ x: o.px, y: o.py }, c.ships);
+      return runner === s ? { to: { x: o.px, y: o.py } } : null;
+    },
+    // Hold out: fight the enemy nearest the middle of the fleet, so the ships stick together.
+    survive(s, o, c) {
+      if (!c.enemies.length) return null;
+      const mid = { x: c.ships.reduce((a, q) => a + q.x, 0) / c.ships.length, y: c.ships.reduce((a, q) => a + q.y, 0) / c.ships.length };
+      return { target: nearest(mid, c.enemies) };
+    },
   };
 
   window.__bot = {
@@ -53,10 +76,10 @@
     tick() {
       const G = B().G;
       if (!G || G.phase !== 'play') return;
-      const ships = G.ships.filter((s) => s.team === 'player' && live(s) && !s.escort);
+      const ships = G.ships.filter((s) => s.team === 'player' && live(s) && !s.escort && !s.ally); // allies sail themselves
       const enemies = G.ships.filter((s) => s.team === 'enemy' && live(s));
       const c = {
-        G, enemies, boss: enemies.find((s) => s.boss), claimed: new Set(),
+        G, ships, enemies, boss: enemies.find((s) => s.boss), claimed: new Set(),
         hostileForts: G.forts.filter((f) => f.team === 'enemy' && f.state === 'active'),
       };
       const silent = G.forts.filter((f) => f.state !== 'active');

@@ -1,4 +1,4 @@
-import { afloat, showToast } from '../../state.js';
+import { S, afloat, showToast, selfSailing } from '../../state.js';
 import { rand } from '../../util.js';
 import { avoidIslands } from '../steering.js';
 import { spawn } from '../particles.js';
@@ -23,7 +23,7 @@ export default {
     G.chests.forEach((c, i) => {
       if (c.taken) return;
       for (const s of G.ships) {
-        if (!afloat(s) || s.escort || Math.hypot(s.x - c.x, s.y - c.y) > s.L * 0.5 + REACH) continue;
+        if (!afloat(s) || selfSailing(s) || Math.hypot(s.x - c.x, s.y - c.y) > s.L * 0.5 + REACH) continue;
         c.taken = true;
         for (let k = 0; k < 10; k++) spawn('flash', c.x + rand(-8, 8), c.y + rand(-8, 8), 0, 0, rand(0.2, 0.4), rand(3, 6), rand(4, 12), 0);
         if (s.team === 'player') { o.got++; showToast(`Treasure! ${o.got}/${o.need}`, s, 1.6); sfx.coin(); }
@@ -52,6 +52,15 @@ export default {
   // Chests carried by salvors still count: they can be won back.
   failed: (o, G) => (o.got + chestsLeft(G) + carried(G) < o.need ? 'treasure' : null),
   hud: (o, G) => [`Treasure: ${o.got}/${o.need}`, `Chests in the water: ${chestsLeft(G)}`],
+  // A gold ring bobs over each chest still in the water.
+  draw(o, G, api) {
+    if (!api.once('chests')) return;
+    for (const c of G.chests) {
+      if (c.taken) continue;
+      api.seaCircle(c.x, c.y, 15 + Math.sin(S.clock * 4 + c.x) * 2.5, 20);
+      api.ctx.lineWidth = 2.5; api.ctx.strokeStyle = 'rgba(255,214,90,0.85)'; api.ctx.stroke();
+    }
+  },
   brief: (o) => `Haul up ${o.need} of the ${o.chests.length} floating chests by sailing over them. Sink or board a salvor to take back what she has hauled.`,
   won: (o) => `${o.need} chests of Spanish silver are safe in your hold.`,
   lost: { treasure: 'The treasure is gone. Refit at the shipyard and try again.' },

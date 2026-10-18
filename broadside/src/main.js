@@ -4,6 +4,7 @@ import { $ } from './util.js';
 import { save, replaceSave, writeSave, isUnlocked } from './save.js';
 import { BATTLES, battleIndex } from './config/battles.js';
 import { battleDef } from './config/endless.js';
+import { LAB_ID, setLab } from './config/lab.js';
 import { R, initGL } from './render/gl.js';
 import { renderScene } from './render/scene.js';
 import { WX } from './render/weather.js';
@@ -97,6 +98,10 @@ window.__broadside = {
   battleIndex, openBrief, startPlay, dropMine, startLanding, landingFor, shipById, fortById, windFactor,
   GOALS, ABILITIES, events: { WHEN, DO }, spawnShip,
   startBattle(id) { openBrief(typeof id === 'number' ? id : battleIndex(id)); startPlay(); },
+  // Plays an ad-hoc battle definition (same shape as src/config/battles.js; see src/config/lab.js for the
+  // defaults). It goes through the briefing and results screens but never touches the save. brief: true stops
+  // at the briefing.
+  playDef(def, { brief = false } = {}) { setLab(def); openBrief(LAB_ID); if (!brief) startPlay(); return S.G; },
   proj: (x, y, z) => proj(x, y, z),
   setFire(m) { S.fireMode = m; syncSettings(); },
   step(n) { for (let i = 0; i < n; i++) update(1 / 60); render(); },

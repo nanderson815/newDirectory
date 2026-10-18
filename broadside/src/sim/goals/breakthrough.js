@@ -1,4 +1,5 @@
 import { showBanner } from '../../state.js';
+import { exitBand } from './marks.js';
 
 // Get the flagship (your fleet's `ship`th ship, the first by default) out through the exit at the top of
 // the chart. Lose her and the battle is lost; enemy captains go for her first.
@@ -6,8 +7,8 @@ export default {
   id: 'breakthrough',
   about: 'Get the flagship out through the exit at the top of the chart.',
   params: { ship: 'which of your ships is the flagship (default 0, the first)' },
-  exit: true,
   tip: 'exit',
+  draw: (o, G, api) => exitBand(G, api),
   setup(o, G) {
     const s = G.ships.filter((q) => q.team === 'player')[o.ship || 0];
     s.flag = true; s.exits = true;

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { S } from '../state.js';
-import { BATTLES } from '../config/battles.js';
+import { battleDef } from '../config/endless.js';
 import { weatherFor } from '../config/weather.js';
 import { sfx } from '../audio/sfx.js';
 import { COL, PI, TAU, clamp, rand, reduceMotion } from '../util.js';
@@ -28,7 +28,7 @@ const setRGB = (v, hex) => v.set(...hexRGB(hex));
 export function applyWeather(G) {
   if (!R.renderer) return;
   if (!fx) fx = buildFx();
-  const w = cur = weatherFor(BATTLES[G.battle]);
+  const w = cur = weatherFor(battleDef(G.battle));
   R.renderer.setClearColor(w.clear);
 
   const u = R.water.material.uniforms, wa = w.water;

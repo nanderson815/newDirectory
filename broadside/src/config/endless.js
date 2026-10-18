@@ -1,4 +1,5 @@
 import { BATTLES } from './battles.js';
+import { LAB_ID, labDef } from './lab.js';
 import { clamp, rand } from '../util.js';
 
 // Endless Skirmish: wave after wave of Spanish ships, each wave tougher than the last, a flagship every fifth
@@ -14,8 +15,8 @@ export const ENDLESS = {
   enemy: [], islands: [],
 };
 
-// Campaign battles by index, plus the skirmish by id.
-export const battleDef = (i) => (i === ENDLESS_ID ? ENDLESS : BATTLES[i]);
+// Campaign battles by index, plus the skirmish and the battle lab (src/config/lab.js) by id.
+export const battleDef = (i) => (i === ENDLESS_ID ? ENDLESS : i === LAB_ID ? labDef() : BATTLES[i]);
 
 // Enemy gunnery sharpens and hulls thicken with every wave, up to a ceiling.
 export function waveAI(n) {
