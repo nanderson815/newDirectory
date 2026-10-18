@@ -1,7 +1,7 @@
 import { S, afloat, showBanner } from '../state.js';
 import { waveAI, waveEnemies, WAVE_REPAIR } from '../config/endless.js';
 import { PI } from '../util.js';
-import { makeShip } from './battle.js';
+import { makeShip, nextId, placer } from './battle.js';
 import { sfx } from '../audio/sfx.js';
 
 // Endless Skirmish waves: when a wave is beaten, repair a little, restock mines and send in the next one.
@@ -30,10 +30,8 @@ export function spawnWave(n) {
   G.wave = n;
   G.nextWaveAt = null;
   G.ai = waveAI(n);
-  const W = G.W, H = G.H, land = W > H;
-  const place = land ? (x, y) => [(1 - y) * W, x * H] : (x, y) => [x * W, y * H];
-  const rot = land ? PI / 2 : 0;
-  let id = Math.max(...G.ships.map((s) => s.id), ...G.forts.map((f) => f.id), 0) + 1;
+  const place = placer(G), rot = G.land ? PI / 2 : 0;
+  let id = nextId(G);
   for (const d of waveEnemies(n)) {
     const s = makeShip(d, 'enemy', place, rot, id++, G.ai);
     G.ships.push(s);

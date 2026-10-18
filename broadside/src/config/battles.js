@@ -205,8 +205,8 @@ export const BATTLES = [
     goal: 'escort', need: 1, reward: 500, wind: -90,
     brief: 'Two merchantmen carry the colony’s silver. They sail for the top of the chart on their own; keep the raiders off them. At least one must get through.',
     escort: [
-      { type: 'merchant', name: 'Good Hope', x: 0.42, y: 0.9, h: -90 },
-      { type: 'merchant', name: 'Prosperous', x: 0.58, y: 0.94, h: -90 },
+      { type: 'merchant', name: 'Good Hope', x: 0.4, y: 0.7, h: -90 },
+      { type: 'merchant', name: 'Prosperous', x: 0.6, y: 0.73, h: -90 },
     ],
     enemy: [
       { type: 'xebec', name: 'El Cuchillo', x: 0.12, y: 0.4, h: 0 },

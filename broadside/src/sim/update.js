@@ -5,6 +5,7 @@ import { fireQueued, updateBalls, updateMines } from './combat.js';
 import { updateFort } from './forts.js';
 import { updateBoardings } from './boarding.js';
 import { updateWaves } from './endless.js';
+import { updateChests, updateDefend, updateFog, chestsLeft, GRACE } from './special.js';
 import { updateParticles } from './particles.js';
 import { sfx } from '../audio/sfx.js';
 
@@ -29,6 +30,9 @@ export function update(dt) {
     updateMines(dt);
     updateBoardings(dt);
     updateWaves();
+    updateChests();
+    updateDefend(dt);
+    updateFog();
     updateTutorial();
     checkEnd();
   }
@@ -43,7 +47,8 @@ export function checkEnd() {
     if (G.t >= G.endAt && S.hooks.onEnd) S.hooks.onEnd();
     return;
   }
-  const playerAfloat = G.ships.some((s) => s.team === 'player' && afloat(s));
+  // Merchantmen under escort don't count as the fleet: they can't fight the battle for you.
+  const playerAfloat = G.ships.some((s) => s.team === 'player' && afloat(s) && !s.escort);
   // The skirmish only ends when the fleet is gone.
   if (G.goal === 'waves') {
     if (!playerAfloat) { G.result = 'end'; G.endAt = G.t + 2.4; }
@@ -59,11 +64,32 @@ export function checkEnd() {
       !needed.some((f) => G.ships.some((s) => s.team === 'player' && afloat(s) && s.marines >= f.need));
     if (!won && stuck) { G.result = 'lose'; G.reason = 'marines'; G.endAt = G.t + 2.4; return; }
   }
+  else if (G.goal === 'treasure') {
+    won = G.got >= G.need;
+    if (!won && G.got + chestsLeft(G) < G.need) return lose('treasure');
+  } else if (G.goal === 'escort') {
+    won = G.escaped >= G.need;
+    const sailing = G.ships.filter((s) => s.escort && s.team === 'player' && afloat(s)).length;
+    if (!won && G.escaped + sailing < G.need) return lose('escort');
+  } else if (G.goal === 'defend') {
+    won = G.holdT >= G.hold && G.forts.some((f) => f.team === 'player' && f.state === 'active');
+    if (!won && G.downT >= GRACE) return lose('fort');
+  } else if (G.goal === 'breakthrough') {
+    const flag = G.ships.find((s) => s.flag);
+    won = !!flag && flag.state === 'escaped';
+    if (!won && (!flag || flag.team !== 'player' || (flag.state !== 'afloat' && flag.state !== 'escaped'))) return lose('flagship');
+  }
   else won = !G.ships.some((s) => s.team === 'enemy' && afloat(s));
+  if (won && G.goal === 'breakthrough') { G.result = 'win'; G.endAt = G.t + 2.4; return; }
   if (!playerAfloat || won) {
     G.result = playerAfloat ? 'win' : 'lose';
     G.endAt = G.t + 2.4;
   }
+}
+
+function lose(reason) {
+  const G = S.G;
+  G.result = 'lose'; G.reason = reason; G.endAt = G.t + 2.4;
 }
 
 // ---------- Tutorial ----------

@@ -24,7 +24,10 @@
     tick() {
       const G = B().G;
       if (!G || G.phase !== 'play') return;
-      const ships = G.ships.filter((s) => s.team === 'player' && live(s));
+      const ships = G.ships.filter((s) => s.team === 'player' && live(s) && !s.escort);
+      const escorts = G.ships.filter((s) => s.team === 'player' && live(s) && s.escort);
+      const flag = G.ships.find((s) => s.flag && live(s) && s.team === 'player');
+      const claimed = new Set();
       const enemies = G.ships.filter((s) => s.team === 'enemy' && live(s));
       const boss = enemies.find((s) => s.boss);
       const hostileForts = G.forts.filter((f) => f.team === 'enemy' && f.state === 'active');
@@ -48,9 +51,22 @@
           }
         }
         if (s.mines > 0 && enemies.some((e) => Math.hypot(e.x - s.x, e.y - s.y) < 120)) B().dropMine(s);
+        // Breakthrough: the flagship runs for the exit at the top of the chart.
+        if (s === flag) { s.pivot = null; s.path = [G.land ? { x: G.W - 10, y: s.y } : { x: s.x, y: 10 }]; continue; }
+        // Treasure: each ship makes for a different floating chest.
+        if (G.goal === 'treasure') {
+          const c = nearest(s, G.chests.filter((q) => !q.taken && !claimed.has(q)));
+          if (c) { claimed.add(c); s.pivot = null; s.path = [{ x: c.x, y: c.y }]; continue; }
+        }
+        // Fireships closing in come first.
+        const fire = enemies.filter((e) => e.fireship && Math.hypot(e.x - s.x, e.y - s.y) < 320);
         let t;
-        if (G.goal === 'capture' && hostileForts.length) t = nearest(s, hostileForts);
+        if (fire.length) t = nearest(s, fire);
+        else if (G.goal === 'capture' && hostileForts.length) t = nearest(s, hostileForts);
         else if (G.goal === 'boss' && boss) t = boss;
+        else if (G.goal === 'escort' && escorts.length && enemies.length) t = nearest(nearest(s, escorts), enemies);
+        else if (G.goal === 'breakthrough' && flag && enemies.length) t = nearest(flag, enemies);
+        else if (G.goal === 'defend' && enemies.length) t = nearest(G.forts[0] || s, enemies);
         else t = nearest(s, enemies.length ? enemies : hostileForts);
         if (t) circle(s, t, G);
       }

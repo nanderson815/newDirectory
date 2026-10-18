@@ -4,6 +4,7 @@ import { AMMO } from '../config/ammo.js';
 import { PI, clamp, lerp, rand, angDiff, reduceMotion } from '../util.js';
 import { spawn } from './particles.js';
 import { sfx } from '../audio/sfx.js';
+import { fireshipBurst, updateShell } from './special.js';
 
 const BROADSIDE_ARC = 0.62;  // half-angle of each side's firing arc
 const CHASER_ARC = 0.32;     // half-angle of the bow chasers' arc
@@ -12,8 +13,9 @@ const FORT_SIZE = 20;        // a fort counts as in range once its walls are
 export const sideDir = (s, side) => s.h + (side === 0 ? -PI / 2 : PI / 2); // 0 = port, 1 = starboard
 
 // Everything an enemy of `team` could shoot at: ships afloat and forts with working guns.
+// In fog the English can't aim at what their lookouts can't see.
 function* targets(team) {
-  for (const e of S.G.ships) if (e.team !== team && afloat(e)) yield e;
+  for (const e of S.G.ships) if (e.team !== team && afloat(e) && !(e.hidden && team === 'player')) yield e;
   for (const f of S.G.forts) if (f.team !== team && f.state === 'active') yield f;
 }
 
@@ -58,6 +60,7 @@ const enemyMul = (team, k) => (team === 'enemy' ? S.G.ai[k] : 1);
 export const crewMul = (s) => 1 + Math.min(0.5, 0.06 * s.crewHit);
 
 export function fireBroadside(s, side, tgt) {
+  if (s.guns <= 0) return;
   s.reload[side] = s.reloadTime * enemyMul(s.team, 'reloadMul') * crewMul(s) * rand(0.95, 1.05);
   for (let i = 0; i < s.guns; i++) {
     S.pending.push({ t: i * 0.075 + rand(0, 0.04), shipId: s.id, side, gi: i, targetId: tgt ? tgt.id : null, ammo: s.ammo });
@@ -139,6 +142,11 @@ export function updateBalls(dt) {
   const G = S.G, balls = S.balls;
   for (let i = balls.length - 1; i >= 0; i--) {
     const b = balls[i];
+    // Mortar shells fly high over everything and burst where they land.
+    if (b.kind === 'shell') {
+      if (updateShell(b, dt)) { const last = balls.pop(); if (i < balls.length) balls[i] = last; }
+      continue;
+    }
     b.x += b.vx * dt; b.y += b.vy * dt; b.travel += BALL_SPEED * dt;
     let done = false;
     for (const e of G.ships) {
@@ -188,17 +196,21 @@ export function hitShip(e, b) {
   spawn('smoke', b.x, b.y, rand(-8, 8), rand(-8, 8), 0.8, 5, 10, 8);
   sfx.woodHit(b.x, b.y);
   if (e.team === 'player' && !reduceMotion) S.shake = Math.max(S.shake, b.mine ? 8 : 5);
-  if (e.hp <= 0 && e.state === 'afloat') {
-    e.hp = 0; e.state = 'sinking'; e.sinkT = 0; e.path = []; e.pivot = null;
-    spawn('splash', e.x, e.y, 0, 0, 1.0, e.L * 0.45);
-    sfx.sink(e.x, e.y, e.L);
-    if (e.boss) {
-      showBanner(`${e.boss.captain} is beaten!`, `${e.boss.title} is going down`, 3);
-      sfx.bossDown();
-      if (!reduceMotion) S.slowmo = { until: S.clock + 1.8, k: 0.3 };
-    }
-    if (S.selected === e) S.selected = G.ships.find((s) => s.team === 'player' && afloat(s)) || null;
+  if (e.hp <= 0 && e.state === 'afloat') sinkShip(e);
+}
+
+export function sinkShip(e) {
+  const G = S.G;
+  e.hp = 0; e.state = 'sinking'; e.sinkT = 0; e.path = []; e.pivot = null;
+  spawn('splash', e.x, e.y, 0, 0, 1.0, e.L * 0.45);
+  sfx.sink(e.x, e.y, e.L);
+  if (e.boss) {
+    showBanner(`${e.boss.captain} is beaten!`, `${e.boss.title} is going down`, 3);
+    sfx.bossDown();
+    if (!reduceMotion) S.slowmo = { until: S.clock + 1.8, k: 0.3 };
   }
+  if (e.fireship) fireshipBurst(e);
+  if (S.selected === e) S.selected = G.ships.find((s) => s.team === 'player' && afloat(s) && !s.escort) || null;
 }
 
 export function hitFort(f, b) {
