@@ -281,7 +281,8 @@ export function validateContent(C) {
       if (!(isNum(T[k]) && T[k] >= 0)) bad(at, `${k} must be a number of at least 0, got ${q(T[k])}`);
       else if (POSITIVE_STATS.includes(k) && T[k] === 0) bad(at, `${k} must be above 0`);
     }
-    if (T.rig !== undefined && !isStr(T.rig)) bad(at, 'rig must be a string');
+    if (isNum(T.masts) && T.masts !== 2 && T.masts !== 3) bad(at, `masts must be 2 or 3 (the renderer draws two or three), got ${T.masts}`);
+    if (T.rig !== undefined && !isStr(T.rig)) bad(at, "rig must be a string ('square', 'fore-aft' or 'lateen'; see src/sim/wind.js)");
     checkAbilities(at, T.abilities);
   }
 
