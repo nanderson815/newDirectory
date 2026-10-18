@@ -7,7 +7,7 @@ import { launch, open, save, OUT } from './lib.mjs';
 
 const dir = process.argv[2] || path.join(OUT, 'ui');
 fs.mkdirSync(dir, { recursive: true });
-const snap = (page, name) => page.screenshot({ path: path.join(dir, name + '.png') });
+const snap = (page, name) => page.screenshot({ path: path.join(dir, name + '.png'), timeout: 180000 });
 const ids = ['tutorial', 'tortuga', 'cayman', 'rojo', 'sanlucas', 'silver', 'comodoro', 'cartagena', 'santamarta', 'oro',
   'cove', 'wreck', 'kate', 'convoy', 'siege', 'hierro', 'fog', 'blockade', 'armada'];
 const upTo = (n, st = (i) => 3 - (i % 3)) => Object.fromEntries(ids.slice(0, n).map((id, i) => [id, st(i)]));
