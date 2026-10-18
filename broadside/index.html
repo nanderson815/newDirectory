@@ -340,8 +340,9 @@ function newBattle(idx) {
   const B = BATTLES[idx];
   const land = cw > ch * 1.05;
   const ratio = clamp(Math.max(cw, ch) / Math.min(cw, ch), 1.25, 2.0);
-  const W = land ? Math.round(620 * ratio) : 620;
-  const H = land ? 620 : Math.round(620 * ratio);
+  const pw = land ? null : portraitWorld(Math.max(cw, ch) / Math.min(cw, ch));
+  const W = land ? Math.round(620 * ratio) : pw.W;
+  const H = land ? 620 : pw.H;
   // Landscape screens rotate the layout 90°: the player starts on the left.
   const place = land ? (x, y) => [(1 - y) * W, x * H] : (x, y) => [x * W, y * H];
   const rot = land ? PI / 2 : 0;
@@ -393,7 +394,7 @@ function followPath(s) {
     const p = s.path[0];
     const d = Math.hypot(p.x - s.x, p.y - s.y);
     const last = s.path.length === 1;
-    const inIsland = G.islands.some((is) => Math.hypot(p.x - is.x, p.y - is.y) < is.r + s.L * 0.3);
+    const inIsland = G.islands.some((is) => Math.hypot(p.x - is.x, p.y - is.y) < is.r * 1.05 + s.L * 0.42);
     const want = Math.atan2(p.y - s.y, p.x - s.x);
     const turnR = Math.max(s.v, 10) / s.turn;
     // Skip waypoints we've reached, that sit on land, or that are inside our turning circle.
@@ -411,13 +412,20 @@ function avoidIslands(s, desired, reach) {
   let best = desired, bestD = Infinity;
   for (const is of G.islands) {
     const dx = is.x - s.x, dy = is.y - s.y, d = Math.hypot(dx, dy);
-    const clear = is.r + s.L * 0.3 + 16;
+    const clear = is.r * 1.05 + s.L * 0.42 + 14;
     if (d - clear > Math.min(reach, 160) || d >= bestD) continue;
     const toIs = Math.atan2(dy, dx);
     const off = angDiff(desired, toIs);
     if (Math.abs(off) > PI / 2 || Math.abs(Math.sin(off)) * d > clear) continue;
     const tangent = Math.asin(clamp(clear / Math.max(d, clear), 0, 1));
-    best = toIs + (off > 0 ? -1 : 1) * (tangent + 0.12);
+    // Pass on the side the course leans to, unless that gap is blocked by the map edge.
+    const open = (side) => {
+      const px = is.x + Math.cos(toIs + side * PI / 2) * clear, py = is.y + Math.sin(toIs + side * PI / 2) * clear;
+      return px > 25 && px < G.W - 25 && py > 25 && py < G.H - 25;
+    };
+    let side = off > 0 ? -1 : 1;
+    if (!open(side) && open(-side)) side = -side;
+    best = toIs + side * (tangent + 0.12);
     bestD = d;
   }
   return best;
@@ -621,7 +629,7 @@ function updateBalls(dt) {
       sfx.splash();
       done = true;
     }
-    if (done || b.x < -50 || b.y < -50 || b.x > G.W + 50 || b.y > G.H + 50) balls.splice(i, 1);
+    if (done || b.x < -50 || b.y < -50 || b.x > G.W + 50 || b.y > G.H + 50) { const last = balls.pop(); if (i < balls.length) balls[i] = last; }
   }
 }
 
@@ -656,7 +664,8 @@ function collide(dt) {
     }
     for (const is of G.islands) {
       const dx = a.x - is.x, dy = a.y - is.y, d = Math.hypot(dx, dy) || 0.01;
-      const min = is.r + a.L * 0.3;
+      // Matches the drawn beach plus bevel, so bows stay off the sand.
+      const min = is.r * 1.05 + a.L * 0.42;
       if (d < min) {
         a.x = is.x + (dx / d) * min; a.y = is.y + (dy / d) * min;
         // Slide along the shore: swing the bow onto the nearer tangent instead of grinding to a halt.
@@ -674,15 +683,26 @@ function collide(dt) {
 
 // ---------- Particles (simulated in map space, z is height above water) ----------
 const GRAVITY = { drop: 160, splinter: 140, sand: 140 };
+// Particle objects are recycled through a free list and removed by swap-pop, so a busy battle doesn't churn the GC.
+const freeParticles = [];
+let spawnWrap = 0;
 function spawn(kind, x, y, vx, vy, life, size, z = 0, vz = 0) {
-  if (particles.length > 900) particles.shift();
-  particles.push({ kind, x, y, z, vx, vy, vz, life, max: life, size, rot: rand(0, TAU), spin: rand(-6, 6) });
+  let p;
+  if (particles.length > 900) p = particles[spawnWrap++ % particles.length]; // full: overwrite an old one
+  else { p = freeParticles.pop() || {}; particles.push(p); }
+  p.kind = kind; p.x = x; p.y = y; p.z = z; p.vx = vx; p.vy = vy; p.vz = vz;
+  p.life = life; p.max = life; p.size = size; p.rot = rand(0, TAU); p.spin = rand(-6, 6);
 }
 function updateParticles(dt) {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     p.life -= dt;
-    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    if (p.life <= 0) {
+      const last = particles.pop();
+      if (i < particles.length) particles[i] = last;
+      freeParticles.push(p);
+      continue;
+    }
     const drag = p.kind === 'smoke' || p.kind === 'soot' ? 1.6 : p.kind === 'plank' ? 0.3 : 2.2;
     p.vx -= p.vx * Math.min(1, drag * dt); p.vy -= p.vy * Math.min(1, drag * dt);
     if (p.kind === 'plank' && G) { p.vx += Math.cos(G.wind.dir) * 2 * dt; p.vy += Math.sin(G.wind.dir) * 2 * dt; }
@@ -796,21 +816,55 @@ function initGL() {
   water = new THREE.Mesh(
     new THREE.PlaneGeometry(8000, 8000).rotateX(-PI / 2),
     new THREE.ShaderMaterial({
-      uniforms: { uT: { value: 0 }, uWind: { value: new THREE.Vector2(1, 0) }, uHalf: { value: new THREE.Vector2(300, 600) } },
+      uniforms: {
+        uT: { value: 0 }, uWind: { value: new THREE.Vector2(1, 0) }, uHalf: { value: new THREE.Vector2(300, 600) },
+        // Islands (x, z, r, cull radius squared) for the shore ripples.
+        uIsl: { value: Array.from({ length: 6 }, () => new THREE.Vector4()) },
+        uCount: { value: new THREE.Vector2(0, 0) },
+        uNoise: { value: noiseTexture(128) },
+      },
       vertexShader: 'varying vec2 vP; void main(){ vec4 wp = modelMatrix * vec4(position,1.0); vP = wp.xz; gl_Position = projectionMatrix * viewMatrix * wp; }',
+      // Stylised toon sea: broad swells quantised into soft bands, a calm centre-weighted gradient, sparse
+      // blinking crescent glints and foam ripples off the shores. Hull foam is a separate instanced collar mesh.
       fragmentShader: `
-        precision mediump float;
-        uniform float uT; uniform vec2 uWind; uniform vec2 uHalf; varying vec2 vP;
+        precision highp float;
+        uniform float uT; uniform vec2 uWind; uniform vec2 uHalf;
+        uniform vec4 uIsl[6]; uniform vec2 uCount;
+        uniform sampler2D uNoise;
+        varying vec2 vP;
+        float hash(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
         void main(){
-          vec2 p = vP - uWind * uT * 7.0;
-          float n = sin(p.x*0.035 + sin(p.y*0.021)*2.0 + uT*0.7) * sin(p.y*0.045 + sin(p.x*0.017)*2.0 - uT*0.5);
-          vec3 deep = vec3(0.12, 0.47, 0.72);
-          vec3 light = vec3(0.24, 0.66, 0.87);
-          vec3 col = mix(deep, light, smoothstep(-1.0, 1.0, n) * 0.55 + 0.25);
-          float c = sin(p.x*0.12 + sin(p.y*0.08 + uT)*1.7) * sin(p.y*0.10 + sin(p.x*0.05)*1.3 + uT*0.6);
-          col = mix(col, vec3(0.92, 0.98, 1.0), smoothstep(0.90, 0.96, c) * 0.55);
-          vec2 d = abs(vP) - uHalf;
-          col *= 1.0 - 0.22 * smoothstep(0.0, 80.0, max(d.x, d.y));
+          vec2 flow = uWind * uT * 5.0;
+          vec2 p = vP - flow;
+          // Two drifting samples of a baked tileable noise (8 lattice cells per tile) instead of arithmetic noise.
+          float n = texture2D(uNoise, p * 0.00056 + vec2(uT * 0.0025, -uT * 0.0019)).r * 0.6 + texture2D(uNoise, p * 0.0014 + vec2(-uT * 0.005, uT * 0.0037) + 0.37).r * 0.4;
+          // Calm base gradient, one gentle lighter tier and thin soft crest lines along its edge.
+          vec3 col = mix(vec3(0.11, 0.47, 0.75), vec3(0.17, 0.57, 0.84), smoothstep(0.25, 0.75, n));
+          col = mix(col, vec3(0.24, 0.65, 0.89), smoothstep(0.60, 0.64, n) * 0.45);
+          col = mix(col, vec3(0.55, 0.84, 0.97), (1.0 - smoothstep(0.0, 0.01, abs(n - 0.6))) * 0.2);
+          vec2 q = vP / uHalf;
+          col *= 1.0 + 0.07 * (1.0 - clamp(dot(q, q) * 0.5, 0.0, 1.0));
+          // Sparse glints: at most one small crescent per 64-unit cell, half the cells, blinking slowly.
+          vec2 g = (vP - flow * 1.4) / 64.0;
+          vec2 cell = floor(g);
+          float h = hash(cell);
+          vec2 d = fract(g) - 0.5 - (vec2(hash(cell + 17.0), hash(cell + 31.0)) - 0.5) * 0.5;
+          d.y += d.x * d.x * 4.0;
+          d.x *= 0.36;
+          float foam = (1.0 - smoothstep(0.03, 0.05, length(d))) * smoothstep(0.55, 1.0, sin(uT * 1.1 + h * 50.0)) * step(0.5, h);
+          for (int i = 0; i < 6; i++) {
+            if (float(i) >= uCount.x) break;
+            vec4 I = uIsl[i];
+            vec2 v = vP - I.xy;
+            if (dot(v, v) > I.w) continue;
+            float k = length(v) / I.z - 1.0;
+            k += (sin(v.x * 0.11 + uT * 0.7) * sin(v.y * 0.13 - uT * 0.5)) * 0.07;
+            float ring = smoothstep(0.78, 0.95, sin(k * 24.0 - uT * 2.2)) * (1.0 - smoothstep(0.15, 0.75, k)) * step(0.12, k);
+            foam = max(foam, ring * 0.75);
+          }
+          col = mix(col, vec3(0.93, 0.98, 1.0), clamp(foam, 0.0, 1.0) * 0.85);
+          vec2 dd = abs(vP) - uHalf;
+          col *= 1.0 - 0.22 * smoothstep(0.0, 80.0, max(dd.x, dd.y));
           gl_FragColor = vec4(col, 1.0);
         }`,
     })
@@ -838,7 +892,56 @@ function initGL() {
   };
   pools.ballShadow.renderOrder = 1;
   pools.rings.forEach((r) => (r.renderOrder = 1));
+  // Every ship's shadow in one draw: hullShape is linear in L and B, so a unit hull scales to any class.
+  pools.shipShadow = mkPool(new THREE.ShapeGeometry(hullShape(1, 1)).rotateX(-PI / 2), new THREE.MeshBasicMaterial({ color: 0x0b2d4a, transparent: true, opacity: 0.26, depthWrite: false }), 32);
+  pools.shipShadow.renderOrder = 1;
+  pools.foam = mkPool(foamCollarGeometry(), new THREE.MeshBasicMaterial({ color: 0xf2fbff, transparent: true, opacity: 0.8, depthWrite: false }), 32);
+  pools.foam.renderOrder = 2;
+  vcToon = toon('#ffffff', { vertexColors: true });
   return true;
+}
+
+// A unit-ellipse foam band with a scalloped edge, thicker at the bow (+x), for the hull foam collars.
+function foamCollarGeometry() {
+  const n = 56, pos = [], idx = [];
+  for (let i = 0; i <= n; i++) {
+    const a = (i / n) * TAU, c = Math.cos(a), sn = Math.sin(a);
+    const bow = Math.max(0, c);
+    const r0 = 0.98 + 0.03 * Math.sin(a * 9), r1 = r0 + 0.1 + 0.22 * bow * bow + 0.04 * Math.sin(a * 13 + 1);
+    pos.push(c * r0, 0, sn * r0, c * r1, 0, sn * r1);
+    if (i < n) { const k = i * 2; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  return g;
+}
+
+// Tileable smooth noise baked once: three octaves of wrapped value noise (8, 16 and 32 lattice cells per tile).
+function noiseTexture(n) {
+  const oct = [[8, 0.6], [16, 0.28], [32, 0.12]];
+  const lat = oct.map(([g]) => Float32Array.from({ length: g * g }, () => Math.random()));
+  const data = new Uint8Array(n * n * 4);
+  const sm = (t) => t * t * (3 - 2 * t);
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      let v = 0;
+      oct.forEach(([g, w], o) => {
+        const fx = (x / n) * g, fy = (y / n) * g, ix = Math.floor(fx), iy = Math.floor(fy);
+        const tx = sm(fx - ix), ty = sm(fy - iy), L = lat[o];
+        const at = (a, b) => L[(b % g) * g + (a % g)];
+        v += w * lerp(lerp(at(ix, iy), at(ix + 1, iy), tx), lerp(at(ix, iy + 1), at(ix + 1, iy + 1), tx), ty);
+      });
+      const k = (y * n + x) * 4;
+      data[k] = data[k + 1] = data[k + 2] = Math.round(clamp(v, 0, 1) * 255); data[k + 3] = 255;
+    }
+  }
+  const t = new THREE.DataTexture(data, n, n);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  // Each texel covers several screen pixels at this zoom, so plain bilinear (no mipmaps) is enough.
+  t.magFilter = t.minFilter = THREE.LinearFilter;
+  t.generateMipmaps = false; t.needsUpdate = true;
+  return t;
 }
 
 function hullShape(L, B, k) {
@@ -904,7 +1007,85 @@ function sailGeometry(w, h) {
   return geo;
 }
 
-// One model per class and flag, built once and cloned per ship (geometry and materials are shared).
+// ---------- Static batching ----------
+// BufferGeometryUtils isn't in the UMD build, so this is a small merge: walk a built hierarchy and bake every
+// static mesh into at most three geometries: opaque toon parts (material colour moved into vertex colours),
+// ink outlines (positions only) and translucent flats (vertex colour + alpha). Each becomes one draw call.
+const _bm = new THREE.Matrix4(), _bi = new THREE.Matrix4(), _bn = new THREE.Matrix3(), _bv = new THREE.Vector3();
+function bakeStatic(root, skip, uvFor) {
+  root.updateMatrixWorld(true);
+  _bi.copy(root.matrixWorld).invert();
+  const solid = [], ink = [], glass = [], temp = [];
+  const walk = (o) => {
+    if (o !== root && skip && skip(o)) return;
+    if (o.isMesh) {
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry;
+      if (g !== o.geometry) temp.push(g);
+      const part = { g, m: new THREE.Matrix4().multiplyMatrices(_bi, o.matrixWorld), mats: Array.isArray(o.material) ? o.material : [o.material], uv: uvFor ? uvFor(o) : null };
+      (o.material === inkMat ? ink : part.mats[0].transparent ? glass : solid).push(part);
+    }
+    for (const c of o.children) walk(c);
+  };
+  walk(root);
+  const out = { solid: solid.length ? mergeParts(solid, 3) : null, ink: ink.length ? mergeParts(ink, 0) : null, glass: glass.length ? mergeParts(glass, 4) : null };
+  for (const g of temp) g.dispose();
+  return out;
+}
+// colorSize: 0 = positions only, 3 = normals/uv/rgb, 4 = normals/uv/rgba (alpha from material opacity).
+function mergeParts(parts, colorSize) {
+  let n = 0;
+  for (const p of parts) n += p.g.attributes.position.count;
+  const full = colorSize > 0;
+  const pos = new Float32Array(n * 3), nor = full ? new Float32Array(n * 3) : null;
+  const uv = full ? new Float32Array(n * 2) : null, col = full ? new Float32Array(n * colorSize) : null;
+  let o = 0;
+  for (const p of parts) {
+    const P = p.g.attributes.position, N = p.g.attributes.normal, U = p.g.attributes.uv, cnt = P.count;
+    _bn.getNormalMatrix(p.m);
+    for (let i = 0; i < cnt; i++) {
+      _bv.fromBufferAttribute(P, i).applyMatrix4(p.m).toArray(pos, (o + i) * 3);
+      if (!full) continue;
+      if (N) _bv.fromBufferAttribute(N, i).applyMatrix3(_bn).normalize().toArray(nor, (o + i) * 3);
+      if (p.uv) { uv[(o + i) * 2] = p.uv[0]; uv[(o + i) * 2 + 1] = p.uv[1]; }
+      else if (U) { uv[(o + i) * 2] = U.getX(i); uv[(o + i) * 2 + 1] = U.getY(i); }
+    }
+    if (full) {
+      // Material colours are already linear, which is what vertex colours expect.
+      const groups = p.mats.length > 1 && p.g.groups.length ? p.g.groups : [{ start: 0, count: cnt, materialIndex: 0 }];
+      for (const gr of groups) {
+        const mt = p.mats[gr.materialIndex] || p.mats[0], c = mt.color;
+        const end = Math.min(cnt, gr.start + gr.count);
+        for (let i = gr.start; i < end; i++) {
+          const k = (o + i) * colorSize;
+          col[k] = c.r; col[k + 1] = c.g; col[k + 2] = c.b;
+          if (colorSize === 4) col[k + 3] = mt.opacity;
+        }
+      }
+    }
+    o += cnt;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  if (full) {
+    g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    g.setAttribute('color', new THREE.BufferAttribute(col, colorSize));
+  }
+  g.computeBoundingSphere();
+  return g;
+}
+// Replaces a group's static children with merged meshes; children matching skip stay as they are.
+function bakeChildren(group, mat, skip, uvFor) {
+  const b = bakeStatic(group, skip, uvFor);
+  for (const c of [...group.children]) if (!skip || !skip(c)) group.remove(c);
+  const out = {};
+  if (b.solid) { out.solid = new THREE.Mesh(b.solid, mat); group.add(out.solid); }
+  if (b.ink) { out.ink = new THREE.Mesh(b.ink, inkMat); group.add(out.ink); }
+  return out;
+}
+let vcToon = null;
+
+// One model per class and flag, built once and cloned per ship (geometry is shared; the body material is per ship).
 const templates = new Map();
 function shipTemplate(type, team) {
   const key = type + ':' + team;
@@ -985,8 +1166,17 @@ function shipTemplate(type, team) {
       body.add(flagPivot);
     }
   });
-  const shadowGeo = new THREE.ShapeGeometry(hullShape(L, B, 1.08)).rotateX(-PI / 2);
-  const tpl = { root, top, shadowGeo };
+  // Bake: the static body becomes one toon mesh + one outline; each mast's sails and yards become one mesh.
+  const bodyMat = toon('#ffffff', { vertexColors: true });
+  const animated = (o) => o.name === 'pivot' || o.name === 'flag';
+  const baked = bakeChildren(body, bodyMat, animated);
+  baked.solid.name = 'hullBody';
+  const rigMat = toon('#ffffff', { map: sailTexture(team), side: THREE.DoubleSide, vertexColors: true });
+  for (const pv of body.children.filter((c) => c.name === 'pivot')) {
+    // Yards sample a plain cream texel of the sail texture so the wood colour shows through.
+    bakeChildren(pv, rigMat, null, (m) => (m.material === wood ? [0.4, 0.15] : null)).solid.name = 'rig';
+  }
+  const tpl = { root, top };
   templates.set(key, tpl);
   return tpl;
 }
@@ -994,22 +1184,19 @@ function shipTemplate(type, team) {
 function buildShip(s) {
   const tpl = shipTemplate(s.type, s.team);
   const g = tpl.root.clone(true);
-  const ref = { g, sails: [], pivots: [], body: null, flagPivot: null, hullMat: null, top: tpl.top };
+  const ref = { g, rigs: [], pivots: [], body: null, flagPivot: null, hullMat: null, top: tpl.top };
   g.traverse((o) => {
     if (o.name === 'body') ref.body = o;
-    else if (o.name === 'sail') ref.sails.push(o);
+    else if (o.name === 'rig') ref.rigs.push(o);
     else if (o.name === 'pivot') ref.pivots.push(o);
     else if (o.name === 'flag') ref.flagPivot = o;
-    else if (o.name === 'hull') {
-      // Each hull gets its own side material so it can flash white when hit.
-      ref.hullMat = o.material[1].clone();
-      o.material = [o.material[0], ref.hullMat];
+    else if (o.name === 'hullBody') {
+      // Each ship gets its own body material so it can flash white when hit.
+      ref.hullMat = o.material.clone();
+      o.material = ref.hullMat;
     }
   });
   scene.add(g);
-  ref.shadow = new THREE.Mesh(tpl.shadowGeo, new THREE.MeshBasicMaterial({ color: 0x0b2d4a, transparent: true, opacity: 0.26, depthWrite: false }));
-  ref.shadow.renderOrder = 1;
-  scene.add(ref.shadow);
   shipMeshes.set(s.id, ref);
 }
 
@@ -1041,6 +1228,7 @@ function buildIsland(is) {
   };
   flat(1.55, 0x9fe6f0, 0.45, 0.2);
   flat(1.25, 0xcdf5f7, 0.6, 0.3);
+  flat(1.1, 0xffffff, 0.9, 0.4); // cartoon surf line hugging the beach
   const sand = new THREE.Mesh(liftedExtrude(islandShape(is, 0.94), 5, 3.5, 0), toon('#f2d68f'));
   sand.position.y = -1;
   withOutline(sand, 0.04);
@@ -1062,8 +1250,7 @@ function buildIsland(is) {
     g.add(rock);
   }
   for (const p of is.palms) g.add(buildPalm(p));
-  scene.add(g);
-  worldObjs.push(g);
+  return g;
 }
 
 let leafGeo = null, nutGeo = null;
@@ -1105,45 +1292,114 @@ function buildPalm(p) {
 
 function buildScene() {
   if (!renderer) return;
-  for (const m of shipMeshes.values()) { scene.remove(m.g); scene.remove(m.shadow); m.hullMat.dispose(); m.shadow.material.dispose(); }
+  for (const m of shipMeshes.values()) { scene.remove(m.g); m.hullMat.dispose(); }
   for (const o of worldObjs) {
     scene.remove(o);
-    o.traverse((c) => { if (c.isMesh && c.material !== inkMat) c.geometry.dispose(); });
+    o.traverse((c) => { if (c.isMesh) { c.geometry.dispose(); if (c.material !== vcToon && c.material !== inkMat) c.material.dispose(); } });
   }
   shipMeshes = new Map(); worldObjs = [];
-  for (const is of G.islands) buildIsland(is);
+  // All islands bake into three meshes: toon land, ink outlines and the translucent shallows.
+  const isles = new THREE.Group();
+  for (const is of G.islands) isles.add(buildIsland(is));
+  const b = bakeStatic(isles);
+  const world = new THREE.Group();
+  if (b.solid) world.add(new THREE.Mesh(b.solid, vcToon));
+  if (b.ink) world.add(new THREE.Mesh(b.ink, inkMat));
+  if (b.glass) {
+    const shallows = new THREE.Mesh(b.glass, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false }));
+    shallows.renderOrder = 1;
+    world.add(shallows);
+  }
+  isles.traverse((c) => { if (c.isMesh && c.geometry !== leafGeo && c.geometry !== nutGeo) c.geometry.dispose(); });
+  scene.add(world);
+  worldObjs.push(world);
   for (const s of G.ships) buildShip(s);
   water.material.uniforms.uHalf.value.set(G.W / 2, G.H / 2);
+  // w = squared radius beyond which a fragment can't see this island's foam.
+  water.material.uniforms.uIsl.value.forEach((v, i) => { const is = G.islands[i]; if (is) v.set(wx(is.x), wz(is.y), is.r, (is.r * 1.8) ** 2); else v.set(0, 0, 0, 0); });
+  water.material.uniforms.uCount.value.x = Math.min(6, G.islands.length);
   fitCamera();
 }
 
-// Tilt the camera and back it off until the whole map fits on screen.
-function fitCamera() {
-  if (!renderer || !G) return;
+// Camera framing. Portrait looks down more steeply through a longer lens, so a deep map fills a tall
+// screen with little perspective shrink at the far edge; landscape keeps the lower, wider view.
+const VIEW = { portrait: { tilt: 62, fov: 26 }, landscape: { tilt: 54, fov: 32 } };
+const TOP_HUD = 40; // px kept clear above the far edge for the top HUD row
+
+// Places the camera so a W x H map fits on screen as large as possible: the far edge sits just under the
+// top HUD row and the camera backs off until every corner is in frame. Returns the spare height at the
+// bottom in NDC units (0 when the map fills the screen top to bottom).
+const fitTmp = { corners: null, dir: null, target: null, v: null };
+function frameMap(W, H, probe) {
+  const land = cw > ch * 1.05;
+  const view = land ? VIEW.landscape : VIEW.portrait;
+  camera.fov = view.fov;
   camera.aspect = cw / ch;
   camera.updateProjectionMatrix();
-  const tilt = 54 * PI / 180;
-  const dir = new THREE.Vector3(0, Math.sin(tilt), Math.cos(tilt));
-  const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => new THREE.Vector3(a * (G.W / 2 + 6), 0, b * (G.H / 2 + 6)));
-  const topRoom = 1 - (2 * 40) / ch; // keep the far edge just clear of the top HUD row
-  const target = new THREE.Vector3();
+  if (!fitTmp.v) {
+    fitTmp.corners = [0, 1, 2, 3].map(() => new THREE.Vector3());
+    fitTmp.dir = new THREE.Vector3(); fitTmp.target = new THREE.Vector3(); fitTmp.v = new THREE.Vector3();
+  }
+  const { corners, dir, target, v } = fitTmp;
+  [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b], i) => corners[i].set(a * (W / 2 + 6), 0, b * (H / 2 + 6)));
+  // Screen-up direction across the sea. A map built for the other orientation (the phone was turned
+  // mid-battle) is yawed 90 degrees so its long axis still runs along the screen's long axis, with the
+  // player's side at the bottom (portrait) or on the left (landscape).
+  const mapLand = W > H;
+  const fx = mapLand === land ? 0 : mapLand ? 1 : -1, fz = fx ? 0 : -1;
+  const tilt = view.tilt * PI / 180;
+  dir.set(-fx * Math.cos(tilt), Math.sin(tilt), -fz * Math.cos(tilt));
+  target.set(0, 0, 0);
+  const topRoom = 1 - (2 * TOP_HUD) / ch;
   const place = (dist) => {
     camera.position.copy(dir).multiplyScalar(dist).add(target);
     camera.lookAt(target);
     camera.updateMatrixWorld();
   };
-  const fits = () => corners.every((c) => { const p = c.clone().project(camera); return Math.abs(p.x) <= 1 && p.y <= topRoom && p.y >= -1; });
-  // Slide the look-at point along the map so it sits evenly in the frame, then back off until it fits.
-  for (let pass = 0; pass < 3; pass++) {
+  const farEdge = () => { let m = -Infinity; for (const c of corners) m = Math.max(m, v.copy(c).project(camera).y); return m; };
+  const nearEdge = () => { let m = Infinity; for (const c of corners) m = Math.min(m, v.copy(c).project(camera).y); return m; };
+  const fits = () => corners.every((c) => { v.copy(c).project(camera); return Math.abs(v.x) <= 1.0001 && v.y <= topRoom + 1e-4 && v.y >= -1.0001; });
+  // Slide the look-at point toward the camera until the far edge sits at farY (it rises as t grows).
+  const span = Math.max(W, H);
+  const placeFar = (dist, farY) => {
+    let lo = -span, hi = span;
+    for (let i = 0; i < 32; i++) { const t = (lo + hi) / 2; target.set(-fx * t, 0, -fz * t); place(dist); if (farEdge() > farY) hi = t; else lo = t; }
+    target.set(-fx * lo, 0, -fz * lo); place(dist);
+  };
+  const solve = (farY) => {
     let lo = 50, hi = 30000;
-    for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; place(mid); if (fits()) hi = mid; else lo = mid; }
-    place(hi);
-    const far = corners[0].clone().project(camera).y, near = corners[2].clone().project(camera).y;
-    const slack = (topRoom - far) - (near + 1);
-    if (Math.abs(slack) < 0.01) break;
-    target.z -= slack * 0.25 * G.H;
+    for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; placeFar(mid, farY); if (fits()) hi = mid; else lo = mid; }
+    placeFar(hi, farY);
+    return Math.max(0, nearEdge() + 1);
+  };
+  const slack = solve(topRoom);
+  // Width-bound: split the spare height between top and bottom (re-solving the distance each time).
+  if (slack > 0.01 && !probe) {
+    let farY = topRoom;
+    for (let k = 0; k < 4; k++) {
+      const gapTop = topRoom - farY, gapBot = solve(farY);
+      if (Math.abs(gapBot - gapTop) < 0.01) break;
+      farY = Math.min(topRoom, farY - (gapBot - gapTop) / 2);
+    }
   }
+  return slack;
+}
+
+function fitCamera() {
+  if (!renderer || !G) return;
+  frameMap(G.W, G.H);
   camera.userData.base = camera.position.clone();
+}
+
+// Portrait world size: a slightly narrower sea (bigger ships on a narrow phone) whose depth is chosen so the
+// tilted, projected map fills the screen. Falls back to the screen ratio without WebGL.
+function portraitWorld(ratio) {
+  const W = Math.round(lerp(620, 520, clamp((ratio - 1.3) / 0.6, 0, 1)));
+  if (!renderer) return { W, H: Math.round(W * ratio) };
+  let lo = W * 1.25, hi = W * 2.8;
+  if (frameMap(W, hi, true) > 0.004) lo = hi;
+  else for (let i = 0; i < 18; i++) { const mid = (lo + hi) / 2; if (frameMap(W, mid, true) > 0.004) lo = mid; else hi = mid; }
+  return { W, H: Math.round(lo) };
 }
 
 function setInst(mesh, i, x, y, z, sx, sy, sz, rx, ry, rz) {
@@ -1156,10 +1412,12 @@ function setInst(mesh, i, x, y, z, sx, sy, sz, rx, ry, rz) {
 function syncScene() {
   water.material.uniforms.uT.value = clock;
   water.material.uniforms.uWind.value.set(Math.cos(G.wind.dir), Math.sin(G.wind.dir));
+  let ns = 0;
+  let nf = 0;
   for (const s of G.ships) {
     const m = shipMeshes.get(s.id);
     if (!m) continue;
-    if (s.state === 'sunk') { m.g.visible = false; m.shadow.visible = false; continue; }
+    if (s.state === 'sunk') { m.g.visible = false; continue; }
     const sinkK = s.state === 'sinking' ? clamp(s.sinkT / 3.2, 0, 1) : 0;
     m.g.position.set(wx(s.x), 0, wz(s.y));
     m.g.rotation.y = -s.h;
@@ -1170,14 +1428,24 @@ function syncScene() {
     m.body.rotation.z = Math.sin(clock * 1.25 + s.bob * 2) * 0.025 - sinkK * 0.35;
     for (const p of m.pivots) p.rotation.y = -s.yard;
     const fill = Math.cos(r - s.yard);
-    for (let i = 0; i < m.sails.length; i++) m.sails[i].scale.x = fill > 0.15 ? 0.35 + 0.65 * fill : 0.14 * Math.sin(clock * 14 + i);
+    for (let i = 0; i < m.rigs.length; i++) m.rigs[i].scale.x = fill > 0.15 ? 0.35 + 0.65 * fill : 0.14 * Math.sin(clock * 14 + i);
     if (m.flagPivot) m.flagPivot.rotation.y = -r + Math.sin(clock * 9 + s.bob) * 0.22;
     m.hullMat.emissive.setScalar(s.flash > 0 ? (s.flash / 0.14) * 0.7 : 0);
-    m.shadow.visible = sinkK < 0.6;
-    m.shadow.position.set(wx(s.x) + 7, 0.25, wz(s.y) + 9);
-    m.shadow.rotation.y = -s.h;
-    m.shadow.material.opacity = 0.26 * (1 - sinkK);
+    if (sinkK < 0.6 && ns < 32) {
+      const k = 1.08 * (1 - sinkK * 0.6);
+      setInst(pools.shipShadow, ns++, wx(s.x) + 7, 0.25, wz(s.y) + 9, s.L * k, 1, s.B * k, 0, -s.h, 0);
+    }
+    // Foam collar: hugs the waterline, swells with speed, churns wide while the ship goes down.
+    if (nf < 32) {
+      const spd = clamp(s.v / s.speed, 0, 1);
+      const k = (s.state === 'sinking' ? 1 + sinkK * 0.7 : 1 + spd * 0.06) + Math.sin(clock * 5 + s.bob) * 0.025;
+      const fade = s.state === 'sinking' ? 1 - sinkK * sinkK : 0.75 + spd * 0.25;
+      setInst(pools.foam, nf++, wx(s.x), 0.35, wz(s.y), s.L * 0.5 * k, 1, s.B * 0.5 * k * (0.75 + 0.25 * fade), 0, -s.h, 0);
+    }
   }
+  pools.shipShadow.count = ns;
+  pools.foam.count = nf;
+  pools.shipShadow.instanceMatrix.needsUpdate = pools.foam.instanceMatrix.needsUpdate = true;
 
   // Cannonballs fly a low arc from muzzle height.
   let n = 0;
@@ -1245,9 +1513,14 @@ function syncScene() {
 }
 
 // ---------- Screen projection for the HUD ----------
-function proj(x, y, z) {
+function proj(x, y, z) { return projTo(x, y, z, { x: 0, y: 0 }); }
+// Allocation-free projection for per-frame HUD work: writes into out (defaults to a shared scratch point).
+const _pj = { x: 0, y: 0 }, _pj2 = { x: 0, y: 0 };
+function projTo(x, y, z, out) {
+  out = out || _pj;
   tmpV.set(wx(x), z || 0, wz(y)).project(camera);
-  return { x: (tmpV.x + 1) / 2 * cw, y: (1 - tmpV.y) / 2 * ch };
+  out.x = (tmpV.x + 1) / 2 * cw; out.y = (1 - tmpV.y) / 2 * ch;
+  return out;
 }
 function toWorld(px, py) {
   ndc.set((px / cw) * 2 - 1, -((py / ch) * 2 - 1));
@@ -1256,7 +1529,7 @@ function toWorld(px, py) {
   return { x: hitP.x + G.W / 2, y: hitP.z + G.H / 2 };
 }
 function pxPerUnit(x, y) {
-  const a = proj(x, y, 0), b = proj(x + 10, y, 0);
+  const a = projTo(x, y, 0, _pj), b = projTo(x + 10, y, 0, _pj2);
   return Math.hypot(b.x - a.x, b.y - a.y) / 10;
 }
 
@@ -1274,27 +1547,34 @@ function roundRect(x, y, w, h, r) {
 // Traces a polyline laid on the sea surface, in screen space.
 function seaPoly(pts) {
   ctx.beginPath();
-  for (let i = 0; i < pts.length; i++) {
-    const q = proj(pts[i][0], pts[i][1], 0.5);
-    if (i) ctx.lineTo(q.x, q.y); else ctx.moveTo(q.x, q.y);
-  }
+  for (let i = 0; i < pts.length; i++) seaTo(pts[i][0], pts[i][1], i === 0);
+}
+// One vertex of a sea-surface path, without building point arrays.
+function seaTo(x, y, first) {
+  const q = projTo(x, y, 0.5);
+  if (first) ctx.moveTo(q.x, q.y); else ctx.lineTo(q.x, q.y);
+}
+function seaCircle(cx, cy, rr, n) {
+  ctx.beginPath();
+  for (let i = 0; i <= n; i++) { const a = (i / n) * TAU; seaTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, i === 0); }
 }
 
+function wedge(s, dir, rad) {
+  ctx.beginPath();
+  seaTo(s.x, s.y, true);
+  for (let i = 0; i <= 16; i++) { const a = dir - 0.62 + (1.24 * i) / 16; seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, false); }
+  ctx.closePath();
+}
 function drawArcs(s) {
   // Broadside arcs for the selected ship; they fill up as the guns reload.
   for (let side = 0; side < 2; side++) {
     const dir = sideDir(s, side);
     const prog = clamp(1 - s.reload[side] / s.reloadTime, 0, 1);
-    const wedge = (rad) => {
-      const pts = [[s.x, s.y]];
-      for (let i = 0; i <= 16; i++) { const a = dir - 0.62 + (1.24 * i) / 16; pts.push([s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad]); }
-      seaPoly(pts); ctx.closePath();
-    };
-    wedge(s.range);
+    wedge(s, dir, s.range);
     ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fill();
     ctx.setLineDash([6, 8]); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.stroke(); ctx.setLineDash([]);
     if (prog > 0.02) {
-      wedge(s.range * prog);
+      wedge(s, dir, s.range * prog);
       ctx.fillStyle = prog >= 1 ? 'rgba(242,182,50,0.22)' : 'rgba(255,255,255,0.1)'; ctx.fill();
     }
   }
@@ -1303,11 +1583,13 @@ function drawArcs(s) {
 function drawPath(s, pts, active) {
   if (!pts.length) return;
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  seaPoly([[s.x, s.y], ...pts.map((p) => [p.x, p.y])]);
+  ctx.beginPath();
+  seaTo(s.x, s.y, true);
+  for (let i = 0; i < pts.length; i++) seaTo(pts[i].x, pts[i].y, false);
   ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(20,52,82,0.35)'; ctx.stroke();
   ctx.setLineDash([2, 11]); ctx.lineWidth = 4;
   ctx.strokeStyle = active ? COL.gold : 'rgba(255,255,255,0.85)'; ctx.stroke(); ctx.setLineDash([]);
-  const last = pts[pts.length - 1], e = proj(last.x, last.y, 0.5);
+  const last = pts[pts.length - 1], e = projTo(last.x, last.y, 0.5);
   ctx.strokeStyle = active ? COL.gold : COL.white; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(e.x - 6, e.y - 6); ctx.lineTo(e.x + 6, e.y + 6); ctx.moveTo(e.x + 6, e.y - 6); ctx.lineTo(e.x - 6, e.y + 6); ctx.stroke();
 }
@@ -1329,10 +1611,7 @@ function drawPivot(s, active) {
 }
 
 function drawRing(s) {
-  const pts = [];
-  const rr = s.L * 0.62;
-  for (let i = 0; i <= 40; i++) { const a = (i / 40) * TAU; pts.push([s.x + Math.cos(a) * rr, s.y + Math.sin(a) * rr]); }
-  seaPoly(pts);
+  seaCircle(s.x, s.y, s.L * 0.62, 40);
   ctx.setLineDash([10, 8]); ctx.lineDashOffset = -clock * 20; ctx.lineWidth = 3; ctx.strokeStyle = COL.gold; ctx.stroke();
   ctx.setLineDash([]); ctx.lineDashOffset = 0;
 }
@@ -1340,8 +1619,9 @@ function drawRing(s) {
 function drawBars(s) {
   if (!afloat(s)) return;
   const m = shipMeshes.get(s.id);
-  const top = proj(s.x, s.y, (m ? m.top : 40) + 12);
-  const w = Math.max(26, s.L * 0.62 * pxPerUnit(s.x, s.y)), x = top.x - w / 2, y = top.y;
+  const top = projTo(s.x, s.y, (m ? m.top : 40) + 12);
+  const tx = top.x, y = top.y;
+  const w = Math.max(26, s.L * 0.62 * pxPerUnit(s.x, s.y)), x = tx - w / 2;
   const k = s.hp / s.maxHp;
   ctx.fillStyle = 'rgba(20,30,40,0.6)'; roundRect(x - 1.5, y - 1.5, w + 3, 8, 4); ctx.fill();
   ctx.fillStyle = k > 0.6 ? '#6fd36a' : k > 0.3 ? COL.gold : '#ff5a4a';
@@ -1403,7 +1683,7 @@ function drawHUD() {
   const wr = 27, wxs = cw - 10 - wr, wys = py + pr + 12 + wr;
   ctx.fillStyle = COL.parchment; ctx.strokeStyle = COL.ink; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.arc(wxs, wys, wr, 0, TAU); ctx.fill(); ctx.stroke();
-  const c0 = proj(G.W / 2, G.H / 2, 0), c1 = proj(G.W / 2 + Math.cos(G.wind.dir) * 50, G.H / 2 + Math.sin(G.wind.dir) * 50, 0);
+  const c0 = projTo(G.W / 2, G.H / 2, 0, _pj), c1 = projTo(G.W / 2 + Math.cos(G.wind.dir) * 50, G.H / 2 + Math.sin(G.wind.dir) * 50, 0, _pj2);
   ctx.save(); ctx.translate(wxs, wys); ctx.rotate(Math.atan2(c1.y - c0.y, c1.x - c0.x));
   ctx.fillStyle = '#4b8fd6'; ctx.strokeStyle = COL.ink; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(19, 0); ctx.lineTo(4, -10); ctx.lineTo(4, -4); ctx.lineTo(-17, -4); ctx.lineTo(-17, 4); ctx.lineTo(4, 4); ctx.lineTo(4, 10); ctx.closePath();
@@ -1573,13 +1853,15 @@ function resize() {
   dpr = Math.min(maxDpr, window.devicePixelRatio || 1);
   hudCv.width = Math.round(cw * dpr); hudCv.height = Math.round(ch * dpr);
   if (renderer) { renderer.setPixelRatio(dpr); renderer.setSize(cw, ch, false); }
-  fitCamera();
+  // Before the first shot, a turned phone gets a battle laid out for its new orientation.
+  if (G && G.phase === 'title' && (G.W > G.H) !== (cw > ch * 1.05)) newBattle(G.battle);
+  else fitCamera();
 }
 
 // Adaptive resolution: if frames run long for a couple of seconds, render fewer pixels.
 const perf = { acc: 0, n: 0, cooldown: 3 };
 function watchPerf(dtMs) {
-  if (!renderer || document.hidden) return;
+  if (!renderer || document.hidden || perf.locked) return;
   perf.acc += dtMs; perf.n++;
   perf.cooldown -= dtMs / 1000;
   if (perf.n >= 90) {
@@ -1661,8 +1943,10 @@ function frame(now) {
   const raw = now - lastT;
   lastT = now;
   watchPerf(raw);
+  const t0 = performance.now();
   update(Math.min(0.05, raw / 1000));
   render();
+  if (perf.rec) { perf.rec.raw.push(raw); perf.rec.js.push(performance.now() - t0); perf.rec.calls.push(renderer ? renderer.info.render.calls : 0); perf.rec.tris.push(renderer ? renderer.info.render.triangles : 0); }
   requestAnimationFrame(frame);
 }
 
@@ -1703,6 +1987,11 @@ window.__broadside = {
   step(n) { for (let i = 0; i < n; i++) update(1 / 60); render(); },
   sim(n) { for (let i = 0; i < n; i++) update(1 / 60); },
   get drawCalls() { return renderer ? renderer.info.render.calls : 0; },
+  get info() { return renderer ? { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, programs: renderer.info.programs.length } : null; },
+  get particles() { return particles.length; },
+  get dpr() { return dpr; },
+  lockDpr(v) { perf.locked = true; maxDpr = v; resize(); },
+  record(on) { if (on) { perf.rec = { raw: [], js: [], calls: [], tris: [] }; return null; } const r = perf.rec; perf.rec = null; return r; },
 };
 })();
 </script>
