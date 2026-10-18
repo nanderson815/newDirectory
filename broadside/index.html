@@ -187,7 +187,7 @@
     <h1>Broadside!</h1>
     <h2 id="battleName">The Tortuga Narrows</h2>
     <ul class="orders">
-      <li><b>Drag from a ship</b> to draw its course. It sails along the line.</li>
+      <li><b>Drag from a ship</b> to draw its course. It sails along the line. Tap the ship to clear its course.</li>
       <li><b>Cannons sit on the sides.</b> Bring an enemy off your port or starboard beam to hit it.</li>
       <li><b>Mind the wind.</b> Sailing straight into it is slow. Islands block shot and hulls.</li>
       <li><b>Orders:</b> sink the Spanish squadron of three ships.</li>
@@ -312,7 +312,7 @@ const BATTLES = [
 // ---------- State ----------
 let G = null;              // battle state (serialisable)
 let balls = [], pending = [], particles = [];
-let selected = null, drag = null, shake = 0, clock = 0;
+let selected = null, drag = null, shake = 0, clock = 0, toast = null;
 let hud = { cards: [], pause: null, fire: [] };
 let fireMode = store.get('fire', 'auto') === 'manual' ? 'manual' : 'auto';
 let muted = store.get('sound', 'on') === 'off';
@@ -1411,6 +1411,17 @@ function drawHUD() {
     }
   }
 
+  // Feedback for a tap that cleared a course
+  if (toast && clock < toast.until) {
+    const ts = shipById(toast.shipId);
+    if (ts && afloat(ts)) {
+      const m = shipMeshes.get(ts.id), q = proj(ts.x, ts.y, (m ? m.top : 40) + 30);
+      ctx.globalAlpha = clamp((toast.until - clock) * 3, 0, 1);
+      outlinedText(toast.text, q.x, q.y - (1.2 - (toast.until - clock)) * 14, 15, COL.white, 'center');
+      ctx.globalAlpha = 1;
+    }
+  }
+
   // First-time hint
   if (G.phase === 'play' && !G.dragged && G.t < 14) {
     ctx.globalAlpha = clamp(Math.min(G.t * 2, 14 - G.t), 0, 1);
@@ -1453,7 +1464,7 @@ hudCv.addEventListener('pointerdown', (e) => {
   const s = shipAt(p);
   if (s) {
     selected = s;
-    drag = { ship: s, pts: [], id: e.pointerId, from: w };
+    drag = { ship: s, pts: [], id: e.pointerId, from: w, onShip: true };
   } else if (selected && afloat(selected)) {
     drag = { ship: selected, pts: [clampWorld(w)], id: e.pointerId, from: w };
   } else return;
@@ -1469,6 +1480,11 @@ hudCv.addEventListener('pointermove', (e) => {
 function endDrag(e) {
   if (!drag || e.pointerId !== drag.id) return;
   if (drag.pts.length && afloat(drag.ship)) { drag.ship.path = drag.pts; G.dragged = true; }
+  else if (drag.onShip && drag.ship.path.length) {
+    // A tap on a ship (no drag) clears its course.
+    drag.ship.path = [];
+    toast = { text: 'Course cleared', shipId: drag.ship.id, until: clock + 1.2 };
+  }
   drag = null;
 }
 hudCv.addEventListener('pointerup', endDrag);
