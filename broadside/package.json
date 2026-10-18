@@ -1,0 +1,23 @@
+{
+  "name": "broadside",
+  "private": true,
+  "version": "0.2.0",
+  "description": "A cartoony 1600s naval battle game for phones.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "build:single": "vite build --mode single",
+    "build:artifact": "vite build --mode single && node scripts/artifact.mjs",
+    "preview": "vite preview --host",
+    "test": "vite build --mode single && node tests/smoke.mjs && node tests/islands.mjs"
+  },
+  "dependencies": {
+    "three": "0.158.0"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1",
+    "vite": "5.4.21",
+    "vite-plugin-singlefile": "2.3.3"
+  }
+}
