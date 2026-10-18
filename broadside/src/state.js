@@ -19,6 +19,7 @@ export const S = {
   hud: { cards: [], pause: null, fire: [], actions: [], ammo: [] },
   fireMode: store.get('fire', 'auto') === 'manual' ? 'manual' : 'auto',
   muted: store.get('sound', 'on') === 'off',
+  musicMuted: store.get('music', 'on') === 'off',
   view: { cw: 1, ch: 1, dpr: 1, maxDpr: 2 },
   // Set by the UI layer so the simulation can report without importing it.
   hooks: { onEnd: null, onTutorialStep: null },

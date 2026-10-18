@@ -12,6 +12,7 @@ import {
 import { loadBattle } from '../game.js';
 import { R } from '../render/gl.js';
 import { sfx } from '../audio/sfx.js';
+import { music } from '../audio/music.js';
 import { TUTORIAL_STEPS } from '../sim/update.js';
 
 // DOM screens around the battle: menu, sea chart, shipyard, hats, briefing, pause, results, tutorial coach.
@@ -71,6 +72,7 @@ export function openMenu() {
   $('menuHats').innerHTML = HAT_ORDER.map((id) => hatSVG(id, !save.hats.includes(id))).join('');
   $('startBtn').textContent = Object.keys(save.stars).length ? 'Continue' : 'Set sail';
   disarmReset();
+  music.mood('menu');
   showScreen('menuScreen');
 }
 function disarmReset() {
@@ -110,6 +112,7 @@ export function openChart() {
     `<span class="node-meta"><span class="tag">Waves</span>${skirmishOpen ? (save.best ? `Best: wave ${save.best}` : 'How long can you last?') : 'Win the Tortuga Narrows to open'}</span></span>` +
     `${skirmishOpen ? '' : '<span class="lock">Locked</span>'}</button></li></ol></section>`;
   $('chartList').innerHTML = html;
+  music.mood('calm');
   showScreen('chartScreen');
 }
 
@@ -117,6 +120,7 @@ export function openChart() {
 export function openYard() {
   idle();
   renderYard();
+  music.mood('calm');
   showScreen('yardScreen');
 }
 function buyRow(cls, name, desc, pips, cost, id) {
@@ -200,6 +204,7 @@ export function openBrief(i) {
       `<p><b>${esc(boss.captain)}</b>${have ? 'You already have this hat. Beat him again for gold.' : `Sink ${esc(boss.title)} to win his ${esc(HATS[boss.hat].name.toLowerCase())}.`}</p>`;
   }
   $('briefOrders').innerHTML = ordersHTML(B);
+  music.mood('calm');
   showScreen('briefScreen');
 }
 
@@ -207,6 +212,7 @@ export function startPlay() {
   if (!R.renderer || !S.G) return;
   sfx.init();
   S.G.phase = 'play';
+  music.mood(S.G.goal === 'boss' ? 'boss' : 'battle');
   showScreen(null);
 }
 
@@ -229,7 +235,7 @@ export function endBattle() {
   else if (G.result === 'win' && !G.award) G.award = recordWin(G.battle, shipsLost(G), prizesTaken(G));
   renderEnd();
   showScreen('endScreen');
-  if (G.result === 'win') sfx.fanfare(true);
+  music.stinger(G.result === 'win' || !!(G.goal === 'waves' && G.award && G.award.record && G.award.waves));
 }
 // Your own ships sunk or captured; prizes taken in the battle don't count against you if they sink.
 const shipsLost = (G) => G.ships.filter((s) => s.origTeam === 'player' && (s.team !== 'player' || !afloat(s))).length;
@@ -334,8 +340,8 @@ export function syncSettings() {
     $('fireManual' + k).setAttribute('aria-pressed', String(S.fireMode === 'manual'));
     $('fireNote' + k).textContent = FIRE_NOTES[S.fireMode];
   }
-  $('soundOn').setAttribute('aria-pressed', String(!S.muted));
-  $('soundOff').setAttribute('aria-pressed', String(S.muted));
+  document.querySelectorAll('[data-sound]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.sound === 'off') === S.muted)));
+  document.querySelectorAll('[data-music]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.music === 'off') === S.musicMuted)));
 }
 
 export function initUI() {
@@ -347,6 +353,10 @@ export function initUI() {
   document.querySelectorAll('[data-sound]').forEach((b) => b.addEventListener('click', () => {
     S.muted = b.dataset.sound === 'off'; store.set('sound', S.muted ? 'off' : 'on'); syncSettings();
     if (!S.muted) sfx.init();
+  }));
+  document.querySelectorAll('[data-music]').forEach((b) => b.addEventListener('click', () => {
+    S.musicMuted = b.dataset.music === 'off'; store.set('music', S.musicMuted ? 'off' : 'on'); syncSettings();
+    if (!S.musicMuted) sfx.init();
   }));
   // First voyage goes straight to the tutorial briefing; after that, the chart.
   $('startBtn').addEventListener('click', () => { sfx.init(); if (Object.keys(save.stars).length) openChart(); else openBrief(0); });

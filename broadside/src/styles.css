@@ -157,6 +157,7 @@ html, body {
 }
 .toggle button + button { border-left: 3px solid var(--ink); }
 .toggle button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+.setting-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .setting-note { margin: 0; font-size: 13px; line-height: 1.35; color: var(--ink-soft); }
 .error-text { margin: 0; font-size: 14px; line-height: 1.4; color: var(--red); font-weight: 800; }
 

@@ -62,7 +62,7 @@ function updateCapture(f, dt) {
   f.capture = null; f.reload = 1;
   S.G.stats.captured++;
   showBanner(`${f.name} is ours!`, 'The garrison now fires on the Spanish');
-  sfx.fanfare(false);
+  sfx.capture();
 }
 
 // Nearest fort a selected ship could land troops at right now, if any.

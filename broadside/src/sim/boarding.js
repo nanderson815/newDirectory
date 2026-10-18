@@ -35,7 +35,7 @@ export function startBoarding(s, e) {
   s.path = []; s.pivot = null; e.path = []; e.pivot = null;
   if (s.team === 'player') showToast('Boarders away!', s, 1.4);
   else { showToast('Spanish boarders!', e, 1.6); showBanner(`${e.name} is being boarded!`, 'Sink the boarder or bring help'); }
-  sfx.crack();
+  sfx.woodHit(e.x, e.y);
   return true;
 }
 
@@ -68,7 +68,7 @@ export function updateBoardings(dt) {
       const mx = (s.x + e.x) / 2 + rand(-8, 8), my = (s.y + e.y) / 2 + rand(-8, 8);
       spawn('smoke', mx, my, rand(-6, 6), rand(-6, 6), rand(0.5, 0.9), rand(3, 5), 10, 10);
       spawn('flash', mx, my, 0, 0, 0.08, 3, 10, 0);
-      if (Math.random() < 0.4) sfx.crack();
+      if (Math.random() < 0.4) sfx.woodHit(mx, my);
     }
     if (b.t < BOARDING.time) continue;
     const def = defence(e);

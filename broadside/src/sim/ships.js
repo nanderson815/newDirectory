@@ -5,6 +5,7 @@ import { windFactor } from './wind.js';
 import { followPath, avoidIslands, aiSteer, shoreClear } from './steering.js';
 import { findBroadsideTarget, findChaseTarget, fireBroadside, fireChasers, dropMine, crewMul } from './combat.js';
 import { spawn } from './particles.js';
+import { sfx } from '../audio/sfx.js';
 
 export function updateShip(s, dt) {
   const G = S.G;
@@ -19,6 +20,7 @@ export function updateShip(s, dt) {
     }
     if (s.sinkT > 3.2) {
       s.state = 'sunk';
+      sfx.sunk(s.x, s.y);
       for (let i = 0; i < 9; i++) spawn('plank', s.x + rand(-s.L / 3, s.L / 3), s.y + rand(-s.B / 2, s.B / 2), rand(-6, 6), rand(-6, 6), rand(30, 45), rand(6, 12));
     }
     return;
