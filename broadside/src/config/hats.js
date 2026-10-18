@@ -4,8 +4,11 @@ export const HATS = {
   rojo:     { name: 'Red tricorne',          from: 'Capitán Rojo of La Bruja' },
   comodoro: { name: "Commodore's bicorne",   from: 'El Comodoro of San Cristóbal' },
   oro:      { name: "Admiral's plumed hat",  from: 'Almirante de Oro of the Santísima Trinidad' },
+  kate:     { name: "Calico Kate's skull hat", from: 'Calico Kate of the Black Wyvern' },
+  morion:   { name: 'Iron morion',           from: 'Marqués de Hierro of the San Jerónimo' },
+  armada:   { name: "Captain-General's crown hat", from: 'The Capitán General of the Real Felipe' },
 };
-export const HAT_ORDER = ['cabin', 'rojo', 'comodoro', 'oro'];
+export const HAT_ORDER = ['cabin', 'rojo', 'comodoro', 'oro', 'kate', 'morion', 'armada'];
 
 const INK = '#3a2414';
 const ART = {
@@ -31,6 +34,18 @@ const ART = {
     '<path d="M2 62 Q26 12 60 14 Q94 12 118 62 Q60 48 2 62 Z" fill="#1d2a4d"/>' +
     '<path d="M4 61 Q60 47 116 61 M16 44 Q60 30 104 44" fill="none" stroke="#f2b632" stroke-width="5"/>' +
     '<circle cx="60" cy="34" r="8" fill="#f2b632"/>',
+  // Placeholder art for the expansion hats (replaced by the chart and story pass).
+  kate:
+    '<path d="M2 54 Q30 30 60 32 Q90 30 118 54 Q90 64 60 60 Q30 64 2 54 Z" fill="#1d1b20"/>' +
+    '<path d="M32 44 Q34 14 60 12 Q86 14 88 44 Z" fill="#26232b"/>' +
+    '<circle cx="60" cy="30" r="8" fill="#fbf3dc"/><path d="M54 40 L66 46 M66 40 L54 46" stroke="#fbf3dc" stroke-width="3"/>',
+  morion:
+    '<path d="M6 54 Q20 40 60 42 Q100 40 114 54 Q100 60 60 58 Q20 60 6 54 Z" fill="#9aa3ad"/>' +
+    '<path d="M30 46 Q32 14 60 8 Q88 14 90 46 Z" fill="#b8c0c9"/><path d="M60 8 L60 46" stroke="#7d8690" stroke-width="5"/>',
+  armada:
+    '<path d="M4 60 Q28 14 60 16 Q92 14 116 60 Q60 48 4 60 Z" fill="#7a1f2b"/>' +
+    '<path d="M6 59 Q60 47 114 59" fill="none" stroke="#f2b632" stroke-width="6"/>' +
+    '<path d="M42 22 L48 6 L56 18 L60 2 L64 18 L72 6 L78 22 Z" fill="#f2b632"/>',
 };
 
 // Inline SVG art for a hat; locked hats render as a faded silhouette.

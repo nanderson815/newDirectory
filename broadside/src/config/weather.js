@@ -58,7 +58,7 @@ export const PRESETS = {
   },
 };
 
-export const REGION_WEATHER = { port: 'sunny', windward: 'sunny', main: 'sunset', golden: 'storm' };
+export const REGION_WEATHER = { port: 'sunny', windward: 'sunny', main: 'sunset', golden: 'storm', pirate: 'sunny', campeche: 'sunset', armada: 'storm' };
 
 // Per-battle overrides by battle id, e.g. { tortuga: 'storm' }.
 export const BATTLE_WEATHER = {};
