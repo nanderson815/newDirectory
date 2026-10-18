@@ -17,22 +17,51 @@ import { music } from '../audio/music.js';
 import { TUTORIAL_STEPS } from '../sim/update.js';
 import { STORY, logDate } from '../config/story.js';
 import { renderChart, enablePan } from './chart.js';
+import { DURATION, EASE } from './tokens.js';
+import { iconSVG } from './icons.js';
 
 // DOM screens around the battle: menu, sea chart, shipyard, hats, briefing, pause, results, tutorial coach.
 const SCREENS = ['menuScreen', 'chartScreen', 'yardScreen', 'hatsScreen', 'briefScreen', 'pauseScreen', 'endScreen'];
 export const ui = { screen: 'menuScreen', yardSel: 0 };
 
-const COIN = '<svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#f2b632" stroke="#3a2414" stroke-width="2.5"/><circle cx="10" cy="10" r="4" fill="none" stroke="#c98a17" stroke-width="2"/></svg>';
+// A struck gold coin: a bright face, a milled rim and a soft inner ring.
+const COIN = '<svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.6" fill="#e4ab45" stroke="#7a4f12" stroke-width="1.1"/>' +
+  '<path d="M4.4 8.6A6 6 0 0 1 11.4 4.2" fill="none" stroke="#fbe3a0" stroke-width="1.6" stroke-linecap="round" opacity="0.85"/>' +
+  '<circle cx="10" cy="10" r="5.4" fill="none" stroke="#a5711f" stroke-width="0.9" opacity="0.8"/><path d="M10 7.4V12.6" stroke="#a5711f" stroke-width="1.3" stroke-linecap="round"/></svg>';
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 const starsHTML = (n, big) => `<span class="stars${big ? ' big' : ''}" role="img" aria-label="${n} of 3 stars">` +
-  [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('') + '</span>';
+  [0, 1, 2].map((i) => iconSVG('star', { cls: 'star' + (i < n ? ' on' : '') })).join('') + '</span>';
 
+// Shows one screen (or none, for the battle). A screen opened from the battle, or at boot, fades its scrim in;
+// moving between menus only the content rises in, so the backdrop never flashes.
+let booted = false;
 export function showScreen(id) {
   if (id !== null) hideIntro();
+  const prev = ui.screen;
   ui.screen = id;
-  for (const s of SCREENS) $(s).hidden = s !== id;
+  for (const s of SCREENS) {
+    const el = $(s), show = s === id;
+    if (show && (el.hidden || !booted)) el.classList.toggle('enter-fade', prev === null || !booted);
+    el.hidden = !show;
+  }
+  booted = true;
   renderCoach();
+}
+
+// Counts a number up from zero (gold won, for one): eased, and instant when motion is reduced.
+function countUp(el, to, { prefix = '', suffix = '', delay = 0, ms = DURATION.count } = {}) {
+  const set = (v) => { el.textContent = prefix + Math.round(v) + suffix; };
+  cancelAnimationFrame(el._count);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !to) { set(to); return; }
+  set(0);
+  const t0 = performance.now() + delay;
+  const tick = (now) => {
+    const k = Math.min(1, Math.max(0, (now - t0) / ms));
+    set(to * EASE.out(k));
+    if (k < 1) el._count = requestAnimationFrame(tick);
+  };
+  el._count = requestAnimationFrame(tick);
 }
 
 // Menus keep the battle behind them idle, so nothing sails or fires while you browse.
@@ -81,6 +110,7 @@ let resetArmed = null;
 export function openMenu() {
   idle();
   $('menuHats').innerHTML = HAT_ORDER.map((id) => hatSVG(id, !save.hats.includes(id))).join('');
+  $('menuHatCount').textContent = `${HAT_ORDER.filter((id) => save.hats.includes(id)).length} of ${HAT_ORDER.length}`;
   $('startBtn').textContent = Object.keys(save.stars).length ? 'Continue' : 'Set sail';
   disarmReset();
   music.mood('menu');
@@ -113,10 +143,10 @@ function buyRow(cls, name, desc, pips, cost, id) {
   const pipHTML = pips
     ? `<span class="pips" role="img" aria-label="Level ${pips[0]} of ${pips[1]}">${Array.from({ length: pips[1] }, (_, k) => `<i class="${k < pips[0] ? 'on' : ''}"></i>`).join('')}</span>`
     : '';
-  const label = cost == null ? 'Maxed' : `${COIN}${cost}`;
+  const label = cost == null ? (pips && pips[1] === 1 ? 'Owned' : 'Maxed') : `${COIN}${cost}`;
   const aria = cost == null ? `${name}: fully upgraded` : `Buy ${name} for ${cost} gold`;
   return `<div class="up-row ${cls}"><div><div class="up-name">${esc(name)}</div><div class="up-desc">${esc(desc)}</div>${pipHTML}</div>` +
-    `<button type="button" class="buy" data-buy="${id}"${can ? '' : ' disabled'} aria-label="${esc(aria)}">${label}</button></div>`;
+    `<button type="button" class="buy${cost == null ? ' maxed' : ''}" data-buy="${id}"${can ? '' : ' disabled'} aria-label="${esc(aria)}">${label}</button></div>`;
 }
 function renderYard() {
   $('yardGold').innerHTML = `${COIN}<span>${save.gold}</span>`;
@@ -144,6 +174,7 @@ function renderYard() {
     html += buyRow('', AMMO[kind].name, AMMO[kind].desc, [have, 1], have ? null : AMMO_COSTS[kind], 'ammo:' + kind);
   }
   $('yardShip').innerHTML = html + '</div>';
+  if (!renderYard.quiet) $('yardShip').querySelector('.up-list').classList.add('stagger');
   const h = nextHire();
   $('yardHire').innerHTML = h
     ? buyRow('', `Hire the ${TYPES[h.cls].label.toLowerCase()} ${h.name}`, `Joins your squadron. Up to ${MAX_FLEET} ships.`, null, h.cost, 'hire')
@@ -159,7 +190,7 @@ function onYardClick(e) {
   if (ok) {
     sfx.init(); sfx.coin();
     if (id === 'hire') ui.yardSel = save.fleet.length - 1;
-    renderYard();
+    renderYard.quiet = true; renderYard(); renderYard.quiet = false; // a purchase updates in place
   }
 }
 
@@ -169,8 +200,10 @@ export function openHats() {
   $('hatGrid').innerHTML = HAT_ORDER.map((id) => {
     const won = save.hats.includes(id);
     return `<div class="hat-card${won ? '' : ' locked'}">${hatSVG(id, !won)}<h3>${esc(HATS[id].name)}</h3>` +
-      `<p>${esc(HATS[id].from)}</p><p><b>${won ? 'In your cabin' : 'Not won yet'}</b></p></div>`;
+      `<p>${esc(HATS[id].from)}</p><p class="won-tag">${won ? 'In your cabin' : iconSVG('lock') + 'Not won yet'}</p></div>`;
   }).join('');
+  $('hatGrid').classList.add('stagger');
+  $('hatsTally').innerHTML = `<b>${HAT_ORDER.filter((id) => save.hats.includes(id)).length}</b>&thinsp;/&thinsp;${HAT_ORDER.length}`;
   showScreen('hatsScreen');
 }
 
@@ -195,6 +228,7 @@ export function openBrief(i) {
       `<p><b>${esc(boss.captain)}</b>${have ? `You already have this hat. Beat ${his(B) === 'her' ? 'her' : 'him'} again for gold.` : `Sink ${esc(boss.title)} to win ${his(B)} ${esc(hatName)}.`}</p>`;
   }
   $('briefOrders').innerHTML = ordersHTML(B);
+  $('briefOrders').classList.add('stagger');
   music.mood('calm');
   showScreen('briefScreen');
 }
@@ -254,6 +288,7 @@ export function pauseGame() {
   S.G.phase = 'paused';
   S.drag = null;
   $('pauseOrders').innerHTML = ordersHTML(battleDef(S.G.battle));
+  $('pauseOrders').classList.add('stagger');
   showScreen('pauseScreen');
 }
 
@@ -281,7 +316,8 @@ function renderSkirmishEnd() {
     ? `You held out until wave ${G.wave} and beat ${a.waves} wave${a.waves > 1 ? 's' : ''}. Your best is wave ${a.best}.`
     : 'The first wave was too much. Refit at the shipyard and come back.';
   $('endReward').hidden = !a.gold;
-  $('endReward').innerHTML = `${COIN}<span>+${a.gold} gold</span>`;
+  $('endReward').innerHTML = `<span class="gold-num">${COIN}<span class="gold-count">+${a.gold}</span></span><span>gold</span>`;
+  if (a.gold) countUp($('endReward').querySelector('.gold-count'), a.gold, { prefix: '+', delay: 450 });
   if (a.gold) coinShower(Math.min(28, 8 + Math.round(a.gold / 25)));
   $('endHat').hidden = true;
   $('endLog').hidden = true;
@@ -324,7 +360,8 @@ function renderEnd() {
   $('endReward').hidden = !win;
   if (win) {
     const notes = [a.stars === 3 ? 'flawless bonus' : '', a.prizes ? `${a.prizes} prize${a.prizes > 1 ? 's' : ''} +${a.prizeGold}` : '', a.first ? '' : 'replay'].filter(Boolean).join(' · ');
-    $('endReward').innerHTML = `${COIN}<span>+${a.gold} gold</span>${notes ? `<span class="up-desc">${notes}</span>` : ''}`;
+    $('endReward').innerHTML = `<span class="gold-num">${COIN}<span class="gold-count">+${a.gold}</span></span><span>gold</span>${notes ? `<span class="up-desc">${notes}</span>` : ''}`;
+    countUp($('endReward').querySelector('.gold-count'), a.gold, { prefix: '+', delay: 700 });
   }
   if (win) coinShower(Math.min(28, 8 + Math.round(a.gold / 25)));
   $('endHat').hidden = !(win && a.hat);
@@ -387,7 +424,15 @@ export function syncSettings() {
   document.querySelectorAll('[data-music]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.music === 'off') === S.musicMuted)));
 }
 
+// Buttons marked data-icon="name" in index.html get that icon in front of their label.
+function decorateButtons() {
+  document.querySelectorAll('[data-icon]').forEach((b) => {
+    if (!b.querySelector('.icon')) b.insertAdjacentHTML('afterbegin', iconSVG(b.dataset.icon));
+  });
+}
+
 export function initUI() {
+  decorateButtons();
   S.hooks.onEnd = endBattle;
   S.hooks.onTutorialStep = renderCoach;
   document.querySelectorAll('[data-fire]').forEach((b) => b.addEventListener('click', () => {
