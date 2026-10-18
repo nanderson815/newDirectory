@@ -5,7 +5,7 @@ import { TYPES } from '../config/ships.js';
 import { COL, PI, TAU, clamp, lerp, rand, angDiff } from '../util.js';
 import { R, toon } from './gl.js';
 import { wx, wz, fitCamera } from './camera.js';
-import { bakeStatic, buildIsland, buildShipMesh, buildFortMesh, sharedIslandGeos, chestGeometries, sailTexture, FORT_BASE_Y, FORT_SCALE } from './models.js';
+import { bakeStatic, buildIsland, buildShipMesh, buildFortMesh, sharedIslandGeos, chestGeometries, setShipFading, setShipTorn, FORT_BASE_Y, FORT_SCALE } from './models.js';
 import { WX, applyWeather, syncWeather } from './weather.js';
 
 let worldObjs = [];
@@ -134,6 +134,7 @@ export function syncScene() {
     if (m.vis <= 0) { m.g.visible = false; continue; }
     m.g.visible = true;
     m.u.uFade.value = m.vis;
+    setShipFading(m, m.vis < 0.999);
     const sinking = s.state === 'sinking';
     const sinkK = sinking ? clamp(s.sinkT / 3.2, 0, 1) : 0;
     m.g.position.set(wx(s.x), 0, wz(s.y));
@@ -163,8 +164,7 @@ export function syncScene() {
     m.hullMat.color.setScalar(1 - 0.36 * scorch);
     if (m.rigMat) {
       m.rigMat.color.setScalar(1 - 0.24 * scorch);
-      const torn = m.tpl.torn || hpK < 0.5;
-      if (torn !== m.torn) { m.torn = torn; m.rigMat.map = sailTexture(m.tpl.look, torn); }
+      setShipTorn(m, m.tpl.torn || hpK < 0.5);
     }
     // Sinking: the masts go by the board one after another, alternating sides.
     const mu = m.u.uMast.value;

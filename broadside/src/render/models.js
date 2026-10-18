@@ -226,12 +226,14 @@ function flagTexture(kind) {
 //          broken mast; a draw above 1.5 means luffing.
 // aTag (from bakeStatic): body parts carry [base x, y, z, code] with code 1..3 = mast 0..2, 10/11 = port/
 // starboard oar; rig parts carry [belly xyz, mast + 4 * topsail + 8 * fore-and-aft].
+// The dissolve's discard only compiles in while a ship is fading (SHIP_FADE), since a shader that can discard
+// costs tile-based mobile GPUs their hidden-surface removal; likewise the sails alpha-test only once torn.
 const DITHER = `uniform float uFade;
 void main() {
-  if (uFade < 0.999) {
-    float dz = fract(52.9829189 * fract(dot(floor(gl_FragCoord.xy), vec2(0.06711056, 0.00583715))));
-    if (dz > uFade) discard;
-  }`;
+#ifdef SHIP_FADE
+  float dz = fract(52.9829189 * fract(dot(floor(gl_FragCoord.xy), vec2(0.06711056, 0.00583715))));
+  if (dz > uFade) discard;
+#endif`;
 const BODY_VERT = `attribute vec4 aTag;
 uniform vec4 uMast, uMastH;
 vec3 rotX(vec3 v, float a) { float c = cos(a), s = sin(a); return vec3(v.x, v.y * c - v.z * s, v.y * s + v.z * c); }
@@ -614,7 +616,29 @@ export function buildShipMesh(s, faction) {
     else if (o.name === 'hullInk') o.material = ref.inkMat = shipMaterial(o.material, u, bodyShader);
   });
   ref.mats = [ref.hullMat, ref.rigMat, ref.inkMat].filter(Boolean);
+  if (ref.rigMat) ref.rigMat.alphaTest = tpl.torn ? 0.5 : 0;
+  ref.fading = false;
   return ref;
+}
+
+// Switches a ship's materials into or out of their dissolving variant.
+export function setShipFading(ref, on) {
+  if (ref.fading === on) return;
+  ref.fading = on;
+  for (const m of ref.mats) {
+    m.defines = m.defines || {};
+    if (on) m.defines.SHIP_FADE = ''; else delete m.defines.SHIP_FADE;
+    m.needsUpdate = true;
+  }
+}
+
+// Swaps in (or out) the shot-through canvas; the alpha test that cuts its holes only runs while it's on.
+export function setShipTorn(ref, torn) {
+  if (ref.torn === torn || !ref.rigMat) return;
+  ref.torn = torn;
+  ref.rigMat.map = sailTexture(ref.tpl.look, torn);
+  ref.rigMat.alphaTest = torn ? 0.5 : 0;
+  ref.rigMat.needsUpdate = true;
 }
 
 // ---------- Treasure chest ----------
