@@ -1,6 +1,8 @@
 // A simple scripted captain for automated playtests (runs inside the page).
-// Each ship circles its target at about 60% of gun range so its broadside bears; on capture battles one
-// ship with enough marines goes to land troops as soon as a fort falls silent.
+// Each ship circles its target at about 60% of gun range so its broadside bears; on battles with forts one
+// ship with enough marines goes to land troops as soon as a fort falls silent. Each goal can give its own
+// orders in GOAL_ORDERS (keyed by goal kind, see src/sim/goals/): return { to: point } to sail somewhere,
+// { target } to fight that unit, or null to fall back to the next goal (and finally the nearest enemy).
 (() => {
   const B = () => window.__broadside;
   const live = (s) => s.state === 'afloat';
@@ -20,23 +22,49 @@
     s.path = [clampTo(G, { x: t.x + Math.cos(a) * d, y: t.y + Math.sin(a) * d })];
   }
 
+  const GOAL_ORDERS = {
+    capture: (s, o, c) => (c.hostileForts.length ? { target: nearest(s, c.hostileForts) } : null),
+    boss: (s, o, c) => (c.boss ? { target: c.boss } : null),
+    // Haul up a chest no other ship is going for; hunt salvors carrying chests.
+    treasure(s, o, c) {
+      const ch = nearest(s, c.G.chests.filter((q) => !q.taken && !c.claimed.has(q)));
+      if (ch) { c.claimed.add(ch); return { to: ch }; }
+      const thief = nearest(s, c.enemies.filter((e) => e.loot && e.loot.length));
+      return thief ? { target: thief } : null;
+    },
+    escort(s, o, c) {
+      const m = nearest(s, c.G.ships.filter((q) => q.team === 'player' && live(q) && q.escort));
+      return m && c.enemies.length ? { target: nearest(m, c.enemies) } : null;
+    },
+    // The flagship runs for the exit at the top of the chart; the rest cover her.
+    breakthrough(s, o, c) {
+      if (s.id === o.id) return { to: c.G.land ? { x: c.G.W - 10, y: s.y } : { x: s.x, y: 10 } };
+      const f = c.G.ships.find((q) => q.id === o.id && live(q));
+      return f && c.enemies.length ? { target: nearest(f, c.enemies) } : null;
+    },
+    hold(s, o, c) {
+      const fort = c.G.forts.find((f) => f.team === 'player') || s;
+      return c.enemies.length ? { target: nearest(fort, c.enemies) } : null;
+    },
+  };
+
   window.__bot = {
+    GOAL_ORDERS,
     tick() {
       const G = B().G;
       if (!G || G.phase !== 'play') return;
       const ships = G.ships.filter((s) => s.team === 'player' && live(s) && !s.escort);
-      const escorts = G.ships.filter((s) => s.team === 'player' && live(s) && s.escort);
-      const flag = G.ships.find((s) => s.flag && live(s) && s.team === 'player');
-      const claimed = new Set();
       const enemies = G.ships.filter((s) => s.team === 'enemy' && live(s));
-      const boss = enemies.find((s) => s.boss);
-      const hostileForts = G.forts.filter((f) => f.team === 'enemy' && f.state === 'active');
+      const c = {
+        G, enemies, boss: enemies.find((s) => s.boss), claimed: new Set(),
+        hostileForts: G.forts.filter((f) => f.team === 'enemy' && f.state === 'active'),
+      };
       const silent = G.forts.filter((f) => f.state !== 'active');
       // Give up on a lander that sank, was taken by boarders or no longer has the marines for any fort.
       if (lander && (!live(lander) || lander.team !== 'player' || !silent.some((q) => lander.marines >= q.need || q.capture))) lander = null;
       for (const s of ships) {
         // Landing party: anchor beside a silenced fort and send the marines in.
-        if (silent.length && (!lander || lander === s)) {
+        if (silent.length && (!lander || lander === s) && !s.flag) {
           const f = silent.find((q) => s.marines >= q.need);
           if (f) {
             lander = s;
@@ -51,24 +79,17 @@
           }
         }
         if (s.mines > 0 && enemies.some((e) => Math.hypot(e.x - s.x, e.y - s.y) < 120)) B().dropMine(s);
-        // Breakthrough: the flagship runs for the exit at the top of the chart.
-        if (s === flag) { s.pivot = null; s.path = [G.land ? { x: G.W - 10, y: s.y } : { x: s.x, y: 10 }]; continue; }
-        // Treasure: each ship makes for a different floating chest.
-        if (G.goal === 'treasure') {
-          const c = nearest(s, G.chests.filter((q) => !q.taken && !claimed.has(q)));
-          if (c) { claimed.add(c); s.pivot = null; s.path = [{ x: c.x, y: c.y }]; continue; }
-        }
-        // Fireships closing in come first.
+        // Fireships closing in come first; then whatever the battle's goals ask for.
         const fire = enemies.filter((e) => e.fireship && Math.hypot(e.x - s.x, e.y - s.y) < 320);
-        let t;
-        if (fire.length) t = nearest(s, fire);
-        else if (G.goal === 'capture' && hostileForts.length) t = nearest(s, hostileForts);
-        else if (G.goal === 'boss' && boss) t = boss;
-        else if (G.goal === 'escort' && escorts.length && enemies.length) t = nearest(nearest(s, escorts), enemies);
-        else if (G.goal === 'breakthrough' && flag && enemies.length) t = nearest(flag, enemies);
-        else if (G.goal === 'defend' && enemies.length) t = nearest(G.forts[0] || s, enemies);
-        else t = nearest(s, enemies.length ? enemies : hostileForts);
-        if (t) circle(s, t, G);
+        let order = fire.length && !s.flag ? { target: nearest(s, fire) } : null;
+        for (const o of G.goals) {
+          if (order) break;
+          const fn = GOAL_ORDERS[o.kind];
+          if (fn) order = fn(s, o, c);
+        }
+        if (!order) { const t = nearest(s, enemies.length ? enemies : c.hostileForts); if (t) order = { target: t }; }
+        if (!order) continue;
+        if (order.to) { s.pivot = null; s.path = [{ x: order.to.x, y: order.to.y }]; } else circle(s, order.target, G);
       }
     },
   };

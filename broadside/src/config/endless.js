@@ -50,7 +50,7 @@ export function waveEnemies(n) {
   if (boss) {
     defs.unshift({
       type: n >= 10 ? 'manowar' : 'galleon', name: FLAGSHIPS[(n / 5 - 1) % FLAGSHIPS.length], h: 90,
-      hp: 180 + n * 18, chasers: 2, mineEvery: n >= 10 ? 8 : 0,
+      hp: 180 + n * 18, chasers: 2, abilities: n >= 10 ? { mineLayer: { every: 8 } } : {},
       boss: { captain: `Wave ${n} flagship`, title: FLAGSHIPS[(n / 5 - 1) % FLAGSHIPS.length], hat: null },
     });
   }

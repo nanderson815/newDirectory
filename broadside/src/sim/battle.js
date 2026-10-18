@@ -2,6 +2,8 @@ import { TYPES, FORT } from '../config/ships.js';
 import { FLEET_SLOTS } from '../config/battles.js';
 import { battleDef, ENDLESS_ID, randomIslands, waveEnemies, waveAI } from '../config/endless.js';
 import { PI, TAU, rand } from '../util.js';
+import { initAbilities } from './abilities/index.js';
+import { setupGoals } from './goals/index.js';
 
 // Builds one ship's battle state from a battle definition plus (for the player) its shipyard upgrades.
 export function makeShip(def, team, place, rot, id, ai) {
@@ -10,14 +12,14 @@ export function makeShip(def, team, place, rot, id, ai) {
   const [x, y] = place(def.x, def.y);
   const sails = 1 + 0.07 * (up.sails || 0);
   const hp = Math.round(def.hp || (team === 'enemy' ? T.hp * ai.hpMul : T.hp * (1 + 0.2 * (up.hull || 0))));
-  return {
+  const s = {
     id, team, origTeam: team, name: def.name, type: def.type, label: def.boss ? 'Boss' : T.label,
     L: T.L, B: T.B, masts: T.masts, range: T.range,
     guns: T.guns + (up.guns || 0),
     reloadTime: T.reload * (def.reloadMul || 1),
     speed: T.speed * sails, turn: T.turn * sails,
     chasers: def.chasers || up.chasers || 0, chaseT: rand(0.5, 1.5),
-    mines: 2 * (up.mines || 0), minesMax: 2 * (up.mines || 0), mineEvery: def.mineEvery || 0, mineT: def.mineEvery || 0,
+    mines: 2 * (up.mines || 0), minesMax: 2 * (up.mines || 0),
     marines: T.marines + 10 * (up.marines || 0),
     passive: !!def.passive, boss: def.boss || null,
     ammo: 'round', ammoKinds: ['round', ...(up.chain ? ['chain'] : []), ...(up.grape ? ['grape'] : [])],
@@ -26,11 +28,11 @@ export function makeShip(def, team, place, rot, id, ai) {
     hp, maxHp: hp, reload: [rand(0.6, 1.6), rand(0.6, 1.6)],
     path: [], pivot: null, state: 'afloat', sinkT: 0, flash: 0, yard: 0, bob: rand(0, TAU),
     aiT: 0, targetId: null, ideal: rand(0.5, 0.72), fxT: 0,
-    rig: T.rig || 'square', oars: !!T.oars,
-    mortar: def.mortar || T.mortar || null, mortarT: rand(2, 4),
-    fireship: !!T.fireship, burning: !!T.fireship, fireEvery: def.fireEvery || 0, fireT: def.fireEvery ? def.fireEvery * 0.5 : 0,
-    escort: !!def.escort, faction: def.faction || null, flag: !!def.flag, hidden: false,
+    rig: T.rig || 'square', escort: !!def.escort, exits: !!(def.escort || def.exits), flag: false,
+    faction: def.faction || null, hidden: false,
   };
+  initAbilities(s, { ...T.abilities, ...def.abilities });
+  return s;
 }
 
 // The next free unit id in a battle.
@@ -58,8 +60,7 @@ export function createBattle(idx, size, fleet) {
   const playerDefs = B.player || fleet.map((f, i) => ({
     type: f.cls, name: f.name, x: FLEET_SLOTS[i][0], y: FLEET_SLOTS[i][1], h: -90, up: f.up,
   }));
-  playerDefs.forEach((d, i) => ships.push(makeShip({ ...d, flag: B.goal === 'breakthrough' && i === 0 }, 'player', place, rot, id++, B.ai)));
-  for (const d of B.escort || []) ships.push(makeShip({ ...d, escort: true }, 'player', place, rot, id++, B.ai));
+  for (const d of playerDefs) ships.push(makeShip(d, 'player', place, rot, id++, B.ai));
   for (const d of B.enemy) ships.push(makeShip({ ...d, faction: B.faction }, 'enemy', place, rot, id++, B.ai));
 
   const fortIslands = new Set((B.forts || []).map((f) => f.island));
@@ -79,24 +80,28 @@ export function createBattle(idx, size, fleet) {
   const forts = (B.forts || []).map((f) => {
     const is = islands[f.island];
     return {
-      id: id++, kind: 'fort', team: f.team || 'enemy', name: f.name, island: f.island, x: is.x, y: is.y,
+      id: id++, kind: 'fort', team: f.team || 'enemy', origTeam: f.team || 'enemy', name: f.name, island: f.island, x: is.x, y: is.y,
       hp: f.hp, maxHp: f.hp, guns: f.guns, range: f.range || FORT.range, reloadTime: FORT.reload,
       reload: rand(1, 2.5), need: f.need || 10, state: 'active', capture: null, aim: rand(0, TAU), fxT: 0,
     };
   });
 
-  const chests = (B.chests || []).map((c) => { const [x, y] = place(c.x, c.y); return { x, y, taken: false }; });
   let buoy = null;
   if (B.buoy) { const [bx, by] = place(B.buoy.x, B.buoy.y); buoy = { x: bx, y: by }; }
 
-  return {
-    battle: idx, W, H, land: !!land, ships, islands, forts, mines: [], buoy, chests,
-    need: B.need || 0, got: 0, escaped: 0, hold: B.hold || 0, holdT: 0, downT: 0, waveDefs: (B.waves || []).map((w) => ({ ...w, sent: false })),
+  const G = {
+    battle: idx, W, H, land: !!land, ships, islands, forts, mines: [], buoy, chests: [],
     fog: B.fog || 0, faction: B.faction || null,
+    events: (B.events || []).map((e) => ({ ...e, fired: false })),
     wind: { base: B.wind * PI / 180 + rot, dir: B.wind * PI / 180 + rot },
     t: 0, phase: 'title', endAt: null, result: null, dragged: false, award: null,
-    stats: { shots: 0, hits: 0, captured: 0 }, ai: B.ai, goal: B.goal || 'sink',
+    stats: { shots: 0, hits: 0, captured: 0 }, ai: B.ai, goal: null, goals: [],
     tut: B.tutorial ? { step: 0, rotated: false, raised: false } : null,
-    wave: endless ? 1 : 0, wavesCleared: 0, nextWaveAt: null,
+    wave: 0, wavesCleared: 0, nextWaveAt: null,
   };
+  // Goals may add ships of their own (merchantmen to escort, say).
+  const add = (def, team) => { const s = makeShip(def, team, place, rot, nextId(G), B.ai); ships.push(s); return s; };
+  setupGoals(G, B, { place, rot, add });
+  G.goal = G.goals[0].kind;
+  return G;
 }

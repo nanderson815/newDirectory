@@ -43,7 +43,7 @@ await B(() => window.__broadside.step(1));
 await shot(page, 'x1-fireship');
 const launched = await B(() => {
   const b = window.__broadside, G = b.G, boss = G.ships.find((s) => s.boss), r = G.ships[0];
-  boss.passive = false; boss.x = r.x; boss.y = r.y - 300; boss.fireT = 0;
+  boss.passive = false; boss.x = r.x; boss.y = r.y - 300; boss.abilities.launcher.t = 0;
   const n = G.ships.filter((s) => s.fireship).length;
   b.sim(2);
   return G.ships.filter((s) => s.fireship).length - n;
@@ -57,7 +57,7 @@ await park();
 const mortar = await B(() => {
   const b = window.__broadside, G = b.G, r = G.ships[0], k = G.ships.find((s) => s.type === 'bomb');
   G.ai.spread = 0; r.pivot = r.h; r.v = 0; r.hp = r.maxHp;
-  k.passive = false; k.pivot = k.h; k.x = r.x; k.y = r.y - 320; k.mortarT = 0;
+  k.passive = false; k.pivot = k.h; k.x = r.x; k.y = r.y - 320; k.abilities.mortar.t = 0;
   b.sim(3);
   const shell = b.S.balls.find((x) => x.kind === 'shell');
   const out = { fired: !!shell, h: 0, hp: r.hp };
@@ -69,7 +69,7 @@ const mortar = await B(() => {
 check(mortar.fired, 'a bomb ketch lobs a mortar shell', failures);
 check(mortar.h > 60, `the shell flies high (${Math.round(mortar.h)})`, failures);
 check(mortar.after < mortar.hp, `and bursts on its target (${mortar.hp} -> ${Math.round(mortar.after)})`, failures);
-await B(() => { const b = window.__broadside, G = b.G, k = G.ships.find((s) => s.type === 'bomb'); k.mortarT = 0; b.sim(70); b.step(1); });
+await B(() => { const b = window.__broadside, G = b.G, k = G.ships.find((s) => s.type === 'bomb'); k.abilities.mortar.t = 0; b.sim(70); b.step(1); });
 await shot(page, 'x2-mortar-ring');
 
 // ---------- Treasure ----------
@@ -79,14 +79,14 @@ await park();
 const chest = await B(() => {
   const b = window.__broadside, G = b.G, r = G.ships[0], c = G.chests[0];
   r.x = c.x; r.y = c.y; r.pivot = r.h; b.sim(2);
-  return { got: G.got, taken: c.taken };
+  return { got: G.goals[0].got, taken: c.taken };
 });
 check(chest.taken && chest.got === 1, 'sailing over a chest hauls it aboard', failures);
 await B(() => window.__broadside.step(1));
 await shot(page, 'x3-treasure');
 const treasureWin = await B(() => {
   const b = window.__broadside, G = b.G, r = G.ships[0];
-  for (const c of G.chests.filter((q) => !q.taken).slice(0, G.need - G.got)) { r.x = c.x; r.y = c.y; b.sim(2); }
+  for (const c of G.chests.filter((q) => !q.taken).slice(0, G.goals[0].need - G.goals[0].got)) { r.x = c.x; r.y = c.y; b.sim(2); }
   b.sim(5);
   return G.result;
 });
@@ -106,7 +106,7 @@ const sails = await B(() => { const b = window.__broadside, m = b.G.ships.find((
 check(sails > 30, `merchantmen sail for the exit on their own (${Math.round(sails)})`, failures);
 await B(() => window.__broadside.step(1));
 await shot(page, 'x4-escort');
-const escWin = await B(() => { const b = window.__broadside, G = b.G, m = G.ships.find((s) => s.escort); m.y = 60; b.sim(5); return { st: m.state, n: G.escaped, r: G.result }; });
+const escWin = await B(() => { const b = window.__broadside, G = b.G, m = G.ships.find((s) => s.escort); m.y = 60; b.sim(5); return { st: m.state, n: G.goals[0].got, r: G.result }; });
 check(escWin.st === 'escaped' && escWin.n === 1, 'a merchantman through the exit is safe', failures);
 check(escWin.r === 'win', `getting one through wins (${escWin.r})`, failures);
 await start('convoy');
@@ -118,14 +118,14 @@ console.log('Defend');
 await start('siege');
 const def = await B(() => {
   const b = window.__broadside, G = b.G, f = G.forts[0], n = G.ships.length;
-  G.holdT = 39.5; b.sim(60);
+  G.t = 39.5; b.sim(60);
   return { team: f.team, waves: G.ships.length - n };
 });
 check(def.team === 'player', 'Fort Charles fights for England', failures);
 check(def.waves === 2, `reinforcements arrive on schedule (+${def.waves})`, failures);
 await B(() => window.__broadside.step(1));
 await shot(page, 'x5-siege');
-const defWin = await B(() => { const b = window.__broadside, G = b.G; G.holdT = G.hold - 0.5; b.sim(60); return G.result; });
+const defWin = await B(() => { const b = window.__broadside, G = b.G; G.goals[0].t = G.goals[0].secs - 0.5; b.sim(60); return G.result; });
 check(defWin === 'win', `holding until the timer runs out wins (${defWin})`, failures);
 await start('siege');
 const defLose = await B(() => { const b = window.__broadside, G = b.G, f = G.forts[0]; f.hp = 0; f.state = 'silenced'; b.sim(60 * 19); return [G.result, G.reason]; });

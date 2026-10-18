@@ -4,7 +4,9 @@ import { AMMO } from '../config/ammo.js';
 import { PI, clamp, lerp, rand, angDiff, reduceMotion } from '../util.js';
 import { spawn } from './particles.js';
 import { sfx } from '../audio/sfx.js';
-import { fireshipBurst, updateShell } from './special.js';
+import { updateShell } from './abilities/mortar.js';
+import { abilitiesSunk } from './abilities/index.js';
+import { goalsSunk } from './goals/index.js';
 
 const BROADSIDE_ARC = 0.62;  // half-angle of each side's firing arc
 const CHASER_ARC = 0.32;     // half-angle of the bow chasers' arc
@@ -209,7 +211,8 @@ export function sinkShip(e) {
     sfx.bossDown();
     if (!reduceMotion) S.slowmo = { until: S.clock + 1.8, k: 0.3 };
   }
-  if (e.fireship) fireshipBurst(e);
+  abilitiesSunk(e);
+  goalsSunk(G, e);
   if (S.selected === e) S.selected = G.ships.find((s) => s.team === 'player' && afloat(s) && !s.escort) || null;
 }
 

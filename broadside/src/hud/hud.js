@@ -5,7 +5,7 @@ import { projTo, proj, pxPerUnit, scratchA, scratchB } from '../render/camera.js
 import { shipMeshes, fortTopZ } from '../render/scene.js';
 import { sideDir } from '../sim/combat.js';
 import { EXIT_BAND } from '../sim/battle.js';
-import { chestsLeft, GRACE } from '../sim/special.js';
+import { goalLines, eachGoal, hasGoalFlag } from '../sim/goals/index.js';
 import { landingFor } from '../sim/forts.js';
 import { boardingTarget, defence } from '../sim/boarding.js';
 import { AMMO, BOARDING } from '../config/ammo.js';
@@ -284,30 +284,6 @@ function drawChests() {
   }
 }
 
-function objectiveLines() {
-  const G = S.G;
-  const ships = G.ships.filter((s) => s.team === 'enemy' && afloat(s)).length;
-  if (G.goal === 'treasure') return [`Treasure: ${G.got}/${G.need}`, `Chests left: ${chestsLeft(G)}`, `Enemy ships: ${ships}`];
-  if (G.goal === 'escort') {
-    const left = G.ships.filter((s) => s.escort && s.team === 'player' && afloat(s)).length;
-    return [`Merchantmen through: ${G.escaped}/${G.need}`, `Still sailing: ${left}`, `Enemy ships: ${ships}`];
-  }
-  if (G.goal === 'defend') {
-    const left = Math.max(0, Math.ceil(G.hold - G.holdT));
-    const lines = [`Hold the fort: ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`, `Enemy ships: ${ships}`];
-    if (G.downT > 0) lines.splice(1, 0, `Retake it! ${Math.max(0, Math.ceil(GRACE - G.downT))}s`);
-    return lines;
-  }
-  if (G.goal === 'breakthrough') return ['Get the ★ flagship to the exit', `Enemy ships: ${ships}`];
-  if (G.goal === 'capture') {
-    const held = G.forts.filter((f) => f.team === 'player' && f.state === 'active').length;
-    return [`Forts taken: ${held}/${G.forts.length}`, `Enemy ships: ${ships}`];
-  }
-  if (G.goal === 'boss') return ['Sink the boss', `Enemy ships: ${ships}`];
-  if (G.goal === 'waves') return [`Wave ${G.wave}`, `Enemy ships: ${ships}`];
-  return [`Enemy ships: ${ships}`];
-}
-
 export function drawHUD() {
   const { cw, ch, dpr } = S.view;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -339,13 +315,12 @@ export function drawHUD() {
     else if (sel) drawRing(sel);
     for (const s of G.ships) if (s.boarding && s.boarding.attacker) drawBoarding(s);
   }
-  if (G.goal === 'escort' || G.goal === 'breakthrough') drawExit();
+  if (hasGoalFlag(G, 'exit')) drawExit();
   if (G.chests && G.chests.length) drawChests();
   drawShellTargets();
   if (G.phase === 'play' && G.t > 1.5) {
-    if (G.goal === 'escort' || G.goal === 'breakthrough') offerTip('exit');
-    else if (G.goal === 'treasure') offerTip('chest');
-    else if (G.fog) offerTip('fog');
+    eachGoal(G, 'tip', (g) => offerTip(g.tip));
+    if (G.fog) offerTip('fog');
     if (S.balls.some((b) => b.kind === 'shell' && b.team === 'enemy')) offerTip('mortar');
     if (G.ships.some((s) => s.fireship && afloat(s) && !s.hidden)) offerTip('fireship');
   }
@@ -403,7 +378,7 @@ export function drawHUD() {
   ctx.beginPath(); ctx.moveTo(19, 0); ctx.lineTo(4, -10); ctx.lineTo(4, -4); ctx.lineTo(-17, -4); ctx.lineTo(-17, 4); ctx.lineTo(4, 4); ctx.lineTo(4, 10); ctx.closePath();
   ctx.fill(); ctx.stroke(); ctx.restore();
   outlinedText('WIND', wxs, wys + wr + 11, 12, COL.white, 'center');
-  objectiveLines().forEach((t, i) => outlinedText(t, wxs + wr, wys + wr + 28 + i * 18, 14, '#ffd6cf', 'right'));
+  goalLines(G).forEach((t, i) => outlinedText(t, wxs + wr, wys + wr + 28 + i * 18, 14, '#ffd6cf', 'right'));
 
   const playing = G.phase === 'play';
   // Manual fire buttons for the selected ship

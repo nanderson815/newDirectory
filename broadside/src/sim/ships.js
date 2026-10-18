@@ -3,7 +3,8 @@ import { CHASER_RELOAD } from '../config/ships.js';
 import { PI, clamp, rand, angDiff } from '../util.js';
 import { windFactor } from './wind.js';
 import { followPath, avoidIslands, aiSteer, escortSteer, shoreClear } from './steering.js';
-import { updateFireship, updateFireLauncher, updateMortar, checkExit } from './special.js';
+import { updateAbilities, abilityWind } from './abilities/index.js';
+import { checkExit } from './exit.js';
 import { findBroadsideTarget, findChaseTarget, fireBroadside, fireChasers, dropMine, crewMul } from './combat.js';
 import { spawn } from './particles.js';
 import { sfx } from '../audio/sfx.js';
@@ -51,7 +52,7 @@ export function updateShip(s, dt) {
   // Lashed together for boarding, anchored or a hulk: dead in the water. Torn rigging (chain shot) crawls.
   const stopped = s.pivot != null || s.passive || !!s.boarding;
   s.slowT = Math.max(0, s.slowT - dt);
-  const targetV = stopped ? 0 : s.speed * windFactor(s.h, s) * hpF * (s.slowT > 0 ? 0.45 : 1);
+  const targetV = stopped ? 0 : s.speed * abilityWind(s, windFactor(s.h, s)) * hpF * (s.slowT > 0 ? 0.45 : 1);
   s.v += (targetV - s.v) * Math.min(1, dt * (stopped ? 1.6 : 0.8));
   s.x += Math.cos(s.h) * s.v * dt;
   s.y += Math.sin(s.h) * s.v * dt;
@@ -81,17 +82,7 @@ export function updateShip(s, dt) {
         if (tgt) fireChasers(s, tgt);
       }
     }
-    if (s.mortar) updateMortar(s, dt);
-    if (s.fireEvery) updateFireLauncher(s, dt);
-    if (s.fireship) updateFireship(s);
-    // Mine-laying bosses drop one astern whenever an English ship is near.
-    if (s.mineEvery) {
-      s.mineT -= dt;
-      if (s.mineT <= 0 && G.ships.some((o) => o.team !== s.team && afloat(o) && Math.hypot(o.x - s.x, o.y - s.y) < 300)) {
-        dropMine(s);
-        s.mineT = s.mineEvery;
-      }
-    }
+    updateAbilities(s, dt);
   }
 
   s.fxT -= dt;
