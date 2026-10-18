@@ -203,6 +203,7 @@ function objectiveLines() {
     return [`Forts taken: ${held}/${G.forts.length}`, `Enemy ships: ${ships}`];
   }
   if (G.goal === 'boss') return ['Sink the boss', `Enemy ships: ${ships}`];
+  if (G.goal === 'waves') return [`Wave ${G.wave}`, `Enemy ships: ${ships}`];
   return [`Enemy ships: ${ships}`];
 }
 

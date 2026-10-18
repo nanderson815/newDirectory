@@ -43,6 +43,7 @@ const SLOW_ENOUGH = 20;
 
 export function startLanding(s, f) {
   if (!canLand(s, f) || s.marines < f.need || f.capture) return false;
+  if (S.G.forts.some((q) => q.capture && q.capture.shipId === s.id)) return false; // her boats are already ashore
   f.capture = { shipId: s.id, t: 0 };
   s.path = [];
   s.pivot = s.h; // hold position while the boats are away
@@ -53,7 +54,7 @@ export function startLanding(s, f) {
 function updateCapture(f, dt) {
   if (!f.capture) return;
   const s = shipById(f.capture.shipId);
-  if (!s || !canLand(s, f)) { f.capture = null; return; }
+  if (!s || !canLand(s, f) || s.marines < f.need) { f.capture = null; return; }
   if (s.v < SLOW_ENOUGH) f.capture.t += dt;
   if (f.capture.t < CAPTURE_TIME) return;
   s.marines -= f.need;

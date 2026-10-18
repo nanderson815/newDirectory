@@ -4,6 +4,7 @@ import { updateShip, collide } from './ships.js';
 import { fireQueued, updateBalls, updateMines } from './combat.js';
 import { updateFort } from './forts.js';
 import { updateBoardings } from './boarding.js';
+import { updateWaves } from './endless.js';
 import { updateParticles } from './particles.js';
 import { sfx } from '../audio/sfx.js';
 
@@ -27,6 +28,7 @@ export function update(dt) {
     updateBalls(dt);
     updateMines(dt);
     updateBoardings(dt);
+    updateWaves();
     updateTutorial();
     checkEnd();
   }
@@ -42,9 +44,21 @@ export function checkEnd() {
     return;
   }
   const playerAfloat = G.ships.some((s) => s.team === 'player' && afloat(s));
+  // The skirmish only ends when the fleet is gone.
+  if (G.goal === 'waves') {
+    if (!playerAfloat) { G.result = 'end'; G.endAt = G.t + 2.4; }
+    return;
+  }
   let won;
   if (G.goal === 'boss') won = !G.ships.some((s) => s.boss && afloat(s));
-  else if (G.goal === 'capture') won = G.forts.length > 0 && G.forts.every((f) => f.team === 'player' && f.state === 'active');
+  else if (G.goal === 'capture') {
+    won = G.forts.length > 0 && G.forts.every((f) => f.team === 'player' && f.state === 'active');
+    // Out of marines: if no ship afloat can still land at a fort you need, the battle is lost.
+    const needed = G.forts.filter((f) => !(f.team === 'player' && f.state === 'active'));
+    const stuck = needed.length && !needed.some((f) => f.capture) &&
+      !needed.some((f) => G.ships.some((s) => s.team === 'player' && afloat(s) && s.marines >= f.need));
+    if (!won && stuck) { G.result = 'lose'; G.reason = 'marines'; G.endAt = G.t + 2.4; return; }
+  }
   else won = !G.ships.some((s) => s.team === 'enemy' && afloat(s));
   if (!playerAfloat || won) {
     G.result = playerAfloat ? 'win' : 'lose';

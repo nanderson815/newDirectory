@@ -4,8 +4,10 @@ import { createBattle } from './sim/battle.js';
 import { clearParticles } from './sim/particles.js';
 import { R } from './render/gl.js';
 import { worldSize, fitCamera, isLandscape } from './render/camera.js';
-import { buildScene } from './render/scene.js';
+import { buildScene, addShipMesh } from './render/scene.js';
 import { sizeHud } from './hud/hud.js';
+
+S.hooks.onSpawn = addShipMesh;
 
 // Sets up a battle (idle, in the 'title' phase) and builds its scene.
 export function loadBattle(idx) {
@@ -45,7 +47,8 @@ export function resize() {
 // Adaptive resolution: if frames run long for a couple of seconds, render fewer pixels.
 export const perf = { acc: 0, n: 0, cooldown: 3, locked: false, rec: null };
 export function watchPerf(dtMs) {
-  if (!R.renderer || document.hidden || perf.locked) return;
+  // A frame after the tab was hidden spans the whole absence; it says nothing about rendering speed.
+  if (!R.renderer || document.hidden || perf.locked || dtMs > 250) return;
   perf.acc += dtMs; perf.n++;
   perf.cooldown -= dtMs / 1000;
   if (perf.n >= 90) {

@@ -213,6 +213,8 @@ html, body {
 .node:disabled { cursor: not-allowed; opacity: 0.55; box-shadow: none; transform: none; }
 .node.next { background: #ffe6a3; }
 .node.boss { background: #f3c9b9; }
+.node.endless { background: #cfe6f2; }
+.node.endless .node-num { font-size: 24px; }
 .node-num {
   width: 40px; height: 40px; border-radius: 50%;
   display: grid; place-items: center;

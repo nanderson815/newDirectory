@@ -130,6 +130,7 @@ function fireFortGun(p) {
   const ang = Math.atan2(ay - gy, ax - gx) + rand(-spread, spread);
   const dist = clamp(Math.hypot(ax - gx, ay - gy) * rand(0.92, 1.08), 40, f.range * 1.1);
   launch(f.team, gx, gy, ang, dist, BALL_DMG * FORT.dmgMul * enemyMul(f.team, 'dmgMul'), FORT.gunHeight, f.island);
+  if (f.team === 'player') S.G.stats.shots++;
   muzzle(gx, gy, f.aim, FORT.gunHeight);
   sfx.boom(f.team === 'player' ? 0.8 : 0.7, 0.85);
 }
@@ -221,6 +222,7 @@ export function dropMine(s) {
   if (!afloat(s) || (s.team === 'player' && s.mines <= 0)) return;
   if (s.team === 'player') s.mines--;
   const x = s.x - Math.cos(s.h) * s.L * 0.62, y = s.y - Math.sin(s.h) * s.L * 0.62;
+  if (S.G.mines.length >= 60) S.G.mines.shift(); // the oldest mine drifts off (and the render pool tops out at 64)
   S.G.mines.push({ x, y, team: s.team, arm: 1.2, bob: rand(0, 6) });
   spawn('splash', x, y, 0, 0, 0.5, 6);
   sfx.splash();

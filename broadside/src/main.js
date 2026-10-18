@@ -3,6 +3,7 @@ import { S } from './state.js';
 import { $ } from './util.js';
 import { save, replaceSave, writeSave, isUnlocked } from './save.js';
 import { BATTLES, battleIndex } from './config/battles.js';
+import { battleDef } from './config/endless.js';
 import { R, initGL } from './render/gl.js';
 import { renderScene } from './render/scene.js';
 import { proj } from './render/camera.js';
@@ -47,13 +48,21 @@ function start(data) {
   resize();
   initUI();
   bindInput(pauseGame);
-  if (data && data.save) replaceSave(data.save);
-  if (data && data.G && data.G.ships) {
-    adoptBattle(data.G);
-    S.selected = S.G.ships.find((s) => s.id === data.selectedId) || S.selected;
-    ui.yardSel = data.yardSel || 0;
-    restoreScreen(data.screen);
-  } else {
+  // A snapshot from an older build of the game has a different battle shape; ignore it and boot fresh.
+  const usable = data && data.snap === SNAP && data.G && Array.isArray(data.G.ships) && Array.isArray(data.G.forts) &&
+    Array.isArray(data.G.mines) && battleDef(data.G.battle);
+  let restored = false;
+  if (usable) {
+    try {
+      if (data.save) replaceSave(data.save);
+      adoptBattle(data.G);
+      S.selected = S.G.ships.find((s) => s.id === data.selectedId) || S.selected;
+      ui.yardSel = data.yardSel || 0;
+      restoreScreen(data.screen);
+      restored = true;
+    } catch (e) { restored = false; }
+  }
+  if (!restored) {
     loadBattle(backdropBattle());
     openMenu();
   }
@@ -64,9 +73,10 @@ function start(data) {
 }
 
 // Hot reloads inside the Claude artifact viewer keep the current battle and screen.
+const SNAP = 2; // bump when the shape of G changes
 function snapshot() {
   if (!S.G) return {};
-  return { G: JSON.parse(JSON.stringify(S.G)), selectedId: S.selected ? S.selected.id : null, screen: ui.screen, yardSel: ui.yardSel, save };
+  return { snap: SNAP, G: JSON.parse(JSON.stringify(S.G)), selectedId: S.selected ? S.selected.id : null, screen: ui.screen, yardSel: ui.yardSel, save };
 }
 const hot = window.claude && window.claude.hot;
 if (hot && hot.snapshot) hot.snapshot(snapshot);

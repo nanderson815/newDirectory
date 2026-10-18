@@ -1,5 +1,6 @@
 import { TYPES, FORT } from '../config/ships.js';
-import { BATTLES, FLEET_SLOTS } from '../config/battles.js';
+import { FLEET_SLOTS } from '../config/battles.js';
+import { battleDef, ENDLESS_ID, randomIslands, waveEnemies, waveAI } from '../config/endless.js';
 import { PI, TAU, rand } from '../util.js';
 
 // Builds one ship's battle state from a battle definition plus (for the player) its shipyard upgrades.
@@ -16,7 +17,7 @@ export function makeShip(def, team, place, rot, id, ai) {
     reloadTime: T.reload * (def.reloadMul || 1),
     speed: T.speed * sails, turn: T.turn * sails,
     chasers: def.chasers || up.chasers || 0, chaseT: rand(0.5, 1.5),
-    mines: 2 * (up.mines || 0), mineEvery: def.mineEvery || 0, mineT: def.mineEvery || 0,
+    mines: 2 * (up.mines || 0), minesMax: 2 * (up.mines || 0), mineEvery: def.mineEvery || 0, mineT: def.mineEvery || 0,
     marines: T.marines + 10 * (up.marines || 0),
     passive: !!def.passive, boss: def.boss || null,
     ammo: 'round', ammoKinds: ['round', ...(up.chain ? ['chain'] : []), ...(up.grape ? ['grape'] : [])],
@@ -30,7 +31,9 @@ export function makeShip(def, team, place, rot, id, ai) {
 
 // Creates the serialisable battle state G. size = { W, H, land } comes from the camera's framing.
 export function createBattle(idx, size, fleet) {
-  const B = BATTLES[idx];
+  const endless = idx === ENDLESS_ID;
+  // The skirmish rolls its own islands and first wave each time.
+  const B = endless ? { ...battleDef(idx), islands: randomIslands(), enemy: waveEnemies(1), ai: waveAI(1) } : battleDef(idx);
   const { W, H, land } = size;
   // Landscape screens rotate the layout 90°: the player starts on the left.
   const place = land ? (x, y) => [(1 - y) * W, x * H] : (x, y) => [x * W, y * H];
@@ -75,5 +78,6 @@ export function createBattle(idx, size, fleet) {
     t: 0, phase: 'title', endAt: null, result: null, dragged: false, award: null,
     stats: { shots: 0, hits: 0, captured: 0 }, ai: B.ai, goal: B.goal || 'sink',
     tut: B.tutorial ? { step: 0, rotated: false, raised: false } : null,
+    wave: endless ? 1 : 0, wavesCleared: 0, nextWaveAt: null,
   };
 }

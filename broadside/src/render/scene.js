@@ -221,6 +221,14 @@ export function syncScene() {
   }
 }
 
+// A ship that joins mid-battle (Endless Skirmish waves) gets its mesh here.
+export function addShipMesh(s) {
+  if (!R.renderer || shipMeshes.has(s.id)) return;
+  const m = buildShipMesh(s);
+  R.scene.add(m.g);
+  shipMeshes.set(s.id, m);
+}
+
 export function renderScene() {
   if (!R.renderer || !S.G) return;
   syncScene();

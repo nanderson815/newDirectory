@@ -115,6 +115,15 @@ export function buyHire() {
   return true;
 }
 
+// Endless Skirmish: pays per wave beaten and remembers the best run.
+export function recordSkirmish(waves, gold) {
+  const best = save.best || 0;
+  save.best = Math.max(best, waves);
+  save.gold += gold;
+  writeSave();
+  return { gold, waves, best: save.best, record: waves > best };
+}
+
 // The tutorial and the first battle are always open; each later battle opens once the one before is won.
 export function isUnlocked(i) {
   return i <= 1 || (save.stars[BATTLES[i - 1].id] || 0) > 0;
