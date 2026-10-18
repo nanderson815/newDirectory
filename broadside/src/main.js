@@ -13,6 +13,7 @@ import { loadBattle, adoptBattle, resize, perf, watchPerf } from './game.js';
 import { dropMine } from './sim/combat.js';
 import { startLanding, landingFor } from './sim/forts.js';
 import { shipById, fortById } from './state.js';
+import { audioTick } from './audio/director.js';
 import { ui, initUI, openMenu, openBrief, startPlay, pauseGame, restoreScreen, syncSettings } from './ui/screens.js';
 
 function render() {
@@ -27,6 +28,7 @@ function frame(now) {
   watchPerf(raw);
   const t0 = performance.now();
   update(Math.min(0.05, raw / 1000));
+  audioTick(raw / 1000);
   render();
   if (perf.rec) {
     perf.rec.raw.push(raw); perf.rec.js.push(performance.now() - t0);

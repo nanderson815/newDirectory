@@ -88,7 +88,7 @@ function fireGun(p) {
   muzzle(gx, gy, dir, 6);
   // A little recoil.
   s.x -= Math.cos(dir) * 0.6; s.y -= Math.sin(dir) * 0.6;
-  sfx.boom(s.team === 'player' ? 0.9 : 0.6);
+  sfx.gun(gx, gy, s.team === 'player' ? 0.9 : 0.6);
 }
 
 // Bow chasers: one or two long guns in the bow that hit whatever sits dead ahead.
@@ -105,7 +105,7 @@ export function fireChasers(s, t) {
     muzzle(gx, gy, s.h, 7);
   }
   if (s.team === 'player') S.G.stats.shots += s.chasers;
-  sfx.boom(0.55, 1.2);
+  sfx.gun(s.x, s.y, 0.55, 1.2);
 }
 
 // A fort's tower gun, fired from high up so its shot clears its own island.
@@ -121,7 +121,7 @@ function fireFortGun(p) {
   const dist = clamp(Math.hypot(ax - gx, ay - gy) * rand(0.92, 1.08), 40, f.range * 1.1);
   launch(f.team, gx, gy, ang, dist, BALL_DMG * FORT.dmgMul * enemyMul(f.team, 'dmgMul'), FORT.gunHeight, f.island);
   muzzle(gx, gy, f.aim, FORT.gunHeight);
-  sfx.boom(f.team === 'player' ? 0.8 : 0.7, 0.85);
+  sfx.fortGun(gx, gy, f.team === 'player' ? 0.8 : 0.7);
 }
 
 export function updateBalls(dt) {
@@ -155,7 +155,7 @@ export function updateBalls(dt) {
     if (!done && b.travel >= b.max) {
       spawn('splash', b.x, b.y, 0, 0, 0.6, 8);
       for (let k = 0; k < 6; k++) spawn('drop', b.x, b.y, rand(-25, 25), rand(-25, 25), rand(0.5, 0.8), rand(1.6, 3), 1, rand(50, 90));
-      sfx.splash();
+      sfx.splash(b.x, b.y);
       done = true;
     }
     if (done || b.x < -50 || b.y < -50 || b.x > G.W + 50 || b.y > G.H + 50) {
@@ -171,13 +171,13 @@ export function hitShip(e, b) {
   if (b.team === 'player' && !b.mine) G.stats.hits++;
   for (let k = 0; k < 7; k++) spawn('splinter', b.x, b.y, rand(-60, 60), rand(-60, 60), rand(0.6, 1.0), rand(2, 4.5), 10, rand(30, 70));
   spawn('smoke', b.x, b.y, rand(-8, 8), rand(-8, 8), 0.8, 5, 10, 8);
-  sfx.crack();
+  sfx.woodHit(b.x, b.y);
   if (e.team === 'player' && !reduceMotion) S.shake = Math.max(S.shake, b.mine ? 8 : 5);
   if (e.hp <= 0 && e.state === 'afloat') {
     e.hp = 0; e.state = 'sinking'; e.sinkT = 0; e.path = []; e.pivot = null;
     spawn('splash', e.x, e.y, 0, 0, 1.0, e.L * 0.45);
-    sfx.boom(1.2, 0.6);
-    if (e.boss) { showBanner(`${e.boss.captain} is beaten!`, `${e.boss.title} is going down`, 3); sfx.fanfare(true); }
+    sfx.sink(e.x, e.y, e.L);
+    if (e.boss) { showBanner(`${e.boss.captain} is beaten!`, `${e.boss.title} is going down`, 3); sfx.bossDown(); }
     if (S.selected === e) S.selected = G.ships.find((s) => s.team === 'player' && afloat(s)) || null;
   }
 }
@@ -187,11 +187,11 @@ export function hitFort(f, b) {
   if (b.team === 'player') S.G.stats.hits++;
   for (let k = 0; k < 6; k++) spawn('stone', f.x + rand(-10, 10), f.y + rand(-10, 10), rand(-50, 50), rand(-50, 50), rand(0.6, 1.0), rand(2, 4), 22, rand(30, 70));
   spawn('smoke', f.x + rand(-8, 8), f.y + rand(-8, 8), rand(-8, 8), rand(-8, 8), 0.9, 7, 24, 10);
-  sfx.crack();
+  sfx.stoneHit(f.x, f.y);
   if (f.hp <= 0 && f.state === 'active') {
     f.hp = 0; f.state = 'silenced'; f.capture = null;
     for (let k = 0; k < 8; k++) spawn('smoke', f.x + rand(-14, 14), f.y + rand(-14, 14), rand(-12, 12), rand(-12, 12), rand(1.4, 2.2), rand(8, 12), 20, rand(10, 20));
-    sfx.boom(1.1, 0.7);
+    sfx.boom(1.1, 0.7, f.x, f.y);
     if (f.team === 'enemy') showBanner(`${f.name} is silenced!`, 'Stop a ship beside it and land troops');
     else showBanner(`${f.name} is silenced`, 'Land troops again to retake it');
   }
@@ -204,7 +204,7 @@ export function dropMine(s) {
   const x = s.x - Math.cos(s.h) * s.L * 0.62, y = s.y - Math.sin(s.h) * s.L * 0.62;
   S.G.mines.push({ x, y, team: s.team, arm: 1.2, bob: rand(0, 6) });
   spawn('splash', x, y, 0, 0, 0.5, 6);
-  sfx.splash();
+  sfx.splash(x, y, 0.6);
 }
 
 export function updateMines(dt) {
@@ -230,6 +230,6 @@ function explodeMine(m, s) {
   spawn('flash', m.x, m.y, 0, 0, 0.25, 18, 6, 0);
   for (let k = 0; k < 14; k++) spawn('drop', m.x, m.y, rand(-40, 40), rand(-40, 40), rand(0.6, 1.0), rand(2, 4), 1, rand(80, 140));
   for (let k = 0; k < 5; k++) spawn('smoke', m.x + rand(-8, 8), m.y + rand(-8, 8), rand(-10, 10), rand(-10, 10), rand(1.2, 1.8), rand(8, 12), 6, rand(10, 20));
-  sfx.boom(1.3, 0.8);
+  sfx.mine(m.x, m.y);
   if (!reduceMotion) S.shake = Math.max(S.shake, 7);
 }

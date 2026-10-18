@@ -36,6 +36,22 @@
       </div>
       <p class="setting-note" id="fireNoteA"></p>
     </div>
+    <div class="setting-pair">
+      <div class="setting">
+        <span class="setting-label" id="musicLabelA">Music</span>
+        <div class="toggle" role="group" aria-labelledby="musicLabelA">
+          <button type="button" id="musicOnA" data-music="on">On</button>
+          <button type="button" id="musicOffA" data-music="off">Off</button>
+        </div>
+      </div>
+      <div class="setting">
+        <span class="setting-label" id="soundLabelA">Sound</span>
+        <div class="toggle" role="group" aria-labelledby="soundLabelA">
+          <button type="button" id="soundOnA" data-sound="on">On</button>
+          <button type="button" id="soundOffA" data-sound="off">Off</button>
+        </div>
+      </div>
+    </div>
     <p class="error-text" id="glError" hidden>This game needs WebGL, and your browser didn't provide it. Try a recent Chrome or Safari.</p>
     <div class="row">
       <button type="button" class="btn" id="startBtn">Set sail</button>
@@ -127,11 +143,20 @@
       </div>
       <p class="setting-note" id="fireNoteB"></p>
     </div>
-    <div class="setting">
-      <span class="setting-label" id="soundLabel">Sound</span>
-      <div class="toggle" role="group" aria-labelledby="soundLabel">
-        <button type="button" id="soundOn" data-sound="on">On</button>
-        <button type="button" id="soundOff" data-sound="off">Off</button>
+    <div class="setting-pair">
+      <div class="setting">
+        <span class="setting-label" id="musicLabel">Music</span>
+        <div class="toggle" role="group" aria-labelledby="musicLabel">
+          <button type="button" id="musicOn" data-music="on">On</button>
+          <button type="button" id="musicOff" data-music="off">Off</button>
+        </div>
+      </div>
+      <div class="setting">
+        <span class="setting-label" id="soundLabel">Sound</span>
+        <div class="toggle" role="group" aria-labelledby="soundLabel">
+          <button type="button" id="soundOn" data-sound="on">On</button>
+          <button type="button" id="soundOff" data-sound="off">Off</button>
+        </div>
       </div>
     </div>
     <div class="row">

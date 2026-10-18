@@ -37,7 +37,7 @@ src/
   render/   three.js renderer, toon water, ship/island/fort models, camera framing, scene sync
   hud/      2D HUD canvas and touch input
   ui/       DOM screens: menu, sea chart, shipyard, hats, briefing, pause, results, tutorial coach
-  audio/    synthesised sound effects
+  audio/    synthesised music, sea ambience and sound effects (no audio files)
   save.js   campaign progress, shipyard purchases, rewards
   state.js  shared live state
   main.js   boot and game loop
