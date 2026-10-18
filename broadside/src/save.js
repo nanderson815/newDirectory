@@ -1,6 +1,7 @@
 import { TYPES, REFIT, REFIT_COST } from './config/ships.js';
 import { UPGRADES, HIRES, MAX_FLEET } from './config/upgrades.js';
 import { BATTLES } from './config/battles.js';
+import { AMMO_COSTS, BOARDING } from './config/ammo.js';
 
 // Campaign progress lives in this browser only (localStorage), so it's a per-player convenience:
 // losing it costs progress, never breaks the game.
@@ -55,7 +56,17 @@ export function fleetStats(f) {
     mines: 2 * lvl(f, 'mines'),
     marines: T.marines + 10 * lvl(f, 'marines'),
     speed: Math.round(T.speed * (1 + 0.07 * lvl(f, 'sails'))),
+    ammo: ['round', ...(lvl(f, 'chain') ? ['chain'] : []), ...(lvl(f, 'grape') ? ['grape'] : [])],
   };
+}
+
+// Chain shot and grapeshot are one-off purchases per ship.
+export function buyAmmo(i, kind) {
+  const f = save.fleet[i];
+  if (lvl(f, kind) || !spend(AMMO_COSTS[kind])) return false;
+  f.up = { ...f.up, [kind]: 1 };
+  writeSave();
+  return true;
 }
 
 export function refitOffer(f) {
@@ -111,16 +122,18 @@ export function isUnlocked(i) {
 
 export const starsFor = (lost) => (lost === 0 ? 3 : lost === 1 ? 2 : 1);
 
-// Pays out a win: full reward the first time, 40% on replays, +50% for a flawless (3-star) win.
-export function recordWin(idx, lost) {
+// Pays out a win: full reward the first time, 40% on replays, +50% for a flawless (3-star) win,
+// plus prize money for every enemy ship taken by boarding.
+export function recordWin(idx, lost, prizes = 0) {
   const B = BATTLES[idx];
   const prev = save.stars[B.id] || 0;
   const stars = starsFor(lost);
-  const gold = Math.round(B.reward * (prev ? 0.4 : 1) * (stars === 3 ? 1.5 : 1));
+  const prizeGold = prizes * BOARDING.prizeGold;
+  const gold = Math.round(B.reward * (prev ? 0.4 : 1) * (stars === 3 ? 1.5 : 1)) + prizeGold;
   save.gold += gold;
   save.stars[B.id] = Math.max(prev, stars);
   let hat = null;
   if (B.hat && !save.hats.includes(B.hat)) { save.hats.push(B.hat); hat = B.hat; }
   writeSave();
-  return { gold, stars, hat, first: !prev };
+  return { gold, stars, hat, first: !prev, prizes, prizeGold };
 }

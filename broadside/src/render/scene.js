@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { S } from '../state.js';
 import { COL, PI, clamp, lerp, rand, angDiff } from '../util.js';
-import { R } from './gl.js';
+import { R, toon } from './gl.js';
 import { wx, wz, fitCamera } from './camera.js';
 import { bakeStatic, buildIsland, buildShipMesh, buildFortMesh, sharedIslandGeos, FORT_BASE_Y, FORT_SCALE } from './models.js';
 
@@ -60,6 +60,7 @@ export function buildScene() {
   fitCamera();
 }
 
+const kickDir = new THREE.Vector3();
 const E = new THREE.Euler(), Q = new THREE.Quaternion(), P3 = new THREE.Vector3(), S3 = new THREE.Vector3(), M4 = new THREE.Matrix4();
 function setInst(mesh, i, x, y, z, sx, sy, sz, rx, ry, rz) {
   E.set(rx || 0, ry || 0, rz || 0); Q.setFromEuler(E);
@@ -94,6 +95,13 @@ export function syncScene() {
     for (let i = 0; i < m.rigs.length; i++) m.rigs[i].scale.x = fill > 0.15 ? 0.35 + 0.65 * fill : 0.14 * Math.sin(clock * 14 + i);
     if (m.flagPivot) m.flagPivot.rotation.y = -r + Math.sin(clock * 9 + s.bob) * 0.22;
     m.hullMat.emissive.setScalar(s.flash > 0 ? (s.flash / 0.14) * 0.7 : 0);
+    // A captured ship hoists her new owner's colours over her old canvas.
+    if (s.team !== s.origTeam && m.flagTeam !== s.team && m.flagPivot) {
+      m.flagPivot.children[0].material = toon(s.team === 'player' ? COL.blue : COL.red, { side: THREE.DoubleSide });
+      m.flagTeam = s.team;
+    }
+    // Chain shot leaves the rigging in tatters: the sails sag while she's slowed.
+    if (s.slowT > 0) for (let i = 0; i < m.rigs.length; i++) m.rigs[i].scale.x *= 0.45;
     if (sinkK < 0.6 && ns < 32) {
       const k = 1.08 * (1 - sinkK * 0.6);
       setInst(P.shipShadow, ns++, wx(s.x) + 7, 0.25, wz(s.y) + 9, s.L * k, 1, s.B * k, 0, -s.h, 0);
@@ -130,7 +138,10 @@ export function syncScene() {
     if (n >= 400) break;
     const k = clamp(b.travel / b.max, 0, 1);
     const z = lerp(b.z0 || 6, 2, k) + Math.sin(PI * k) * 14;
-    setInst(P.ball, n, wx(b.x), z, wz(b.y), 1, 1, 1);
+    // Chain shot tumbles as a bar-and-chain; grapeshot is a spray of small pellets.
+    if (b.kind === 'chain') setInst(P.ball, n, wx(b.x), z, wz(b.y), 2.3, 0.6, 0.6, 0, b.travel * 0.08, 0);
+    else if (b.kind === 'grape') setInst(P.ball, n, wx(b.x), z, wz(b.y), 0.45, 0.45, 0.45);
+    else setInst(P.ball, n, wx(b.x), z, wz(b.y), 1, 1, 1);
     setInst(P.ballShadow, n, wx(b.x) + z * 0.3, 0.3, wz(b.y) + z * 0.35, 1, 1, 1);
     n++;
   }
@@ -205,6 +216,8 @@ export function syncScene() {
   if (base) {
     R.camera.position.copy(base);
     if (S.shake) { R.camera.position.x += rand(-S.shake, S.shake) * 1.5; R.camera.position.z += rand(-S.shake, S.shake) * 1.5; }
+    // Recoil: the view nudges in a touch when your selected ship fires.
+    if (S.kick) R.camera.position.addScaledVector(R.camera.getWorldDirection(kickDir), S.kick * S.kick * 7);
   }
 }
 

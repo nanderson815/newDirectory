@@ -3,7 +3,7 @@ import { CHASER_RELOAD } from '../config/ships.js';
 import { PI, clamp, rand, angDiff } from '../util.js';
 import { windFactor } from './wind.js';
 import { followPath, avoidIslands, aiSteer, shoreClear } from './steering.js';
-import { findBroadsideTarget, findChaseTarget, fireBroadside, fireChasers, dropMine } from './combat.js';
+import { findBroadsideTarget, findChaseTarget, fireBroadside, fireChasers, dropMine, crewMul } from './combat.js';
 import { spawn } from './particles.js';
 
 export function updateShip(s, dt) {
@@ -25,17 +25,17 @@ export function updateShip(s, dt) {
   }
   if (!afloat(s)) return;
 
-  let desired = s.team === 'player' ? followPath(s) : aiSteer(s, dt);
+  let desired = s.boarding ? null : s.team === 'player' ? followPath(s) : aiSteer(s, dt);
   // Anchored: turn on the spot toward the chosen heading.
   if (s.pivot != null) desired = s.pivot;
   // Keep everyone on the map.
   const m = 55;
-  if (s.pivot == null && !s.passive && (s.x < m || s.x > G.W - m || s.y < m || s.y > G.H - m)) {
+  if (s.pivot == null && !s.passive && !s.boarding && (s.x < m || s.x > G.W - m || s.y < m || s.y > G.H - m)) {
     const toC = Math.atan2(G.H / 2 - s.y, G.W / 2 - s.x);
     if (desired == null || s.team === 'enemy') desired = toC;
   }
   // Ships with no orders still dodge islands rather than sailing onto the beach.
-  if (desired == null && !s.passive) {
+  if (desired == null && !s.passive && !s.boarding) {
     const dodge = avoidIslands(s, s.h, 140);
     if (dodge !== s.h) desired = dodge;
   }
@@ -44,8 +44,10 @@ export function updateShip(s, dt) {
     s.h += clamp(angDiff(s.h, desired), -tr * dt, tr * dt);
   }
   const hpF = 0.55 + 0.45 * s.hp / s.maxHp;
-  const stopped = s.pivot != null || s.passive;
-  const targetV = stopped ? 0 : s.speed * windFactor(s.h) * hpF;
+  // Lashed together for boarding, anchored or a hulk: dead in the water. Torn rigging (chain shot) crawls.
+  const stopped = s.pivot != null || s.passive || !!s.boarding;
+  s.slowT = Math.max(0, s.slowT - dt);
+  const targetV = stopped ? 0 : s.speed * windFactor(s.h) * hpF * (s.slowT > 0 ? 0.45 : 1);
   s.v += (targetV - s.v) * Math.min(1, dt * (stopped ? 1.6 : 0.8));
   s.x += Math.cos(s.h) * s.v * dt;
   s.y += Math.sin(s.h) * s.v * dt;
@@ -57,7 +59,8 @@ export function updateShip(s, dt) {
 
   s.reload[0] -= dt; s.reload[1] -= dt;
   s.flash = Math.max(0, s.flash - dt);
-  if (!s.passive) {
+  // Crews fighting hand to hand on deck don't work the guns.
+  if (!s.passive && !s.boarding) {
     if (s.team === 'enemy' || S.fireMode === 'auto') {
       for (let side = 0; side < 2; side++) {
         if (s.reload[side] > 0) continue;
@@ -70,7 +73,7 @@ export function updateShip(s, dt) {
       s.chaseT -= dt;
       if (s.chaseT <= 0) {
         const tgt = findChaseTarget(s);
-        if (tgt) s.chaseT = CHASER_RELOAD * (s.team === 'enemy' ? G.ai.reloadMul : 1);
+        if (tgt) s.chaseT = CHASER_RELOAD * (s.team === 'enemy' ? G.ai.reloadMul : 1) * crewMul(s);
         if (tgt) fireChasers(s, tgt);
       }
     }

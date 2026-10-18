@@ -1,5 +1,6 @@
-import { S, afloat, alive, shipById, unitById, fortById, showBanner } from '../state.js';
+import { S, afloat, alive, shipById, unitById, fortById, showBanner, addDamage } from '../state.js';
 import { BALL_SPEED, BALL_DMG, MINE_DMG, FORT } from '../config/ships.js';
+import { AMMO } from '../config/ammo.js';
 import { PI, clamp, lerp, rand, angDiff, reduceMotion } from '../util.js';
 import { spawn } from './particles.js';
 import { sfx } from '../audio/sfx.js';
@@ -25,7 +26,8 @@ function nearestInArc(s, dir, arc, range) {
   }
   return best;
 }
-export const findBroadsideTarget = (s, side) => nearestInArc(s, sideDir(s, side), BROADSIDE_ARC, s.range);
+export const gunRange = (s) => s.range * AMMO[s.ammo || 'round'].range;
+export const findBroadsideTarget = (s, side) => nearestInArc(s, sideDir(s, side), BROADSIDE_ARC, gunRange(s));
 export const findChaseTarget = (s) => nearestInArc(s, s.h, CHASER_ARC, s.range * 0.85);
 
 // Where to aim at a moving target so the ball arrives where it will be.
@@ -35,8 +37,8 @@ function leadPoint(t, gx, gy) {
   return [t.x + Math.cos(h) * v * lead, t.y + Math.sin(h) * v * lead];
 }
 
-function launch(team, gx, gy, ang, dist, dmg, z0, skip) {
-  S.balls.push({ x: gx, y: gy, vx: Math.cos(ang) * BALL_SPEED, vy: Math.sin(ang) * BALL_SPEED, travel: 0, max: dist, team, dmg, z0, skip });
+function launch(team, gx, gy, ang, dist, dmg, z0, skip, kind = 'round') {
+  S.balls.push({ x: gx, y: gy, vx: Math.cos(ang) * BALL_SPEED, vy: Math.sin(ang) * BALL_SPEED, travel: 0, max: dist, team, dmg, z0, skip, kind });
 }
 
 function muzzle(x, y, dir, z) {
@@ -52,12 +54,16 @@ function muzzle(x, y, dir, z) {
 const enemyMul = (team, k) => (team === 'enemy' ? S.G.ai[k] : 1);
 
 // Fires a rippling broadside. With no target (manual fire) the shot goes out to full range abeam.
+// Crews cut down by grapeshot reload more slowly.
+export const crewMul = (s) => 1 + Math.min(0.5, 0.06 * s.crewHit);
+
 export function fireBroadside(s, side, tgt) {
-  s.reload[side] = s.reloadTime * enemyMul(s.team, 'reloadMul') * rand(0.95, 1.05);
+  s.reload[side] = s.reloadTime * enemyMul(s.team, 'reloadMul') * crewMul(s) * rand(0.95, 1.05);
   for (let i = 0; i < s.guns; i++) {
-    S.pending.push({ t: i * 0.075 + rand(0, 0.04), shipId: s.id, side, gi: i, targetId: tgt ? tgt.id : null });
+    S.pending.push({ t: i * 0.075 + rand(0, 0.04), shipId: s.id, side, gi: i, targetId: tgt ? tgt.id : null, ammo: s.ammo });
   }
-  if (s.team === 'player') S.G.stats.shots += s.guns;
+  if (s.team === 'player') S.G.stats.shots += s.guns * (AMMO[s.ammo].pellets || 1);
+  if (s.team === 'player' && s === S.selected && !reduceMotion) S.kick = Math.max(S.kick, 1);
 }
 
 export function fireQueued(p) {
@@ -74,7 +80,8 @@ function fireGun(p) {
   const gx = s.x + c * along - sn * oy, gy = s.y + sn * along + c * oy;
   const dir = sideDir(s, p.side);
   const t = p.targetId != null ? unitById(p.targetId) : null;
-  let ang = dir, dist = s.range * 0.95;
+  const kind = p.ammo || 'round', A = AMMO[kind], range = s.range * A.range;
+  let ang = dir, dist = range * 0.95;
   if (t && alive(t)) {
     const [ax, ay] = leadPoint(t, gx, gy);
     // Guns only traverse a little; clamp the aim to the broadside arc.
@@ -82,9 +89,12 @@ function fireGun(p) {
     dist = Math.hypot(ax - gx, ay - gy);
   }
   const spread = s.team === 'enemy' ? S.G.ai.spread : 0.07;
-  ang += rand(-spread, spread);
-  dist = clamp(dist * rand(0.92, 1.1), 40, s.range * 1.1);
-  launch(s.team, gx, gy, ang, dist, BALL_DMG * enemyMul(s.team, 'dmgMul'), 6, -1);
+  const dmg = BALL_DMG * enemyMul(s.team, 'dmgMul') * A.hull;
+  // Grapeshot leaves the muzzle as a spray of pellets; everything else is one ball.
+  for (let k = 0; k < (A.pellets || 1); k++) {
+    const a = ang + rand(-spread, spread) * (A.pellets ? 2.5 : 1);
+    launch(s.team, gx, gy, a, clamp(dist * rand(0.9, 1.12), 40, range * 1.1), dmg, 6, -1, kind);
+  }
   muzzle(gx, gy, dir, 6);
   // A little recoil.
   s.x -= Math.cos(dir) * 0.6; s.y -= Math.sin(dir) * 0.6;
@@ -168,6 +178,10 @@ export function updateBalls(dt) {
 export function hitShip(e, b) {
   const G = S.G;
   e.hp -= b.dmg; e.flash = 0.14;
+  addDamage(e, b.dmg);
+  if (b.kind === 'chain') e.slowT = Math.max(e.slowT, AMMO.chain.slow);
+  // Each pellet that lands has a fair chance of cutting down a man; a full grape broadside from a frigate kills three or four.
+  if (b.kind === 'grape') { if (Math.random() < 0.25) e.marines = Math.max(0, e.marines - 1); e.crewHit = Math.min(8, e.crewHit + 0.15); }
   if (b.team === 'player' && !b.mine) G.stats.hits++;
   for (let k = 0; k < 7; k++) spawn('splinter', b.x, b.y, rand(-60, 60), rand(-60, 60), rand(0.6, 1.0), rand(2, 4.5), 10, rand(30, 70));
   spawn('smoke', b.x, b.y, rand(-8, 8), rand(-8, 8), 0.8, 5, 10, 8);
@@ -177,13 +191,18 @@ export function hitShip(e, b) {
     e.hp = 0; e.state = 'sinking'; e.sinkT = 0; e.path = []; e.pivot = null;
     spawn('splash', e.x, e.y, 0, 0, 1.0, e.L * 0.45);
     sfx.boom(1.2, 0.6);
-    if (e.boss) { showBanner(`${e.boss.captain} is beaten!`, `${e.boss.title} is going down`, 3); sfx.fanfare(true); }
+    if (e.boss) {
+      showBanner(`${e.boss.captain} is beaten!`, `${e.boss.title} is going down`, 3);
+      sfx.fanfare(true);
+      if (!reduceMotion) S.slowmo = { until: S.clock + 1.8, k: 0.3 };
+    }
     if (S.selected === e) S.selected = G.ships.find((s) => s.team === 'player' && afloat(s)) || null;
   }
 }
 
 export function hitFort(f, b) {
   f.hp -= b.dmg;
+  addDamage(f, b.dmg);
   if (b.team === 'player') S.G.stats.hits++;
   for (let k = 0; k < 6; k++) spawn('stone', f.x + rand(-10, 10), f.y + rand(-10, 10), rand(-50, 50), rand(-50, 50), rand(0.6, 1.0), rand(2, 4), 22, rand(30, 70));
   spawn('smoke', f.x + rand(-8, 8), f.y + rand(-8, 8), rand(-8, 8), rand(-8, 8), 0.9, 7, 24, 10);

@@ -281,6 +281,17 @@ html, body {
 .stats dt { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--label); }
 .stats dd { margin: 2px 0 0; font-family: var(--font-display); font-size: 22px; font-variant-numeric: tabular-nums; }
 
+/* Coins raining down after a win */
+.coin-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 2; }
+.falling-coin { position: absolute; top: -40px; width: 28px; height: 28px; animation-name: coin-fall; animation-timing-function: cubic-bezier(.35,.1,.6,1); animation-fill-mode: both; }
+.falling-coin .coin { width: 28px; height: 28px; }
+@keyframes coin-fall {
+  from { transform: translateY(0) rotate(0deg); opacity: 1; }
+  85% { opacity: 1; }
+  to { transform: translateY(110vh) rotate(var(--spin)); opacity: 0; }
+}
+.ship-stats div.wide { grid-column: 1 / -1; }
+
 /* ---------- Tutorial coach ---------- */
 .coach {
   position: fixed;

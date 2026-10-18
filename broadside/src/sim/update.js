@@ -3,6 +3,7 @@ import { updateWind } from './wind.js';
 import { updateShip, collide } from './ships.js';
 import { fireQueued, updateBalls, updateMines } from './combat.js';
 import { updateFort } from './forts.js';
+import { updateBoardings } from './boarding.js';
 import { updateParticles } from './particles.js';
 import { sfx } from '../audio/sfx.js';
 
@@ -10,6 +11,8 @@ import { sfx } from '../audio/sfx.js';
 export function update(dt) {
   S.clock += dt;
   const G = S.G;
+  // A boss going down plays out in slow motion for a moment.
+  if (S.slowmo && S.clock < S.slowmo.until) dt *= S.slowmo.k;
   if (G && G.phase === 'play') {
     G.t += dt;
     updateWind();
@@ -23,11 +26,13 @@ export function update(dt) {
     collide(dt);
     updateBalls(dt);
     updateMines(dt);
+    updateBoardings(dt);
     updateTutorial();
     checkEnd();
   }
   updateParticles(dt);
   S.shake = Math.max(0, S.shake - dt * 20);
+  S.kick = Math.max(0, S.kick - dt * 6);
 }
 
 export function checkEnd() {

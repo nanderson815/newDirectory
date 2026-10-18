@@ -27,6 +27,7 @@ function resetTransient() {
   clearParticles();
   S.selected = S.G.ships.find((s) => s.team === 'player') || null;
   S.drag = null; S.toast = null; S.banner = null;
+  S.floaters.length = 0; S.kick = 0; S.slowmo = null; S.selectAll = false;
 }
 
 export function resize() {

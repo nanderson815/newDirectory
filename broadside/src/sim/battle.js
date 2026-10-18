@@ -10,7 +10,7 @@ export function makeShip(def, team, place, rot, id, ai) {
   const sails = 1 + 0.07 * (up.sails || 0);
   const hp = Math.round(def.hp || (team === 'enemy' ? T.hp * ai.hpMul : T.hp * (1 + 0.2 * (up.hull || 0))));
   return {
-    id, team, name: def.name, type: def.type, label: def.boss ? 'Boss' : T.label,
+    id, team, origTeam: team, name: def.name, type: def.type, label: def.boss ? 'Boss' : T.label,
     L: T.L, B: T.B, masts: T.masts, range: T.range,
     guns: T.guns + (up.guns || 0),
     reloadTime: T.reload * (def.reloadMul || 1),
@@ -19,6 +19,8 @@ export function makeShip(def, team, place, rot, id, ai) {
     mines: 2 * (up.mines || 0), mineEvery: def.mineEvery || 0, mineT: def.mineEvery || 0,
     marines: T.marines + 10 * (up.marines || 0),
     passive: !!def.passive, boss: def.boss || null,
+    ammo: 'round', ammoKinds: ['round', ...(up.chain ? ['chain'] : []), ...(up.grape ? ['grape'] : [])],
+    slowT: 0, crewHit: 0, boarding: null, prize: false,
     x, y, h: def.h * PI / 180 + rot, v: def.passive ? 0 : T.speed * 0.5,
     hp, maxHp: hp, reload: [rand(0.6, 1.6), rand(0.6, 1.6)],
     path: [], pivot: null, state: 'afloat', sinkT: 0, flash: 0, yard: 0, bob: rand(0, TAU),

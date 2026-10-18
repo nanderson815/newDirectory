@@ -4,8 +4,9 @@ import { BATTLES, REGIONS } from '../config/battles.js';
 import { TYPES } from '../config/ships.js';
 import { UPGRADES, MAX_FLEET } from '../config/upgrades.js';
 import { HATS, HAT_ORDER, hatSVG } from '../config/hats.js';
+import { AMMO, AMMO_COSTS, BOARDING } from '../config/ammo.js';
 import {
-  save, resetSave, fleetStats, refitOffer, upgradeOffer, buyUpgrade, buyRefit, nextHire, buyHire, isUnlocked, recordWin,
+  save, resetSave, fleetStats, refitOffer, upgradeOffer, buyUpgrade, buyRefit, buyAmmo, nextHire, buyHire, isUnlocked, recordWin, lvl,
 } from '../save.js';
 import { loadBattle } from '../game.js';
 import { R } from '../render/gl.js';
@@ -55,6 +56,7 @@ function ordersHTML(B) {
   if (!B.tutorial) li.push(`<li><b>Enemy:</b> ${esc(rosterText(B))}.</li>`);
   if (B.forts) li.push('<li>Forts fire in every direction. Once one is silenced, stop a ship beside it and tap <b>Land troops</b>.</li>');
   if (S.G && S.G.ships.some((s) => s.team === 'player' && s.mines > 0)) li.push('<li>Select a ship with mines and tap <b>Drop mine</b> to leave one astern.</li>');
+  if (!B.tutorial && B.goal !== 'boss') li.push(`<li>Batter an enemy below ${Math.round(BOARDING.hpFrac * 100)}% hull, sail alongside and tap <b>Board!</b> to take her as a prize (+${BOARDING.prizeGold} gold).</li>`);
   if (!B.tutorial) li.push('<li class="note">Drag from a ship to steer. Hold it to anchor and turn. Tap it to clear its course.</li>');
   return li.join('');
 }
@@ -127,6 +129,7 @@ function renderYard() {
     '<dl class="ship-stats">' +
     `<div><dt>Hull</dt><dd>${st.hp}</dd></div><div><dt>Guns a side</dt><dd>${st.guns}</dd></div><div><dt>Speed</dt><dd>${st.speed}</dd></div>` +
     `<div><dt>Bow guns</dt><dd>${st.chasers}</dd></div><div><dt>Mines</dt><dd>${st.mines}</dd></div><div><dt>Marines</dt><dd>${st.marines}</dd></div>` +
+    `<div class="wide"><dt>Shot</dt><dd>${st.ammo.map((k) => AMMO[k].short).join(' · ')}</dd></div>` +
     '</dl><div class="up-list">';
   const rf = refitOffer(f);
   if (rf) {
@@ -136,6 +139,10 @@ function renderYard() {
   for (const U of UPGRADES) {
     const o = upgradeOffer(f, U.id);
     html += buyRow('', U.name, U.desc, [o.level, U.max], o.cost, U.id);
+  }
+  for (const kind of ['chain', 'grape']) {
+    const have = lvl(f, kind);
+    html += buyRow('', AMMO[kind].name, AMMO[kind].desc, [have, 1], have ? null : AMMO_COSTS[kind], 'ammo:' + kind);
   }
   $('yardShip').innerHTML = html + '</div>';
   const h = nextHire();
@@ -149,7 +156,7 @@ function onYardClick(e) {
   const b = e.target.closest('[data-buy]');
   if (!b || b.disabled) return;
   const id = b.dataset.buy, i = ui.yardSel;
-  const ok = id === 'refit' ? buyRefit(i) : id === 'hire' ? buyHire() : buyUpgrade(i, id);
+  const ok = id === 'refit' ? buyRefit(i) : id === 'hire' ? buyHire() : id.startsWith('ammo:') ? buyAmmo(i, id.slice(5)) : buyUpgrade(i, id);
   if (ok) {
     sfx.init(); sfx.coin();
     if (id === 'hire') ui.yardSel = save.fleet.length - 1;
@@ -207,15 +214,18 @@ export function endBattle() {
   const G = S.G;
   if (!G || G.phase === 'over') return;
   G.phase = 'over';
-  const lost = G.ships.filter((s) => s.team === 'player' && !afloat(s)).length;
-  if (G.result === 'win' && !G.award) G.award = recordWin(G.battle, lost);
+  if (G.result === 'win' && !G.award) G.award = recordWin(G.battle, shipsLost(G), prizesTaken(G));
   renderEnd();
   showScreen('endScreen');
   if (G.result === 'win') sfx.fanfare(true);
 }
+// Your own ships sunk or captured; prizes taken in the battle don't count against you if they sink.
+const shipsLost = (G) => G.ships.filter((s) => s.origTeam === 'player' && (s.team !== 'player' || !afloat(s))).length;
+const prizesTaken = (G) => G.ships.filter((s) => s.prize && afloat(s)).length;
+
 function renderEnd() {
   const G = S.G, B = BATTLES[G.battle], win = G.result === 'win', a = G.award;
-  const lost = G.ships.filter((s) => s.team === 'player' && !afloat(s)).length;
+  const lost = shipsLost(G);
   $('endEyebrow').textContent = B.tutorial ? 'Shakedown Cruise' : `Battle ${B.roman} · ${B.name}`;
   $('endTitle').textContent = win ? 'Victory!' : 'Defeat';
   $('endStars').hidden = !win;
@@ -229,9 +239,10 @@ function renderEnd() {
   $('endText').textContent = text;
   $('endReward').hidden = !win;
   if (win) {
-    const notes = [a.stars === 3 ? 'flawless bonus' : '', a.first ? '' : 'replay'].filter(Boolean).join(' · ');
+    const notes = [a.stars === 3 ? 'flawless bonus' : '', a.prizes ? `${a.prizes} prize${a.prizes > 1 ? 's' : ''} +${a.prizeGold}` : '', a.first ? '' : 'replay'].filter(Boolean).join(' · ');
     $('endReward').innerHTML = `${COIN}<span>+${a.gold} gold</span>${notes ? `<span class="up-desc">${notes}</span>` : ''}`;
   }
+  if (win) coinShower(Math.min(28, 8 + Math.round(a.gold / 25)));
   $('endHat').hidden = !(win && a.hat);
   if (win && a.hat) $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p>You won the <b>${esc(HATS[a.hat].name.toLowerCase())}</b>! It’s in your hat collection.</p>`;
   const sec = Math.floor(G.t);
@@ -243,6 +254,18 @@ function renderEnd() {
   primary.hidden = win && next == null;
   primary.textContent = win ? 'Next battle' : 'Try again';
   primary.dataset.go = win ? String(next) : String(G.battle);
+}
+
+// Gold coins tumble down the results screen after a win.
+function coinShower(n) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const layer = $('coinLayer');
+  layer.innerHTML = Array.from({ length: n }, () => {
+    const x = Math.random() * 100, d = 0.9 + Math.random() * 1.1, delay = Math.random() * 0.9, spin = Math.round(Math.random() * 720 - 360);
+    return `<span class="falling-coin" style="left:${x.toFixed(1)}%;animation-duration:${d.toFixed(2)}s;animation-delay:${delay.toFixed(2)}s;--spin:${spin}deg">${COIN}</span>`;
+  }).join('');
+  clearTimeout(coinShower.t);
+  coinShower.t = setTimeout(() => { layer.innerHTML = ''; }, 2600);
 }
 
 // ---------- Tutorial coach ----------

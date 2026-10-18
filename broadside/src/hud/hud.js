@@ -5,6 +5,8 @@ import { projTo, proj, pxPerUnit, scratchA, scratchB } from '../render/camera.js
 import { shipMeshes, fortTopZ } from '../render/scene.js';
 import { sideDir } from '../sim/combat.js';
 import { landingFor } from '../sim/forts.js';
+import { boardingTarget, defence } from '../sim/boarding.js';
+import { AMMO, BOARDING } from '../config/ammo.js';
 import { R } from '../render/gl.js';
 
 // The 2D layer over the 3D sea: courses, arcs, health bars, fleet cards, wind, buttons and messages.
@@ -106,6 +108,37 @@ function drawBars(s) {
   ctx.fillStyle = 'rgba(20,30,40,0.6)'; roundRect(x - 1.5, y - 1.5, w + 3, 8, 4); ctx.fill();
   ctx.fillStyle = s.boss ? '#e2483a' : hpColour(k);
   roundRect(x, y, Math.max(2, w * k), 5, 2.5); ctx.fill();
+  if (s.slowT > 0) outlinedText('Rigging cut', tx, y + 15, 11, '#ffd6cf', 'center');
+  else if (s.prize) outlinedText('Prize', tx, y + 15, 11, '#bfe3ff', 'center');
+}
+
+// Two ships lashed together: a progress ring between them while the boarders fight it out.
+function drawBoarding(s) {
+  const e = shipById(s.boarding.targetId);
+  if (!e) return;
+  const q = projTo((s.x + e.x) / 2, (s.y + e.y) / 2, 30);
+  const qx = q.x, qy = q.y;
+  const k = clamp(s.boarding.t / BOARDING.time, 0, 1);
+  outlinedText(`Boarding! ${s.marines} vs ${defence(e)}`, qx, qy - 30, 15, '#ffe08a', 'center');
+  ctx.beginPath(); ctx.arc(qx, qy - 8, 10, 0, TAU); ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(20,40,60,0.6)'; ctx.stroke();
+  ctx.beginPath(); ctx.arc(qx, qy - 8, 10, -PI / 2, -PI / 2 + TAU * k); ctx.strokeStyle = COL.gold; ctx.stroke();
+}
+
+// Damage numbers rise and fade off whatever was hit; hits on the English show in red.
+function drawFloaters() {
+  const fl = S.floaters;
+  for (let i = fl.length - 1; i >= 0; i--) {
+    const f = fl[i], age = S.clock - f.born;
+    if (age > 1.1) { fl.splice(i, 1); continue; }
+    const q = projTo(f.x, f.y, 60 + age * 40);
+    const size = Math.min(26, 14 + f.value * 0.5);
+    ctx.globalAlpha = clamp((1.1 - age) * 3, 0, 1);
+    const pop = age < 0.12 ? 1 + (0.12 - age) * 3 : 1;
+    ctx.save(); ctx.translate(q.x + Math.sin(f.born * 13) * 10, q.y); ctx.scale(pop, pop);
+    outlinedText(`-${Math.round(f.value)}`, 0, 0, size, f.team === 'player' ? '#ff8a7a' : '#fff1b0', 'center');
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
 }
 
 function drawFort(f) {
@@ -178,10 +211,10 @@ export function drawHUD() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cw, ch);
   const hud = S.hud;
-  hud.cards = []; hud.pause = null; hud.fire = []; hud.actions = [];
+  hud.cards = []; hud.pause = null; hud.fire = []; hud.actions = []; hud.ammo = [];
   const G = S.G;
   if (!G || !R.renderer) return;
-  const sel = S.selected && afloat(S.selected) ? S.selected : null;
+  const sel = S.selected && afloat(S.selected) && S.selected.team === 'player' ? S.selected : null;
 
   if (G.phase !== 'title') {
     // Tutorial buoy
@@ -200,31 +233,43 @@ export function drawHUD() {
       drawPath(s, live ? S.drag.pts : s.path, s === sel);
     }
     for (const s of G.ships) if (s.team === 'player' && afloat(s) && s.pivot != null) drawPivot(s, S.drag && S.drag.ship === s && S.drag.mode === 'rotate');
-    if (sel) drawRing(sel);
+    if (S.selectAll) { for (const s of G.ships) if (s.team === 'player' && afloat(s)) drawRing(s); }
+    else if (sel) drawRing(sel);
+    for (const s of G.ships) if (s.boarding && s.boarding.attacker) drawBoarding(s);
   }
   for (const s of G.ships) drawBars(s);
   for (const f of G.forts) drawFort(f);
   if (G.phase === 'title') return;
+  drawFloaters();
 
   // Fleet cards (tap to select)
   let y = 10;
   const x = 10, w = 132, h = 32;
   for (const s of G.ships) {
-    if (s.team !== 'player') continue;
-    const alive = afloat(s);
+    if (s.team !== 'player' && s.origTeam !== 'player') continue;
+    const alive = afloat(s) && s.team === 'player'; // a ship taken by Spanish boarders is lost to you
     ctx.fillStyle = COL.hud; roundRect(x, y, w, h, 10); ctx.fill();
-    if (s === sel) { ctx.lineWidth = 2.5; ctx.strokeStyle = COL.gold; ctx.stroke(); }
+    if (s === sel || (S.selectAll && alive)) { ctx.lineWidth = 2.5; ctx.strokeStyle = COL.gold; ctx.stroke(); }
     ctx.font = `15px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillStyle = alive ? COL.white : 'rgba(255,255,255,0.45)';
     ctx.fillText(s.name, x + 10, y + 12);
     ctx.font = `11px ${FONT}`; ctx.textAlign = 'right';
     ctx.fillStyle = alive ? 'rgba(255,255,255,0.7)' : '#ff8a7a';
-    ctx.fillText(alive ? s.label : 'Sunk', x + w - 10, y + 12);
+    ctx.fillText(alive ? s.label : afloat(s) ? 'Captured' : 'Sunk', x + w - 10, y + 12);
     ctx.fillStyle = 'rgba(0,0,0,0.35)'; roundRect(x + 10, y + 21, w - 20, 5, 2.5); ctx.fill();
     const k = s.hp / s.maxHp;
     if (k > 0) { ctx.fillStyle = hpColour(k); roundRect(x + 10, y + 21, Math.max(3, (w - 20) * k), 5, 2.5); ctx.fill(); }
     hud.cards.push({ x, y, w, h, ship: s });
     y += h + 6;
+  }
+  // Fleet orders: select every ship, then one drawn course moves the whole squadron.
+  if (G.ships.filter((s) => s.team === 'player' && afloat(s)).length > 1) {
+    ctx.fillStyle = S.selectAll ? 'rgba(242,182,50,0.92)' : COL.hud; roundRect(x, y, w, 26, 10); ctx.fill();
+    ctx.lineWidth = 2; ctx.strokeStyle = S.selectAll ? COL.ink : 'rgba(255,255,255,0.35)'; ctx.stroke();
+    ctx.font = `13px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = S.selectAll ? COL.ink : COL.white;
+    ctx.fillText('Whole fleet', x + w / 2, y + 13);
+    hud.cards.push({ x, y, w, h: 26, fleet: true });
   }
 
   drawBoss();
@@ -261,6 +306,11 @@ export function drawHUD() {
   if (sel && playing) {
     const acts = [];
     if (sel.mines > 0) acts.push({ kind: 'mine', label: `Drop mine ×${sel.mines}`, ready: true });
+    const prey = boardingTarget(sel);
+    if (prey) {
+      const d = defence(prey);
+      acts.push({ kind: 'board', shipId: prey.id, ready: sel.marines > d, label: `Board! ${sel.marines} vs ${d}` });
+    }
     const fort = landingFor(sel);
     if (fort) {
       const busy = !!fort.capture, ok = sel.marines >= fort.need && !busy;
@@ -272,6 +322,21 @@ export function drawHUD() {
       pill(ax, ay, bw, bh, a.label, a.ready);
       hud.actions.push({ x: ax, y: ay, w: bw, h: bh, ...a });
       ay -= bh + 10;
+    }
+    // Shot selector, bottom left, for ships that carry more than round shot.
+    if (sel.ammoKinds.length > 1 && !S.selectAll) {
+      const cwid = 62, chh = 38, cy = ch - 14 - chh - (S.fireMode === 'manual' ? 64 : 0);
+      let cx = 16;
+      outlinedText('Shot', cx + 2, cy - 12, 12, COL.white, 'left');
+      for (const kind of sel.ammoKinds) {
+        const on = sel.ammo === kind;
+        ctx.fillStyle = on ? 'rgba(242,182,50,0.95)' : COL.hud; roundRect(cx, cy, cwid, chh, 12); ctx.fill();
+        ctx.lineWidth = on ? 3 : 2; ctx.strokeStyle = on ? COL.ink : 'rgba(255,255,255,0.4)'; roundRect(cx, cy, cwid, chh, 12); ctx.stroke();
+        ctx.font = `14px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = on ? COL.ink : COL.white; ctx.fillText(AMMO[kind].short, cx + cwid / 2, cy + chh / 2 + 1);
+        hud.ammo.push({ x: cx, y: cy, w: cwid, h: chh, kind });
+        cx += cwid + 6;
+      }
     }
   }
 
@@ -303,7 +368,8 @@ export function drawHUD() {
   // First-time hint (the tutorial has its own coach)
   if (playing && !G.tut && !G.dragged && G.t < 14) {
     ctx.globalAlpha = clamp(Math.min(G.t * 2, 14 - G.t), 0, 1);
-    const hy = S.fireMode === 'manual' ? ch - 92 : ch - 34;
+    const raised = S.fireMode === 'manual' || hud.ammo.length || hud.actions.length;
+    const hy = raised ? ch - 100 : ch - 34;
     outlinedText('Drag from a ship to draw its course', cw / 2, hy, 18, COL.white, 'center');
     ctx.globalAlpha = 1;
   }

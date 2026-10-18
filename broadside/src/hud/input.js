@@ -1,9 +1,10 @@
-import { S, afloat, fortById, showToast } from '../state.js';
+import { S, afloat, fortById, shipById, showToast } from '../state.js';
 import { clamp } from '../util.js';
 import { proj, toWorld, pxPerUnit } from '../render/camera.js';
 import { R } from '../render/gl.js';
 import { fireBroadside, findBroadsideTarget, dropMine } from '../sim/combat.js';
 import { startLanding } from '../sim/forts.js';
+import { startBoarding } from '../sim/boarding.js';
 import { hudCanvas } from './hud.js';
 
 // Touch and mouse: drag from a ship to draw a course, hold to anchor and turn, tap to clear,
@@ -11,6 +12,19 @@ import { hudCanvas } from './hud.js';
 const HOLD_MS = 350;
 const inRect = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 const clampWorld = (w) => ({ x: clamp(w.x, 30, S.G.W - 30), y: clamp(w.y, 30, S.G.H - 30) });
+
+// Fleet orders: every other ship sails the same course, keeping (a slightly tightened version of) its
+// current station relative to the leader.
+function fleetFollow(leader, pts) {
+  for (const o of S.G.ships) {
+    if (o === leader || o.team !== 'player' || !afloat(o) || o.boarding) continue;
+    let dx = (o.x - leader.x) * 0.8, dy = (o.y - leader.y) * 0.8;
+    const d = Math.hypot(dx, dy), max = 110;
+    if (d > max) { dx *= max / d; dy *= max / d; }
+    o.path = pts.map((q) => clampWorld({ x: q.x + dx, y: q.y + dy }));
+    o.pivot = null;
+  }
+}
 
 function shipAt(p) {
   let best = null, bd = Infinity;
@@ -31,7 +45,7 @@ export function bindInput(onPause) {
     if (!G || !R.renderer || G.phase !== 'play') return;
     const p = { x: e.offsetX, y: e.offsetY }, hud = S.hud;
     if (hud.pause && Math.hypot(p.x - hud.pause.x, p.y - hud.pause.y) < hud.pause.r) { onPause(); return; }
-    const sel = S.selected && afloat(S.selected) ? S.selected : null;
+    const sel = S.selected && afloat(S.selected) && S.selected.team === 'player' ? S.selected : null;
     for (const b of hud.fire) {
       if (!inRect(p, b)) continue;
       if (sel && sel.reload[b.side] <= 0) fireBroadside(sel, b.side, findBroadsideTarget(sel, b.side));
@@ -41,17 +55,27 @@ export function bindInput(onPause) {
       if (!inRect(p, a)) continue;
       if (sel && a.kind === 'mine') dropMine(sel);
       else if (sel && a.kind === 'land' && a.ready) startLanding(sel, fortById(a.fortId));
+      else if (sel && a.kind === 'board') startBoarding(sel, shipById(a.shipId)); // long odds are the captain's call
       return;
     }
+    for (const c of hud.ammo) {
+      if (inRect(p, c)) { if (sel) sel.ammo = c.kind; return; }
+    }
     for (const c of hud.cards) {
-      if (inRect(p, c)) { if (afloat(c.ship)) S.selected = c.ship; return; }
+      if (!inRect(p, c)) continue;
+      if (c.fleet) {
+        S.selectAll = !S.selectAll;
+        if (S.selectAll && !sel) S.selected = S.G.ships.find((x) => x.team === 'player' && afloat(x)) || null;
+      } else if (afloat(c.ship) && c.ship.team === 'player') { S.selected = c.ship; S.selectAll = false; }
+      return;
     }
     const w = toWorld(p.x, p.y);
     if (!w) return;
     const s = shipAt(p);
     if (s) {
+      // With the whole fleet selected, dragging from any ship leads the squadron from that ship.
       S.selected = s;
-      const held = { ship: s, pts: [], id: e.pointerId, from: w, onShip: true, sx: p.x, sy: p.y };
+      const held = { ship: s, pts: [], id: e.pointerId, from: w, onShip: true, sx: p.x, sy: p.y, fleet: S.selectAll };
       S.drag = held;
       // Press and hold (without moving) to drop anchor and turn on the spot.
       held.holdTimer = setTimeout(() => {
@@ -63,7 +87,7 @@ export function bindInput(onPause) {
         try { if (navigator.vibrate) navigator.vibrate(12); } catch (err) { /* no haptics */ }
       }, HOLD_MS);
     } else if (sel) {
-      S.drag = { ship: sel, pts: [clampWorld(w)], id: e.pointerId, from: w };
+      S.drag = { ship: sel, pts: [clampWorld(w)], id: e.pointerId, from: w, fleet: S.selectAll };
     } else return;
     try { cv.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
   });
@@ -95,6 +119,7 @@ export function bindInput(onPause) {
     }
     if (drag.pts.length && afloat(drag.ship)) {
       drag.ship.path = drag.pts; drag.ship.pivot = null; G.dragged = true;
+      if (drag.fleet) fleetFollow(drag.ship, drag.pts);
     } else if (drag.onShip && (drag.ship.path.length || drag.ship.pivot != null)) {
       // A tap on a ship (no drag) clears its course and raises the anchor.
       const anchored = drag.ship.pivot != null;
