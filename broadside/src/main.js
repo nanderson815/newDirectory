@@ -7,7 +7,8 @@ import { battleDef } from './config/endless.js';
 import { R, initGL } from './render/gl.js';
 import { renderScene } from './render/scene.js';
 import { WX } from './render/weather.js';
-import { proj } from './render/camera.js';
+import { proj, toWorld, cam, updateCamera, settleCamera } from './render/camera.js';
+import { previewFor } from './hud/preview.js';
 import { drawHUD } from './hud/hud.js';
 import { bindInput } from './hud/input.js';
 import { update } from './sim/update.js';
@@ -23,7 +24,8 @@ import { shipById, fortById } from './state.js';
 import { audioTick } from './audio/director.js';
 import { ui, initUI, openMenu, openBrief, startPlay, pauseGame, restoreScreen, syncSettings } from './ui/screens.js';
 
-function render() {
+function render(dt) {
+  updateCamera(Math.min(0.1, dt));
   renderScene();
   drawHUD();
 }
@@ -36,7 +38,7 @@ function frame(now) {
   const t0 = performance.now();
   update(Math.min(0.05, raw / 1000));
   audioTick(raw / 1000);
-  render();
+  render(raw / 1000);
   if (perf.rec) {
     perf.rec.raw.push(raw); perf.rec.js.push(performance.now() - t0);
     perf.rec.calls.push(R.renderer ? R.renderer.info.render.calls : 0);
@@ -99,7 +101,14 @@ window.__broadside = {
   startBattle(id) { openBrief(typeof id === 'number' ? id : battleIndex(id)); startPlay(); },
   proj: (x, y, z) => proj(x, y, z),
   setFire(m) { S.fireMode = m; syncSettings(); },
-  step(n) { for (let i = 0; i < n; i++) update(1 / 60); render(); },
+  // step advances the camera by the same game time (in one go, so tests stay fast); settle snaps it to
+  // where the director wants it.
+  step(n) { for (let i = 0; i < n; i++) update(1 / 60); updateCamera(n / 60); render(0); },
+  settle() { settleCamera(); render(0); },
+  get cam() { return cam; },
+  toWorld: (x, y) => toWorld(x, y),
+  // The course preview HUD draws for a ship (points as [x, y] pairs), or null.
+  preview(id) { const s = shipById(id); const pv = s && previewFor(s, s.path, false); return pv ? { pts: Array.from(pv.xy.slice(0, pv.n * 2)), done: pv.done, t: pv.t, n: pv.n } : null; },
   sim(n) { for (let i = 0; i < n; i++) update(1 / 60); },
   get drawCalls() { return R.renderer ? R.renderer.info.render.calls : 0; },
   get weather() { return WX; },

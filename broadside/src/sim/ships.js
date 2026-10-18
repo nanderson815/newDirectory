@@ -2,12 +2,49 @@ import { S, afloat } from '../state.js';
 import { CHASER_RELOAD } from '../config/ships.js';
 import { PI, clamp, rand, angDiff } from '../util.js';
 import { windFactor } from './wind.js';
-import { followPath, avoidIslands, aiSteer, escortSteer, shoreClear } from './steering.js';
+import { playerSteer, avoidIslands, aiSteer, escortSteer, shoreClear } from './steering.js';
 import { updateAbilities, abilityWind } from './abilities/index.js';
 import { checkExit } from './exit.js';
 import { findBroadsideTarget, findChaseTarget, fireBroadside, fireChasers, dropMine, crewMul } from './combat.js';
 import { spawn } from './particles.js';
 import { sfx } from '../audio/sfx.js';
+
+// The heading a ship wants this tick (null: hold her course). Shared with the course preview.
+export function desiredHeading(s, dt) {
+  const G = S.G;
+  let desired = s.boarding ? null : s.escort && s.team === 'player' ? escortSteer(s) : s.team === 'player' ? playerSteer(s, dt) : aiSteer(s, dt);
+  // Anchored: turn on the spot toward the chosen heading.
+  if (s.pivot != null) desired = s.pivot;
+  // Keep everyone on the map.
+  const m = 55;
+  if (s.pivot == null && !s.passive && !s.boarding && (s.x < m || s.x > G.W - m || s.y < m || s.y > G.H - m)) {
+    const toC = Math.atan2(G.H / 2 - s.y, G.W / 2 - s.x);
+    if (desired == null || s.team === 'enemy') desired = toC;
+  }
+  // Ships with no orders still dodge islands rather than sailing onto the beach.
+  if (desired == null && !s.passive && !s.boarding) {
+    const dodge = avoidIslands(s, s.h, 140);
+    if (dodge !== s.h) desired = dodge;
+  }
+  return desired;
+}
+
+// Turns toward a heading and sails: speed from the wind, her damage and torn rigging. Shared with the preview.
+export function helm(s, desired, dt) {
+  const G = S.G;
+  if (desired != null) {
+    const tr = s.pivot != null ? s.turn * 0.8 : s.turn * (0.55 + 0.45 * Math.min(1, s.v / s.speed));
+    s.h += clamp(angDiff(s.h, desired), -tr * dt, tr * dt);
+  }
+  const hpF = 0.55 + 0.45 * s.hp / s.maxHp;
+  // Lashed together for boarding, anchored or a hulk: dead in the water. Torn rigging (chain shot) crawls.
+  const stopped = s.pivot != null || s.passive || !!s.boarding;
+  const targetV = stopped ? 0 : s.speed * abilityWind(s, windFactor(s.h, s)) * hpF * (s.slowT > 0 ? 0.45 : 1);
+  s.v += (targetV - s.v) * Math.min(1, dt * (stopped ? 1.6 : 0.8));
+  s.x += Math.cos(s.h) * s.v * dt;
+  s.y += Math.sin(s.h) * s.v * dt;
+  s.x = clamp(s.x, 18, G.W - 18); s.y = clamp(s.y, 18, G.H - 18);
+}
 
 export function updateShip(s, dt) {
   const G = S.G;
@@ -30,33 +67,9 @@ export function updateShip(s, dt) {
   if (!afloat(s)) return;
 
   if (checkExit(s)) return;
-  let desired = s.boarding ? null : s.escort && s.team === 'player' ? escortSteer(s) : s.team === 'player' ? followPath(s) : aiSteer(s, dt);
-  // Anchored: turn on the spot toward the chosen heading.
-  if (s.pivot != null) desired = s.pivot;
-  // Keep everyone on the map.
-  const m = 55;
-  if (s.pivot == null && !s.passive && !s.boarding && (s.x < m || s.x > G.W - m || s.y < m || s.y > G.H - m)) {
-    const toC = Math.atan2(G.H / 2 - s.y, G.W / 2 - s.x);
-    if (desired == null || s.team === 'enemy') desired = toC;
-  }
-  // Ships with no orders still dodge islands rather than sailing onto the beach.
-  if (desired == null && !s.passive && !s.boarding) {
-    const dodge = avoidIslands(s, s.h, 140);
-    if (dodge !== s.h) desired = dodge;
-  }
-  if (desired != null) {
-    const tr = s.pivot != null ? s.turn * 0.8 : s.turn * (0.55 + 0.45 * Math.min(1, s.v / s.speed));
-    s.h += clamp(angDiff(s.h, desired), -tr * dt, tr * dt);
-  }
-  const hpF = 0.55 + 0.45 * s.hp / s.maxHp;
-  // Lashed together for boarding, anchored or a hulk: dead in the water. Torn rigging (chain shot) crawls.
-  const stopped = s.pivot != null || s.passive || !!s.boarding;
+  const desired = desiredHeading(s, dt);
   s.slowT = Math.max(0, s.slowT - dt);
-  const targetV = stopped ? 0 : s.speed * abilityWind(s, windFactor(s.h, s)) * hpF * (s.slowT > 0 ? 0.45 : 1);
-  s.v += (targetV - s.v) * Math.min(1, dt * (stopped ? 1.6 : 0.8));
-  s.x += Math.cos(s.h) * s.v * dt;
-  s.y += Math.sin(s.h) * s.v * dt;
-  s.x = clamp(s.x, 18, G.W - 18); s.y = clamp(s.y, 18, G.H - 18);
+  helm(s, desired, dt);
 
   // Brace the yards to the wind.
   const r = angDiff(s.h, G.wind.dir);
@@ -118,20 +131,25 @@ export function collide(dt) {
         a.v *= 0.97; b.v *= 0.97;
       }
     }
-    for (const is of G.islands) {
-      const dx = a.x - is.x, dy = a.y - is.y, d = Math.hypot(dx, dy) || 0.01;
-      const min = shoreClear(is, a);
-      if (d < min) {
-        a.x = is.x + (dx / d) * min; a.y = is.y + (dy / d) * min;
-        // Slide along the shore: swing the bow onto the nearer tangent instead of grinding to a halt.
-        const n = Math.atan2(dy, dx);
-        if (Math.cos(a.h - n) < 0.2 && a.pivot == null) {
-          const t1 = n + PI / 2, t2 = n - PI / 2;
-          const t = Math.abs(angDiff(a.h, t1)) < Math.abs(angDiff(a.h, t2)) ? t1 : t2;
-          a.h += clamp(angDiff(a.h, t), -3 * dt, 3 * dt);
-        }
-        a.v *= Math.pow(0.6, dt);
+    shorePush(a, dt);
+  }
+}
+
+// Ships that touch an island are pushed back out and slide along the shore. Shared with the preview.
+export function shorePush(a, dt) {
+  for (const is of S.G.islands) {
+    const dx = a.x - is.x, dy = a.y - is.y, d = Math.hypot(dx, dy) || 0.01;
+    const min = shoreClear(is, a);
+    if (d < min) {
+      a.x = is.x + (dx / d) * min; a.y = is.y + (dy / d) * min;
+      // Slide along the shore: swing the bow onto the nearer tangent instead of grinding to a halt.
+      const n = Math.atan2(dy, dx);
+      if (Math.cos(a.h - n) < 0.2 && a.pivot == null) {
+        const t1 = n + PI / 2, t2 = n - PI / 2;
+        const t = Math.abs(angDiff(a.h, t1)) < Math.abs(angDiff(a.h, t2)) ? t1 : t2;
+        a.h += clamp(angDiff(a.h, t), -3 * dt, 3 * dt);
       }
+      a.v *= Math.pow(0.6, dt);
     }
   }
 }

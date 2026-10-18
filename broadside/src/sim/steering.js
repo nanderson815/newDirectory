@@ -7,6 +7,23 @@ import { PI, clamp, angDiff } from '../util.js';
 // Distance a ship's centre must keep from an island: the drawn beach plus bevel plus most of the hull.
 export const shoreClear = (is, s) => is.r * 1.05 + s.L * 0.42;
 
+// The player's ships: an engage order (keep that target on the beam) or else the drawn course.
+const gone = (s, u) => !u || (u.kind === 'fort' ? u.state !== 'active' || u.team === s.team : !afloat(u) || u.team === s.team);
+export function playerSteer(s) {
+  const o = s.order;
+  if (o && o.kind === 'engage') {
+    const t = unitById(o.targetId);
+    if (gone(s, t)) s.order = null;
+    else if (s.pivot != null) {
+      // Anchored with a target: swing her broadside onto it, whichever side is nearer.
+      const b = Math.atan2(t.y - s.y, t.x - s.x), a1 = b + PI / 2, a2 = b - PI / 2;
+      s.pivot = Math.abs(angDiff(s.h, a1)) < Math.abs(angDiff(s.h, a2)) ? a1 : a2;
+      return s.pivot;
+    } else return beamSteer(s, t);
+  }
+  return followPath(s);
+}
+
 export function followPath(s) {
   const G = S.G;
   while (s.path.length) {
@@ -75,8 +92,7 @@ export function aiSteer(s, dt) {
   if (goal != null) return goal;
   s.aiT -= dt;
   let t = s.targetId != null ? unitById(s.targetId) : null;
-  const gone = (u) => !u || (u.kind === 'fort' ? u.state !== 'active' || u.team === s.team : !afloat(u) || u.team === s.team);
-  if (s.aiT <= 0 || gone(t)) {
+  if (s.aiT <= 0 || gone(s, t)) {
     let best = null, bd = Infinity;
     for (const o of G.ships) {
       if (o.team === s.team || !afloat(o)) continue;
@@ -103,6 +119,13 @@ export function aiSteer(s, dt) {
       }
     }
   }
+  return beamSteer(s, t);
+}
+
+// Close on a target, then hold it on the beam at a comfortable range (enemy captains and the player's
+// engage order alike).
+export function beamSteer(s, t) {
+  const G = S.G;
   const dx = t.x - s.x, dy = t.y - s.y, d = Math.hypot(dx, dy);
   const bearing = Math.atan2(dy, dx);
   // Mortar ships stand off at long range; a fort's island keeps everyone a little further out.

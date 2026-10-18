@@ -1,7 +1,7 @@
 import { S } from '../state.js';
 import { clamp, rand } from '../util.js';
 import { R } from '../render/gl.js';
-import { projTo, wx, wz } from '../render/camera.js';
+import { projTo, wx, wz, cam } from '../render/camera.js';
 import { A, init, play, claim, duck, now, live } from './engine.js';
 import { sample, warm } from './samples.js';
 import { brass, tone } from './voices.js';
@@ -23,7 +23,7 @@ function where(x, y) {
     const p = projTo(x, y, 0);
     nx = (p.x / S.view.cw) * 2 - 1; ny = (p.y / S.view.ch) * 2 - 1;
     const c = R.camera.position;
-    ratio = Math.hypot(c.x - wx(x), c.y, c.z - wz(y)) / (Math.hypot(c.x, c.y, c.z) || 1);
+    ratio = Math.hypot(c.x - wx(x), c.y, c.z - wz(y)) / (cam.d || 1); // relative to the point the camera looks at
   } else {
     nx = (x / G.W) * 2 - 1; ny = (y / G.H) * 2 - 1;
   }

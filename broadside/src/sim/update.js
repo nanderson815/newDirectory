@@ -53,8 +53,10 @@ export function checkEnd() {
 }
 
 // ---------- Tutorial ----------
-// Steps: 0 sail to the buoy, 1 hold-and-turn, 2 tap to raise anchor, 3 sink the hulk (the battle's own goal).
-export const TUTORIAL_STEPS = 4;
+// Steps: 0 drag a course to the buoy, 1 tap the sea to sail there, 2 anchor and turn on the spot,
+// 3 tap the hulk to engage her, 4 sink her (the battle's own goal). Input sets the tapped / rotated /
+// engaged flags.
+export const TUTORIAL_STEPS = 5;
 
 function updateTutorial() {
   const G = S.G, T = G.tut;
@@ -63,8 +65,9 @@ function updateTutorial() {
   if (!swift) return;
   let next = T.step;
   if (T.step === 0 && G.buoy && Math.hypot(swift.x - G.buoy.x, swift.y - G.buoy.y) < 55) next = 1;
-  else if (T.step === 1 && T.rotated) next = 2;
-  else if (T.step === 2 && T.raised) next = 3;
+  else if (T.step === 1 && T.tapped) next = 2;
+  else if (T.step === 2 && T.rotated) next = 3;
+  else if (T.step === 3 && T.engaged) next = 4;
   if (next !== T.step) {
     T.step = next;
     sfx.fanfare(false);
