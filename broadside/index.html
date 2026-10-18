@@ -188,6 +188,7 @@
     <h2 id="battleName">The Tortuga Narrows</h2>
     <ul class="orders">
       <li><b>Drag from a ship</b> to draw its course. It sails along the line. Tap the ship to clear its course.</li>
+      <li><b>Press and hold a ship</b>, then drag around it, to drop anchor and turn it on the spot. Tap it to raise the anchor.</li>
       <li><b>Cannons sit on the sides.</b> Bring an enemy off your port or starboard beam to hit it.</li>
       <li><b>Mind the wind.</b> Sailing straight into it is slow. Islands block shot and hulls.</li>
       <li><b>Orders:</b> sink the Spanish squadron of three ships.</li>
@@ -330,7 +331,7 @@ function makeShip(def, team, place, rot, id) {
     L: T.L, B: T.B, guns: T.guns, reloadTime: T.reload, speed: T.speed, turn: T.turn, range: T.range, masts: T.masts,
     x, y, h: def.h * PI / 180 + rot, v: T.speed * 0.5,
     hp: T.hp, maxHp: T.hp, reload: [rand(0.6, 1.6), rand(0.6, 1.6)],
-    path: [], state: 'afloat', sinkT: 0, flash: 0, yard: 0, bob: rand(0, TAU),
+    path: [], pivot: null, state: 'afloat', sinkT: 0, flash: 0, yard: 0, bob: rand(0, TAU),
     aiT: 0, targetId: null, ideal: rand(0.5, 0.72), fxT: 0,
   };
 }
@@ -474,9 +475,11 @@ function updateShip(s, dt) {
   if (!afloat(s)) return;
 
   let desired = s.team === 'player' ? followPath(s) : aiSteer(s, dt);
+  // Anchored: turn on the spot toward the chosen heading.
+  if (s.pivot != null) desired = s.pivot;
   // Keep everyone on the map.
   const m = 55;
-  if (s.x < m || s.x > G.W - m || s.y < m || s.y > G.H - m) {
+  if (s.pivot == null && (s.x < m || s.x > G.W - m || s.y < m || s.y > G.H - m)) {
     const toC = Math.atan2(G.H / 2 - s.y, G.W / 2 - s.x);
     if (desired == null || s.team === 'enemy') desired = toC;
   }
@@ -486,12 +489,12 @@ function updateShip(s, dt) {
     if (dodge !== s.h) desired = dodge;
   }
   if (desired != null) {
-    const tr = s.turn * (0.55 + 0.45 * Math.min(1, s.v / s.speed));
+    const tr = s.pivot != null ? s.turn * 0.8 : s.turn * (0.55 + 0.45 * Math.min(1, s.v / s.speed));
     s.h += clamp(angDiff(s.h, desired), -tr * dt, tr * dt);
   }
   const hpF = 0.55 + 0.45 * s.hp / s.maxHp;
-  const targetV = s.speed * windFactor(s.h) * hpF;
-  s.v += (targetV - s.v) * Math.min(1, dt * 0.8);
+  const targetV = s.pivot != null ? 0 : s.speed * windFactor(s.h) * hpF;
+  s.v += (targetV - s.v) * Math.min(1, dt * (s.pivot != null ? 1.6 : 0.8));
   s.x += Math.cos(s.h) * s.v * dt;
   s.y += Math.sin(s.h) * s.v * dt;
   s.x = clamp(s.x, 18, G.W - 18); s.y = clamp(s.y, 18, G.H - 18);
@@ -1309,6 +1312,22 @@ function drawPath(s, pts, active) {
   ctx.beginPath(); ctx.moveTo(e.x - 6, e.y - 6); ctx.lineTo(e.x + 6, e.y + 6); ctx.moveTo(e.x + 6, e.y - 6); ctx.lineTo(e.x - 6, e.y + 6); ctx.stroke();
 }
 
+// Heading dial for an anchored ship: a ring plus an arrow toward where it's turning.
+function drawPivot(s, active) {
+  const rr = s.L * 0.85, pts = [];
+  for (let i = 0; i <= 40; i++) { const a = (i / 40) * TAU; pts.push([s.x + Math.cos(a) * rr, s.y + Math.sin(a) * rr]); }
+  seaPoly(pts);
+  ctx.lineWidth = active ? 4 : 2.5; ctx.strokeStyle = active ? COL.gold : 'rgba(255,255,255,0.7)'; ctx.stroke();
+  const a = s.pivot, tip = s.L * 1.7, c = Math.cos(a), sn = Math.sin(a);
+  const at = (d, side) => proj(s.x + c * d - sn * side, s.y + sn * d + c * side, 0.5);
+  const t = at(tip, 0), b1 = at(tip - 20, -11), b2 = at(tip - 20, 11), r0 = at(rr, 0);
+  ctx.beginPath(); ctx.moveTo(r0.x, r0.y); ctx.lineTo(t.x, t.y);
+  ctx.lineWidth = 5; ctx.strokeStyle = active ? COL.gold : COL.white; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.closePath();
+  ctx.fillStyle = active ? COL.gold : COL.white; ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(20,52,82,0.6)'; ctx.stroke();
+}
+
 function drawRing(s) {
   const pts = [];
   const rr = s.L * 0.62;
@@ -1349,6 +1368,7 @@ function drawHUD() {
       const live = drag && drag.ship === s && drag.pts.length;
       drawPath(s, live ? drag.pts : s.path, s === selected);
     }
+    for (const s of G.ships) if (s.team === 'player' && afloat(s) && s.pivot != null) drawPivot(s, drag && drag.ship === s && drag.mode === 'rotate');
     if (selected && afloat(selected)) drawRing(selected);
   }
   for (const s of G.ships) drawBars(s);
@@ -1464,7 +1484,17 @@ hudCv.addEventListener('pointerdown', (e) => {
   const s = shipAt(p);
   if (s) {
     selected = s;
-    drag = { ship: s, pts: [], id: e.pointerId, from: w, onShip: true };
+    drag = { ship: s, pts: [], id: e.pointerId, from: w, onShip: true, sx: p.x, sy: p.y };
+    const held = drag;
+    // Press and hold (without moving) to drop anchor and turn on the spot.
+    held.holdTimer = setTimeout(() => {
+      if (drag !== held || held.pts.length || !afloat(held.ship) || G.phase !== 'play') return;
+      held.mode = 'rotate';
+      held.ship.path = [];
+      held.ship.pivot = held.ship.h;
+      toast = { text: 'Anchored', shipId: held.ship.id, until: clock + 1.2 };
+      try { if (navigator.vibrate) navigator.vibrate(12); } catch (err) { /* no haptics */ }
+    }, 350);
   } else if (selected && afloat(selected)) {
     drag = { ship: selected, pts: [clampWorld(w)], id: e.pointerId, from: w };
   } else return;
@@ -1474,21 +1504,31 @@ hudCv.addEventListener('pointermove', (e) => {
   if (!drag || e.pointerId !== drag.id) return;
   const w = toWorld(e.offsetX, e.offsetY);
   if (!w) return;
+  if (drag.mode === 'rotate') {
+    const s = drag.ship;
+    if (Math.hypot(w.x - s.x, w.y - s.y) > 8) s.pivot = Math.atan2(w.y - s.y, w.x - s.x);
+    return;
+  }
+  // Small finger wobble on a ship isn't a course yet; it may be the start of a press-and-hold.
+  if (drag.onShip && !drag.pts.length && Math.hypot(e.offsetX - drag.sx, e.offsetY - drag.sy) < 10) return;
   const last = drag.pts.length ? drag.pts[drag.pts.length - 1] : drag.from;
   if (Math.hypot(w.x - last.x, w.y - last.y) > 12) drag.pts.push(clampWorld(w));
 });
 function endDrag(e) {
   if (!drag || e.pointerId !== drag.id) return;
-  if (drag.pts.length && afloat(drag.ship)) { drag.ship.path = drag.pts; G.dragged = true; }
-  else if (drag.onShip && drag.ship.path.length) {
-    // A tap on a ship (no drag) clears its course.
-    drag.ship.path = [];
-    toast = { text: 'Course cleared', shipId: drag.ship.id, until: clock + 1.2 };
+  clearTimeout(drag.holdTimer);
+  if (drag.mode === 'rotate') { drag = null; return; }
+  if (drag.pts.length && afloat(drag.ship)) { drag.ship.path = drag.pts; drag.ship.pivot = null; G.dragged = true; }
+  else if (drag.onShip && (drag.ship.path.length || drag.ship.pivot != null)) {
+    // A tap on a ship (no drag) clears its course and raises the anchor.
+    const anchored = drag.ship.pivot != null;
+    drag.ship.path = []; drag.ship.pivot = null;
+    toast = { text: anchored ? 'Anchor up' : 'Course cleared', shipId: drag.ship.id, until: clock + 1.2 };
   }
   drag = null;
 }
 hudCv.addEventListener('pointerup', endDrag);
-hudCv.addEventListener('pointercancel', (e) => { if (drag && e.pointerId === drag.id) drag = null; });
+hudCv.addEventListener('pointercancel', (e) => { if (drag && e.pointerId === drag.id) { clearTimeout(drag.holdTimer); drag = null; } });
 
 // ---------- Update ----------
 function update(dt) {
