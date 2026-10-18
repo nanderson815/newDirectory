@@ -11,7 +11,7 @@ import { mainGoal } from '../sim/goals/index.js';
 import { iconSVG } from './icons.js';
 import { W, H, NODES, REGION_LABELS, LAND, ISLES, HILLS, LANDNAMES, SEANAMES, legPaths } from './chart-map.js';
 
-const MIN_SCALE = 0.8; // below this the nodes crowd each other, so small screens pan instead
+const MIN_SCALE = 1; // below this names and battles crowd each other (tests/chart-check.mjs), so small screens pan instead
 const f1 = (n) => Math.round(n * 10) / 10;
 
 function compass(cx, cy) {
@@ -57,7 +57,7 @@ const CARTOUCHE = '<g class="ch-cartouche" transform="translate(852 652)">' +
   '<text y="13" class="ch-sub">DRAWN FOR THE ADMIRAL · 1655</text>' +
   '</g>';
 
-const ROSE = [812, 176];
+const ROSE = [826, 166];
 
 function mapSVG() {
   const ids = BATTLES.map((b) => b.id);

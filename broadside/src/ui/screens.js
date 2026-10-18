@@ -24,7 +24,7 @@ import { iconSVG } from './icons.js';
 const SCREENS = ['menuScreen', 'chartScreen', 'yardScreen', 'hatsScreen', 'briefScreen', 'pauseScreen', 'endScreen'];
 export const ui = { screen: 'menuScreen', yardSel: 0 };
 
-// A struck gold coin: a bright face, a milled rim and a soft inner ring.
+// A struck gold coin: a bright face with a highlight, a fine rim and a soft inner ring.
 const COIN = '<svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.6" fill="#e4ab45" stroke="#7a4f12" stroke-width="1.1"/>' +
   '<path d="M4.4 8.6A6 6 0 0 1 11.4 4.2" fill="none" stroke="#fbe3a0" stroke-width="1.6" stroke-linecap="round" opacity="0.85"/>' +
   '<circle cx="10" cy="10" r="5.4" fill="none" stroke="#a5711f" stroke-width="0.9" opacity="0.8"/><path d="M10 7.4V12.6" stroke="#a5711f" stroke-width="1.3" stroke-linecap="round"/></svg>';
@@ -186,12 +186,28 @@ function onYardClick(e) {
   const b = e.target.closest('[data-buy]');
   if (!b || b.disabled) return;
   const id = b.dataset.buy, i = ui.yardSel;
+  const what = b.closest('.up-row').querySelector('.up-name').textContent;
   const ok = id === 'refit' ? buyRefit(i) : id === 'hire' ? buyHire() : id.startsWith('ammo:') ? buyAmmo(i, id.slice(5)) : buyUpgrade(i, id);
   if (ok) {
     sfx.init(); sfx.coin();
     if (id === 'hire') ui.yardSel = save.fleet.length - 1;
     renderYard.quiet = true; renderYard(); renderYard.quiet = false; // a purchase updates in place
+    toast(id === 'hire' ? `${save.fleet[save.fleet.length - 1].name} joins the squadron` : id === 'refit' ? 'Refit complete'
+      : id.startsWith('ammo:') ? `${what} stowed aboard` : `${what} fitted`, id === 'hire' ? 'ship' : 'check');
   }
+}
+
+// A short confirmation that drops in at the top of the screen and fades away by itself.
+let toastTimer = null;
+export function toast(text, icon = 'check') {
+  let el = document.getElementById('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.innerHTML = iconSVG(icon) + `<span>${esc(text)}</span>`;
+  el.hidden = false;
+  el.classList.remove('out');
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.add('out'); toastTimer = setTimeout(() => { el.hidden = true; }, 260); }, 1800);
 }
 
 // ---------- Hats ----------
@@ -203,7 +219,7 @@ export function openHats() {
       `<p>${esc(HATS[id].from)}</p><p class="won-tag">${won ? 'In your cabin' : iconSVG('lock') + 'Not won yet'}</p></div>`;
   }).join('');
   $('hatGrid').classList.add('stagger');
-  $('hatsTally').innerHTML = `<b>${HAT_ORDER.filter((id) => save.hats.includes(id)).length}</b>&thinsp;/&thinsp;${HAT_ORDER.length}`;
+  $('hatsTally').innerHTML = `<b>${HAT_ORDER.filter((id) => save.hats.includes(id)).length}</b> of ${HAT_ORDER.length}`;
   showScreen('hatsScreen');
 }
 
@@ -365,7 +381,11 @@ function renderEnd() {
   }
   if (win) coinShower(Math.min(28, 8 + Math.round(a.gold / 25)));
   $('endHat').hidden = !(win && a.hat);
-  if (win && a.hat) $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p>You won the <b>${esc(HATS[a.hat].name.toLowerCase())}</b>! It’s in your hat collection.</p>`;
+  if (win && a.hat) {
+    // "the red tricorne", but "Calico Kate's skull hat": a hat named after its owner keeps the name.
+    const n = HATS[a.hat].name, named = /^[A-Z][a-z]+ [A-Z]/.test(n);
+    $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p>You won ${named ? '' : 'the '}<b>${esc(named ? n : n.toLowerCase())}</b>! It’s in your hat collection.</p>`;
+  }
   const sec = Math.floor(G.t);
   $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   $('statHits').textContent = G.stats.shots ? `${Math.round((100 * G.stats.hits) / G.stats.shots)}%` : '–';
@@ -401,6 +421,12 @@ export function renderCoach() {
   $('coach').hidden = !show;
   if (!show) return;
   const step = G.tut.step;
+  // Each new step pops the bubble in again.
+  if (renderCoach.step !== step) {
+    renderCoach.step = step;
+    const el = $('coach');
+    el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  }
   $('coachStep').textContent = `Step ${step + 1} of ${TUTORIAL_STEPS}`;
   $('coachText').textContent = step < COACH.length ? COACH[step]
     : S.fireMode === 'manual'

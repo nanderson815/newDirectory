@@ -296,7 +296,7 @@ b, strong { font-weight: 700; }
   flex: none;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(64px, 1fr);
+  grid-auto-columns: 74px;
   padding: 3px;
   gap: 2px;
   border-radius: 11px;
@@ -318,7 +318,7 @@ b, strong { font-weight: 700; }
 
 /* ---------- Main menu ---------- */
 .overlay.menu-screen {
-  background: linear-gradient(180deg, rgba(6, 25, 30, 0) 0%, rgba(6, 25, 30, 0.1) 28%, rgba(6, 25, 30, 0.72) 58%, rgba(6, 25, 30, 0.92) 100%);
+  background: linear-gradient(180deg, rgba(6, 25, 30, 0) 0%, rgba(6, 25, 30, 0.08) 20%, rgba(6, 25, 30, 0.62) 40%, rgba(6, 25, 30, 0.86) 62%, rgba(6, 25, 30, 0.94) 100%);
 }
 .menu {
   box-sizing: border-box;
@@ -806,6 +806,8 @@ b, strong { font-weight: 700; }
 }
 .toast .icon { width: 16px; height: 16px; color: var(--p-gold-hi); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, -10px); } }
+.toast.out { animation: toast-out var(--dur-base) var(--ease-in) both; }
+@keyframes toast-out { to { opacity: 0; transform: translate(-50%, -6px); } }
 
 /* ---------- Small screens ---------- */
 @media (max-width: 370px) {
@@ -813,13 +815,19 @@ b, strong { font-weight: 700; }
   .panel h1 { font-size: 36px; }
   .panel h1.title-sm { font-size: 28px; }
   .wordmark { font-size: 50px; }
-  .toggle { grid-auto-columns: minmax(56px, 1fr); }
+  .toggle { grid-auto-columns: 68px; }
   .chart-title h2 { font-size: 18px; }
   .btn { padding: 0 var(--s-4); }
 }
 @media (max-height: 760px) and (orientation: portrait) {
   .menu { gap: var(--s-4); }
-  .menu .lede { font-size: 14px; }
+  .wordmark { font-size: 46px; }
+  .menu .lede { font-size: 14px; line-height: 1.45; }
+  .menu .setting-row { padding-top: 6px; padding-bottom: 6px; }
+  .menu .setting .setting-row { padding-bottom: 4px; }
+  .menu .setting-note { padding-bottom: 8px; font-size: 12px; }
+  .toggle button { height: 28px; }
+  .btn.big { min-height: 52px; }
 }
 
 /* ---------- Landscape phones: use the width ---------- */
@@ -835,14 +843,27 @@ b, strong { font-weight: 700; }
   .panel.split.end { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); align-items: center; }
   .panel.wide { max-width: 760px; }
   .panel h1.title-sm { font-size: 28px; }
-  .panel.end h1 { font-size: 38px; }
+  .panel.end h1 { font-size: 34px; }
+  .panel.end { padding-top: var(--s-4); padding-bottom: var(--s-4); }
+  .panel.end .col { gap: var(--s-3); }
+  .stars.big .star { width: 32px; height: 32px; }
   .hat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .hat-grid .hat-card:last-child:nth-child(odd) { grid-column: auto; }
-  .up-list { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: var(--s-6); }
-  .up-list .up-row:nth-child(2) { border-top: 0; }
-  .up-list .up-row.refit { grid-column: 1 / -1; }
-  .up-list .up-row.refit + .up-row + .up-row { border-top: 0; }
-  #yardScreen .panel { display: grid; grid-template-columns: minmax(0, 1fr); }
+  /* Shipyard: the ship on the left, its upgrades in a scrolling column on the right. */
+  #yardScreen { overflow: hidden; }
+  #yardScreen .panel {
+    max-height: 100%; display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    grid-template-rows: auto auto auto auto 1fr auto; column-gap: var(--s-6); row-gap: var(--s-3); align-items: start;
+  }
+  #yardScreen .ship-card { display: contents; }
+  #yardScreen .panel-head, #yardScreen .ship-tabs, #yardScreen .ship-head, #yardScreen .ship-stats, #yardScreen .row { grid-column: 1; }
+  #yardScreen .panel-head { grid-row: 1; } #yardScreen .ship-tabs { grid-row: 2; } #yardScreen .ship-head { grid-row: 3; }
+  #yardScreen .ship-stats { grid-row: 4; } #yardScreen .row { grid-row: 6; align-self: end; }
+  #yardScreen .up-list { grid-column: 2; grid-row: 1 / span 5; align-self: stretch; overflow-y: auto; min-height: 0; max-height: calc(100vh - 80px); margin-right: -8px; padding-right: 8px; scrollbar-width: thin; scrollbar-color: var(--c-glass-line-strong) transparent; }
+  #yardScreen .hire { grid-column: 2; grid-row: 6; }
+  #yardScreen .ship-stats div { padding: 5px 6px 6px; }
+  #yardScreen .ship-stats dd { font-size: 17px; }
+  .hat-card .hat { max-width: 84px; }
 
   .overlay.menu-screen { background: linear-gradient(90deg, rgba(6, 25, 30, 0.92) 0%, rgba(6, 25, 30, 0.75) 45%, rgba(6, 25, 30, 0.15) 80%, rgba(6, 25, 30, 0) 100%); }
   .menu {

@@ -8,34 +8,34 @@ export const W = 1000, H = 700;
 // battle through extra points, to keep it off land and clear of other battles; `name` places the label
 // ('below' by default, or 'above', 'left', 'right') where the route leaves it room.
 export const NODES = {
-  tutorial: { x: 552, y: 362, label: 'Shakedown' },
+  tutorial:   { x: 552, y: 362, label: 'Shakedown' },
   tortuga:    { x: 610, y: 288, label: 'Tortuga Narrows', via: [[606, 348]], name: 'above' },
-  cayman:     { x: 470, y: 312, label: 'Cayman Shoals', via: [[540, 278]] },
-  rojo: { x: 428, y: 258, label: 'La Bruja', name: 'right' },
-  sanlucas: { x: 470, y: 612, label: 'San Lucas', via: [[404, 318], [440, 420], [480, 530]], name: 'left' },
+  cayman:     { x: 476, y: 316, label: 'Cayman Shoals', via: [[540, 278]] },
+  rojo:       { x: 428, y: 258, boss: true, label: 'La Bruja', name: 'right' },
+  sanlucas:   { x: 470, y: 612, label: 'San Lucas', via: [[398, 322], [436, 420], [480, 530]], name: 'left' },
   silver:     { x: 536, y: 498, label: 'Silver Fleet', name: 'right' },
-  comodoro:   { x: 556, y: 616, label: 'San Cristóbal', name: 'right' },
+  comodoro:   { x: 556, y: 616, boss: true, label: 'San Cristóbal', name: 'right' },
   cartagena:  { x: 630, y: 556, label: 'Cartagena', name: 'right' },
-  santamarta: { x: 690, y: 492, label: 'Santa Marta', name: 'right' },
-  oro: { x: 782, y: 456, label: 'Trinidad', name: 'above' },
+  santamarta: { x: 702, y: 504, label: 'Santa Marta', name: 'above' },
+  oro:        { x: 782, y: 456, boss: true, label: 'Trinidad' },
   cove:       { x: 880, y: 430, label: 'Smugglers’ Cove' },
   wreck:      { x: 912, y: 336, label: 'Treasure Wreck', name: 'above' },
-  kate:       { x: 798, y: 372, label: 'Black Wyvern', name: 'above' },
-  convoy:     { x: 700, y: 386, label: 'Convoy', name: 'above' },
-  siege:      { x: 620, y: 418, label: 'Fort Charles' },
-  hierro: { x: 128, y: 232, label: 'Iron Marquis', via: [[520, 428], [424, 378], [384, 300], [350, 222], [300, 172], [230, 166]] },
-  fog: { x: 372, y: 400, label: 'Mosquito Fog', via: [[236, 192], [304, 210], [312, 300]], name: 'left' },
+  kate:       { x: 798, y: 372, boss: true, label: 'Black Wyvern', name: 'above' },
+  convoy:     { x: 706, y: 380, label: 'Convoy', name: 'above' },
+  siege:      { x: 616, y: 414, label: 'Fort Charles' },
+  hierro:     { x: 128, y: 232, boss: true, label: 'Iron Marquis', via: [[520, 432], [428, 396], [384, 300], [350, 222], [300, 172], [230, 166]] },
+  fog:        { x: 372, y: 400, label: 'Mosquito Fog', via: [[236, 192], [304, 210], [312, 300]], name: 'left' },
   blockade:   { x: 452, y: 114, label: 'Blockade', via: [[346, 326], [338, 250], [326, 200], [352, 158], [404, 132]], name: 'right' },
-  armada:     { x: 350, y: 104, label: 'Gran Armada', name: 'left' },
+  armada:     { x: 350, y: 104, boss: true, label: 'Gran Armada', name: 'left' },
   endless:    { x: 918, y: 132, label: 'Endless Skirmish' },
 };
 
 // Sea names for each campaign region: centre, rotation, and an optional shorter text.
 export const REGION_LABELS = {
-  port: { x: 560, y: 470, r: -3 },
+  port: { x: 520, y: 466, r: -3 },
   windward: { x: 712, y: 224, r: -3, t: 'Windward Passage' },
   main: { x: 440, y: 664, r: -4, t: 'Spanish Main' },
-  golden: { x: 824, y: 528, r: -4, t: 'Golden Isles' },
+  golden: { x: 856, y: 566, r: -3, t: 'Golden Isles' },
   pirate: { x: 870, y: 280, r: 3, t: 'Pirate Coast' },
   campeche: { x: 128, y: 156, r: -3, t: 'Bay of Campeche' },
   armada: { x: 196, y: 64, r: -4, t: 'The Last Armada' },
@@ -112,14 +112,20 @@ export function legPaths(ids) {
   return legs; // legs[i] leads into battle i (legs[0] is empty: the campaign starts there)
 }
 
-// Box (in map units, unrotated) of a battle's name label, for the layout checks. `won` adds the star row.
+// Boxes (in map units, unrotated) of a battle's name label and star row, for the layout checks. Nodes and names
+// keep their pixel size while the map scales, so at map scale `scale` they cover 1/scale as many map units.
+export const nodeRadius = (id, scale = 1) => (NODES[id].boss ? 26 : 20) / scale;
 export function nameBox(id, won, scale = 1) {
-  const n = NODES[id], r = id === 'endless' ? 20 : 20, w = (n.label.length * 6.1 + 6) / scale, h = 15 / scale;
+  const n = NODES[id], r = nodeRadius(id, scale), w = (n.label.length * 6.1 + 6) / scale, h = 15 / scale;
   const gap = (won ? 15 : 5) / scale;
   switch (n.name) {
-    case 'above': return { x: n.x - w / 2, y: n.y - r - gap - h - (won ? -8 / scale : 0), w, h };
-    case 'left': return { x: n.x - r - 6 / scale - w, y: n.y - h / 2, w, h };
-    case 'right': return { x: n.x + r + 6 / scale, y: n.y - h / 2, w, h };
-    default: return { x: n.x - w / 2, y: n.y + r + gap, w, h };
+    case 'above': return { x: n.x - w / 2, y: n.y - r - 5 / scale - h, w, h };
+    case 'left': return { x: n.x - r - 7 / scale - w, y: n.y - h / 2, w, h };
+    case 'right': return { x: n.x + r + 7 / scale, y: n.y - h / 2, w, h };
+    default: return { x: n.x - w / 2, y: n.y + r + gap - 2 / scale, w, h };
   }
+}
+export function starBox(id, scale = 1) {
+  const n = NODES[id], r = nodeRadius(id, scale), w = 34 / scale;
+  return { x: n.x - w / 2, y: n.y + r, w, h: 12 / scale };
 }

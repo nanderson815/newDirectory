@@ -1,10 +1,11 @@
 // Layout checks for the sea chart's geometry (src/ui/chart-map.js), in plain Node: the campaign route must stay
 // off land, keep clear of battles it doesn't stop at and of every name on the map, and cross itself as little as
 // possible. `node tests/chart-check.mjs` prints each problem and exits non-zero if there are any.
-import { NODES, LAND, ISLES, REGION_LABELS, routePoints, curveSegments, nameBox } from '../src/ui/chart-map.js';
+import { NODES, LAND, ISLES, REGION_LABELS, routePoints, curveSegments, nameBox, starBox, nodeRadius } from '../src/ui/chart-map.js';
 import { BATTLES, REGIONS } from '../src/config/battles.js';
 
 const ids = BATTLES.map((b) => b.id);
+const SCALES = [1]; // the chart never draws the map below scale 1 (MIN_SCALE in chart.js); smaller screens pan
 const bez = (a, b, c, d, t) => { const u = 1 - t; return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d; };
 
 // Coastlines as polygons (sampled cubics), islands as ellipses.
@@ -61,16 +62,17 @@ legs.forEach((L, i) => {
   if (wet.length) say(`${name}: ${wet.length} points on or hugging land, e.g. ${wet[0].map(Math.round)}`);
   for (const [id, n] of Object.entries(NODES)) {
     if (id === ids[i] || id === ids[i - 1]) continue;
-    const r = BATTLES.find((b) => b.id === id && b.hat) ? 36 : 30;
+    const r = NODES[id].boss ? 36 : 30;
     const d = Math.min(...L.map(([x, y]) => Math.hypot(x - n.x, y - n.y)));
     if (d < r) say(`${name}: passes ${d.toFixed(0)} from ${id}`);
   }
   for (const id of Object.keys(NODES)) {
-    for (const won of [false, true]) {
-      const b = nameBox(id, won, 1);
-      const hit = L.find(([x, y]) => x > b.x - 2 && x < b.x + b.w + 2 && y > b.y - 2 && y < b.y + b.h + 2);
-      if (hit && !(id === ids[i] && false)) { say(`${name}: crosses the name of ${id}${won ? ' (with stars)' : ''} at ${hit.map(Math.round)}`); break; }
+    let hit = null;
+    for (const scale of SCALES) for (const won of [false, true]) {
+      const b = nameBox(id, won, scale);
+      hit = hit || L.find(([x, y]) => x > b.x - 2 && x < b.x + b.w + 2 && y > b.y - 2 && y < b.y + b.h + 2);
     }
+    if (hit) say(`${name}: crosses the name of ${id} at ${hit.map(Math.round)}`);
   }
   for (const r of REGIONS) {
     const p = REGION_LABELS[r.id];
@@ -102,18 +104,33 @@ for (let i = 1; i < legs.length; i++) {
     if (hit) { crossings++; console.log(`  crossing: ${ids[i - 1]}->${ids[i]} x ${ids[j - 1]}->${ids[j]} at ${hit.map(Math.round)}`); }
   }
 }
-// Labels and nodes overlapping each other.
+// Names, star rows, nodes and region names overlapping each other, at each map scale.
+const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+function regionBox(id) {
+  const p = REGION_LABELS[id], r = REGIONS.find((x) => x.id === id), t = p.t || r.name;
+  const w = t.length * 9.2 + Math.abs(p.r) * 3, h = 18 + Math.abs(p.r) * 1.2; // rough, padded for rotation
+  return { x: p.x - w / 2, y: p.y - h + 4, w, h };
+}
 const all = Object.keys(NODES);
-for (let i = 0; i < all.length; i++) {
-  for (let j = 0; j < all.length; j++) {
-    if (i === j) continue;
-    const b = nameBox(all[i], true, 1), n = NODES[all[j]];
-    const cx = Math.max(b.x, Math.min(n.x, b.x + b.w)), cy = Math.max(b.y, Math.min(n.y, b.y + b.h));
-    if (Math.hypot(cx - n.x, cy - n.y) < 22) say(`name of ${all[i]} overlaps node ${all[j]}`);
-    if (j > i) {
-      const c = nameBox(all[j], true, 1);
-      if (b.x < c.x + c.w && c.x < b.x + b.w && b.y < c.y + c.h && c.y < b.y + b.h) say(`names of ${all[i]} and ${all[j]} overlap`);
+const seen = new Set();
+const once = (m) => { if (!seen.has(m)) { seen.add(m); say(m); } };
+for (const scale of SCALES) {
+  for (const a of all) {
+    const nb = nameBox(a, true, scale), sb = starBox(a, scale);
+    for (const b of all) {
+      if (a === b) continue;
+      const n = NODES[b], rb = nodeRadius(b, scale);
+      const disc = { x: n.x - rb, y: n.y - rb, w: rb * 2, h: rb * 2 };
+      if (overlap(nb, disc)) once(`name of ${a} overlaps node ${b} (scale ${scale})`);
+      if (overlap(nb, starBox(b, scale))) once(`name of ${a} overlaps the stars of ${b} (scale ${scale})`);
+      if (a < b && overlap(nb, nameBox(b, true, scale))) once(`names of ${a} and ${b} overlap (scale ${scale})`);
+      if (a < b && overlap(sb, starBox(b, scale))) once(`stars of ${a} and ${b} overlap (scale ${scale})`);
     }
+    for (const r of Object.keys(REGION_LABELS)) if (overlap(nb, regionBox(r))) once(`name of ${a} overlaps region name ${r} (scale ${scale})`);
+  }
+  for (const r of Object.keys(REGION_LABELS)) for (const b of all) {
+    const n = NODES[b], rb = nodeRadius(b, scale);
+    if (overlap(regionBox(r), { x: n.x - rb, y: n.y - rb, w: rb * 2, h: rb * 2 })) once(`region name ${r} overlaps node ${b} (scale ${scale})`);
   }
 }
 console.log(problems.map((p) => '  ' + p).join('\n') || '  no layout problems');

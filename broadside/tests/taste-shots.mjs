@@ -25,14 +25,23 @@ const fresh = save({ stars: { tutorial: 3 }, hats: ['cabin'], gold: 60 });
 const browser = await launch();
 const errors = [];
 const settle = (page, ms = 1500) => page.waitForTimeout(ms);
+// The 3D sea at 1x and a 4 fps game loop: on a loaded machine the renderer otherwise starves the screenshots.
+// (CSS animations run on their own clock, so the menus' motion is unaffected.)
+const calm = (page) => page.evaluate(() => {
+  window.__broadside.lockDpr(1);
+  const raf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = (cb) => setTimeout(() => raf(cb), 250);
+});
 const want = (name) => !only.length || only.some((o) => name.startsWith(o));
 
 for (const [sz, [width, height]] of Object.entries(SIZES)) {
   const snap = async (page, name) => {
     if (!want(name)) return;
-    await page.screenshot({ path: path.join(dir, `${name}-${sz}.png`), timeout: 240000 });
+    // Finite CSS animations are fast-forwarded to their end, so a slow machine can't catch a screen mid-fade.
+    await page.screenshot({ path: path.join(dir, `${name}-${sz}.png`), timeout: 240000, animations: 'disabled' });
   };
   const page = await open(browser, { width, height, save: mid, fonts });
+  await calm(page);
   await page.evaluate(() => document.fonts && document.fonts.ready);
   await settle(page, 1200);
   await snap(page, 'menu');
@@ -92,6 +101,7 @@ for (const [sz, [width, height]] of Object.entries(SIZES)) {
   for (const [name, s] of [['chart-fresh', fresh], ['chart-done', all]]) {
     if (!want(name)) continue;
     const pg = await open(browser, { width, height, save: s, fonts });
+    await calm(pg);
     await settle(pg, 600);
     await pg.click('#startBtn');
     await settle(pg);
