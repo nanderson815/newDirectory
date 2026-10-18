@@ -1,8 +1,7 @@
 // The newer battle primitives, each proven on a small ad-hoc battle built with playDef (src/config/lab.js):
 // goals protect, hunt, reach, survive; abilities repair, ram, flee, rally; events shipSunk, shipNear, goalDone,
 // say, retreat, reveal, heal; plus the lab itself (never touches the save) and one battle that combines them.
-import path from 'path';
-import { launch, open, check, save, OUT } from './lib.mjs';
+import { launch, open, shot, check, save } from './lib.mjs';
 
 const failures = [];
 const browser = await launch();
@@ -25,7 +24,7 @@ const result = () => B(() => [window.__broadside.G.result, window.__broadside.G.
 await B(() => window.__broadside.setFire('manual'));
 const snap = async (name, p = page) => {
   await p.evaluate(() => { window.__broadside.setFire('auto'); window.__broadside.step(1); });
-  await p.screenshot({ path: path.join(OUT, name + '.png'), timeout: 120000 }); // swiftshader is slow on a busy machine
+  await shot(p, name);
   await p.evaluate(() => window.__broadside.setFire('manual'));
 };
 

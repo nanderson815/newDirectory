@@ -74,7 +74,7 @@ export function updateBoardings(dt) {
     const def = defence(e);
     if (s.marines > def) {
       s.marines = Math.max(0, s.marines - Math.max(1, Math.ceil(def * 0.5)));
-      e.team = s.team; e.marines = 0; e.path = []; e.pivot = null; e.targetId = null;
+      e.team = s.team; e.marines = 0; e.path = []; e.pivot = null; e.targetId = null; e.fleeing = false; // a prize stops running
       e.hp = Math.max(e.hp, Math.round(e.maxHp * 0.3));
       if (s.team === 'player') {
         e.prize = true; e.label = 'Prize';

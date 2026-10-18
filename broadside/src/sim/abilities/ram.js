@@ -24,7 +24,7 @@ export default {
   about: 'Reinforced bow: sailing into an enemy ship stoves in her hull and slows both.',
   params: { dmg: 'damage at full speed', slow: 'seconds the rammed ship is slowed', every: 'seconds between rams', charge: 'AI rammers charge a foe this close' },
   defaults: { dmg: 26, slow: 4, every: 3, charge: 260 },
-  init(s, a) { a.t = 0; s.ram = true; },
+  init(s, a) { a.t = 0; },
   // Aim a little ahead of her so the bow meets her hull.
   steer(s, a) {
     if (a.t > 0) return null;
