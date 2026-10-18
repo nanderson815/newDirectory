@@ -4,6 +4,7 @@ import { COL, PI, clamp, lerp, rand, angDiff } from '../util.js';
 import { R } from './gl.js';
 import { wx, wz, fitCamera } from './camera.js';
 import { bakeStatic, buildIsland, buildShipMesh, buildFortMesh, sharedIslandGeos, FORT_BASE_Y, FORT_SCALE } from './models.js';
+import { WX, applyWeather, syncWeather } from './weather.js';
 
 let worldObjs = [];
 export let shipMeshes = new Map();
@@ -57,6 +58,7 @@ export function buildScene() {
   // w = squared radius beyond which a fragment can't see this island's foam.
   u.uIsl.value.forEach((v, i) => { const is = G.islands[i]; if (is) v.set(wx(is.x), wz(is.y), is.r, (is.r * 1.8) ** 2); else v.set(0, 0, 0, 0); });
   u.uCount.value.x = Math.min(6, G.islands.length);
+  applyWeather(G);
   fitCamera();
 }
 
@@ -74,6 +76,9 @@ export function syncScene() {
   const u = R.water.material.uniforms;
   u.uT.value = clock;
   u.uWind.value.set(Math.cos(G.wind.dir), Math.sin(G.wind.dir));
+  syncWeather(G, clock);
+  // Weather: swell scales the bob and roll; shadows fall `lift` map units per unit of height.
+  const sw = WX.swell, [lx, lz] = WX.lift;
 
   let ns = 0, nf = 0;
   for (const s of G.ships) {
@@ -85,10 +90,10 @@ export function syncScene() {
     m.g.rotation.y = -s.h;
     const r = angDiff(s.h, G.wind.dir);
     const heel = Math.sin(r) * 0.07 * Math.min(1, s.v / s.speed);
-    m.body.position.y = Math.sin(clock * 2 + s.bob) * 0.9 - sinkK * sinkK * 46;
+    m.body.position.y = Math.sin(clock * 2 + s.bob) * 0.9 * sw - sinkK * sinkK * 46;
     // Going down: the bow dips first and she rolls over as she settles.
-    m.body.rotation.x = Math.sin(clock * 1.6 + s.bob) * 0.045 + heel + sinkK * 0.9;
-    m.body.rotation.z = Math.sin(clock * 1.25 + s.bob * 2) * 0.025 - sinkK * sinkK * 0.6;
+    m.body.rotation.x = Math.sin(clock * 1.6 + s.bob) * 0.045 * sw + heel + sinkK * 0.9;
+    m.body.rotation.z = Math.sin(clock * 1.25 + s.bob * 2) * 0.025 * sw - sinkK * sinkK * 0.6;
     for (const p of m.pivots) p.rotation.y = -s.yard;
     const fill = Math.cos(r - s.yard);
     for (let i = 0; i < m.rigs.length; i++) m.rigs[i].scale.x = fill > 0.15 ? 0.35 + 0.65 * fill : 0.14 * Math.sin(clock * 14 + i);
@@ -96,12 +101,12 @@ export function syncScene() {
     m.hullMat.emissive.setScalar(s.flash > 0 ? (s.flash / 0.14) * 0.7 : 0);
     if (sinkK < 0.6 && ns < 32) {
       const k = 1.08 * (1 - sinkK * 0.6);
-      setInst(P.shipShadow, ns++, wx(s.x) + 7, 0.25, wz(s.y) + 9, s.L * k, 1, s.B * k, 0, -s.h, 0);
+      setInst(P.shipShadow, ns++, wx(s.x) + lx * 24, 0.25, wz(s.y) + lz * 25, s.L * k, 1, s.B * k, 0, -s.h, 0);
     }
     // Foam collar: hugs the waterline, swells with speed, churns wide while the ship goes down.
     if (nf < 32) {
       const spd = clamp(s.v / s.speed, 0, 1);
-      const k = (s.state === 'sinking' ? 1 + sinkK * 0.7 : 1 + spd * 0.06) + Math.sin(clock * 5 + s.bob) * 0.025;
+      const k = (s.state === 'sinking' ? 1 + sinkK * 0.7 : 1 + spd * 0.06) + Math.sin(clock * 5 + s.bob) * 0.025 * sw;
       const fade = s.state === 'sinking' ? 1 - sinkK * sinkK : 0.75 + spd * 0.25;
       setInst(P.foam, nf++, wx(s.x), 0.35, wz(s.y), s.L * 0.5 * k, 1, s.B * 0.5 * k * (0.75 + 0.25 * fade), 0, -s.h, 0);
     }
@@ -131,7 +136,7 @@ export function syncScene() {
     const k = clamp(b.travel / b.max, 0, 1);
     const z = lerp(b.z0 || 6, 2, k) + Math.sin(PI * k) * 14;
     setInst(P.ball, n, wx(b.x), z, wz(b.y), 1, 1, 1);
-    setInst(P.ballShadow, n, wx(b.x) + z * 0.3, 0.3, wz(b.y) + z * 0.35, 1, 1, 1);
+    setInst(P.ballShadow, n, wx(b.x) + z * lx, 0.3, wz(b.y) + z * lz, 1, 1, 1);
     n++;
   }
   P.ball.count = P.ballShadow.count = n;
@@ -158,7 +163,7 @@ export function syncScene() {
       case 'splinter': case 'plank': case 'sand': case 'stone': {
         const fade = p.kind === 'plank' ? Math.min(1, p.life / 4) : 1;
         const len = p.size * fade, th = p.kind === 'plank' ? 2.2 : 1.4;
-        const y = p.kind === 'plank' ? 0.6 + Math.sin(clock * 2 + p.rot * 5) * 0.3 : p.z;
+        const y = p.kind === 'plank' ? 0.6 + Math.sin(clock * 2 + p.rot * 5) * 0.3 * sw : p.z;
         const cube = p.kind === 'sand' || p.kind === 'stone';
         if (nd < 600) { setInst(P.debris, nd, X, y, Z, len, cube ? len : th, cube ? len : th * 1.8, 0, p.rot, p.kind === 'plank' ? 0 : p.rot); P.debris.setColorAt(nd, C3[p.kind]); nd++; }
         break;
@@ -181,9 +186,9 @@ export function syncScene() {
   let nm = 0;
   for (const mn of G.mines) {
     if (nm >= 64) break;
-    const y = 1.5 + Math.sin(clock * 2 + mn.bob) * 0.6;
+    const y = 1.5 + Math.sin(clock * 2 + mn.bob) * 0.6 * sw;
     setInst(P.mine, nm, wx(mn.x), y, wz(mn.y), 1, 1, 1, clock * 0.3 + mn.bob, mn.bob, 0);
-    setInst(P.mineShadow, nm, wx(mn.x) + 2, 0.3, wz(mn.y) + 2.5, 1, 1, 1);
+    setInst(P.mineShadow, nm, wx(mn.x) + lx * 7, 0.3, wz(mn.y) + lz * 7, 1, 1, 1);
     nm++;
     if (mn.arm <= 0 && Math.sin(clock * 6 + mn.bob) > 0.2 && ng < 400) {
       setInst(P.glow, ng, wx(mn.x), y + 5, wz(mn.y), 1.7, 1.7, 1.7);

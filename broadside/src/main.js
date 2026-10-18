@@ -5,6 +5,7 @@ import { save, replaceSave, writeSave, isUnlocked } from './save.js';
 import { BATTLES, battleIndex } from './config/battles.js';
 import { R, initGL } from './render/gl.js';
 import { renderScene } from './render/scene.js';
+import { WX } from './render/weather.js';
 import { proj } from './render/camera.js';
 import { drawHUD } from './hud/hud.js';
 import { bindInput } from './hud/input.js';
@@ -83,6 +84,7 @@ window.__broadside = {
   step(n) { for (let i = 0; i < n; i++) update(1 / 60); render(); },
   sim(n) { for (let i = 0; i < n; i++) update(1 / 60); },
   get drawCalls() { return R.renderer ? R.renderer.info.render.calls : 0; },
+  get weather() { return WX; },
   lockDpr(v) { perf.locked = true; S.view.maxDpr = v; resize(); },
   record(on) { if (on) { perf.rec = { raw: [], js: [], calls: [] }; return null; } const r = perf.rec; perf.rec = null; return r; },
 };
