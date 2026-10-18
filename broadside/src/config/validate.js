@@ -4,7 +4,8 @@
 // page (dev builds warn at boot). Everything it knows about goals, abilities and events comes from the
 // registries passed in, so new primitives are picked up without touching this file:
 //   - a goal/ability param is optional when the ability has a default for it or its description mentions
-//     "default" or "optional"; otherwise it is required;
+//     "default", "optional" or "omit"/"left out"; otherwise it is required;
+//   - an ability param named `type` whose description says "ship type" must name a TYPES entry;
 //   - a goal module may add its own checks as validate(o, B) returning a list of problem strings.
 //
 //   validateContent({ BATTLES, TYPES, HATS, REGIONS, GOALS, ABILITIES, WHEN, DO,
@@ -25,7 +26,7 @@ const isStr = (v) => typeof v === 'string' && v.length > 0;
 const isObj = (v) => v != null && typeof v === 'object' && !Array.isArray(v);
 const q = (v) => (typeof v === 'string' ? `'${v}'` : JSON.stringify(v));
 const list = (o) => Object.keys(o).join(', ');
-const optional = (desc, key, defaults) => (defaults && key in defaults) || /default|optional/i.test(String(desc || ''));
+const optional = (desc, key, defaults) => (defaults && key in defaults) || /default|optional|omit|left out|leave out/i.test(String(desc || ''));
 const shipDefList = (v) => Array.isArray(v) && v.length > 0 && v.every((d) => isObj(d) && 'type' in d);
 const pointList = (v) => Array.isArray(v) && v.length > 0 && v.every((d) => isObj(d) && 'x' in d && 'y' in d && !('type' in d));
 
@@ -55,9 +56,9 @@ export function validateContent(C) {
         }
         required(at, A, cfg);
       } else bad(at, `config must be true or an object of params, got ${q(cfg)}`);
-      // A ship type to put to sea (the launcher's `type`) must exist.
+      // A ship type to put to sea (the launcher's `type`, described as a "ship type") must exist.
       const t = isObj(cfg) && 'type' in cfg ? cfg.type : cfg && A.defaults && A.defaults.type;
-      if (t != null && (A.params || {}).type && !TYPES[t]) bad(at, `unknown ship type ${q(t)} (known: ${list(TYPES)})`);
+      if (t != null && /ship type/i.test((A.params || {}).type || '') && !TYPES[t]) bad(at, `unknown ship type ${q(t)} (known: ${list(TYPES)})`);
     }
   }
   function required(at, A, cfg) {

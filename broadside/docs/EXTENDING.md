@@ -149,8 +149,8 @@ export default {
 | `sunk(s, a)` | when she starts to go down |
 
 Document every param in `params`. The validator rejects config keys that aren't in `params` or `defaults`,
-type-checks values against the defaults, and checks that a param named `type` is a ship type. A param with no
-default is required unless its description says "default" or "optional".
+type-checks values against the defaults, and checks that a `type` param described as a "ship type" names one.
+A param with no default is required unless its description says "default" or "optional".
 
 ## Write a goal module
 
