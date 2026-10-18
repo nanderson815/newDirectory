@@ -31,14 +31,21 @@ const NAMES = ['San Juan', 'Santa Lucía', 'El Gavilán', 'La Sirena', 'San Andr
   'La Estrella', 'San Mateo', 'La Fortuna', 'El Dragón', 'Santa Isabel', 'San Fernando', 'La Victoria'];
 const FLAGSHIPS = ['Almirante Negro', 'Reina del Mar', 'San Felipe el Real', 'Gran Poder'];
 
+// Lighter ships join the waves as they go on: schooners, oared xebecs, a bomb ketch, a fireship.
+const MIX = ['brig', 'schooner', 'xebec', 'brig', 'bomb', 'fireship'];
+const FROM = { brig: 1, schooner: 2, xebec: 4, bomb: 6, fireship: 7 };
+
 // The ships in wave n, spread across the top of the map. Positions are portrait fractions.
 export function waveEnemies(n) {
   const boss = n % 5 === 0;
   const count = clamp(1 + Math.ceil(n / 2), 2, 6) - (boss ? 1 : 0);
   const galleons = Math.min(count, Math.floor((n - 1) / 3));
-  const defs = [];
+  const defs = [], once = new Set();
   for (let i = 0; i < count; i++) {
-    defs.push({ type: i < galleons ? 'galleon' : 'brig', name: NAMES[(n * 3 + i) % NAMES.length], h: 90 });
+    let type = MIX[(n + i) % MIX.length];
+    if (n < FROM[type] || once.has(type)) type = 'brig';
+    if (type === 'bomb' || type === 'fireship') once.add(type);
+    defs.push({ type: i < galleons ? 'galleon' : type, name: NAMES[(n * 3 + i) % NAMES.length], h: 90 });
   }
   if (boss) {
     defs.unshift({

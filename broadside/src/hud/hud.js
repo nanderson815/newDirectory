@@ -208,6 +208,11 @@ const TIPS = {
   mine: 'Tap Drop mine to leave a mine astern. Lure an enemy across it.',
   land: 'Tap Land troops: your ship anchors and the boats row ashore.',
   board: 'She’s crippled! Tap Board! to send your marines across. More marines than defenders wins.',
+  fireship: 'A fireship! She explodes when she touches you. Sink her at range or steer clear.',
+  mortar: 'A red ring marks where a mortar shell will land. Sail out of it!',
+  exit: 'Get through the green dashed line at the top of the chart.',
+  chest: 'Sail over the gold rings to haul the treasure chests aboard.',
+  fog: 'Fog! You only see ships near your own. Keep the fleet together.',
 };
 let tip = null;
 function offerTip(id) {
@@ -337,6 +342,13 @@ export function drawHUD() {
   if (G.goal === 'escort' || G.goal === 'breakthrough') drawExit();
   if (G.chests && G.chests.length) drawChests();
   drawShellTargets();
+  if (G.phase === 'play' && G.t > 1.5) {
+    if (G.goal === 'escort' || G.goal === 'breakthrough') offerTip('exit');
+    else if (G.goal === 'treasure') offerTip('chest');
+    else if (G.fog) offerTip('fog');
+    if (S.balls.some((b) => b.kind === 'shell' && b.team === 'enemy')) offerTip('mortar');
+    if (G.ships.some((s) => s.fireship && afloat(s) && !s.hidden)) offerTip('fireship');
+  }
   for (const s of G.ships) drawBars(s);
   for (const f of G.forts) drawFort(f);
   if (G.phase === 'title') return;
