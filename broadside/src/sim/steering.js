@@ -1,4 +1,7 @@
-import { S, afloat, shipById } from '../state.js';
+import { S, afloat, shipById, unitById } from '../state.js';
+import { upChart } from './battle.js';
+import { abilitySteer } from './abilities/index.js';
+import { eachGoal, hasGoalFlag } from './goals/index.js';
 import { PI, clamp, angDiff } from '../util.js';
 
 // Distance a ship's centre must keep from an island: the drawn beach plus bevel plus most of the hull.
@@ -48,18 +51,45 @@ export function avoidIslands(s, desired, reach) {
   return best;
 }
 
+// Escorted merchantmen sail for the exit at the top of the chart on their own, dodging islands.
+export function escortSteer(s) {
+  return avoidIslands(s, upChart(S.G), 160);
+}
+
+// How keen an enemy captain is on a target t at distance d: lower is keener. Goals add their own bias.
+function weigh(s, t, d) {
+  if (t.kind === 'fort') d *= 0.75;
+  eachGoal(S.G, 'weigh', (g, o) => { d = g.weigh(o, S.G, s, t, d); });
+  return d;
+}
+
 // Enemy captains: close on the nearest English ship, then hold it on the beam at a comfortable range.
+// Abilities (a fireship's run) and goals (salvaging treasure) can take the helm first.
 export function aiSteer(s, dt) {
   const G = S.G;
   if (s.passive) return null;
+  const own = abilitySteer(s);
+  if (own != null) return own;
+  let goal = null;
+  eachGoal(G, 'steer', (g, o) => { if (goal == null) goal = g.steer(o, G, s); });
+  if (goal != null) return goal;
   s.aiT -= dt;
-  let t = s.targetId != null ? shipById(s.targetId) : null;
-  if (s.aiT <= 0 || !t || !afloat(t)) {
+  let t = s.targetId != null ? unitById(s.targetId) : null;
+  const gone = (u) => !u || (u.kind === 'fort' ? u.state !== 'active' || u.team === s.team : !afloat(u) || u.team === s.team);
+  if (s.aiT <= 0 || gone(t)) {
     let best = null, bd = Infinity;
     for (const o of G.ships) {
       if (o.team === s.team || !afloat(o)) continue;
-      const d = Math.hypot(o.x - s.x, o.y - s.y);
+      const d = weigh(s, o, Math.hypot(o.x - s.x, o.y - s.y));
       if (d < bd) { bd = d; best = o; }
+    }
+    // Besiegers go for the forts they came to take.
+    if (hasGoalFlag(G, 'aiForts')) {
+      for (const f of G.forts) {
+        if (f.team === s.team || f.state !== 'active') continue;
+        const d = weigh(s, f, Math.hypot(f.x - s.x, f.y - s.y));
+        if (d < bd) { bd = d; best = f; }
+      }
     }
     s.targetId = best ? best.id : null; t = best; s.aiT = 1.5;
   }
@@ -75,9 +105,11 @@ export function aiSteer(s, dt) {
   }
   const dx = t.x - s.x, dy = t.y - s.y, d = Math.hypot(dx, dy);
   const bearing = Math.atan2(dy, dx);
-  const ideal = s.range * s.ideal;
+  // Mortar ships stand off at long range; a fort's island keeps everyone a little further out.
+  const reach = s.standoff || s.range;
+  const ideal = (s.standoff || s.range * s.ideal) + (t.kind === 'fort' ? G.islands[t.island].r : 0);
   let desired;
-  if (d > s.range * 1.1) {
+  if (d > Math.max(reach, ideal) * 1.1) {
     desired = bearing;
   } else {
     const a1 = bearing + PI / 2, a2 = bearing - PI / 2;
@@ -86,7 +118,7 @@ export function aiSteer(s, dt) {
     desired = base + Math.sign(angDiff(base, bearing)) * corr;
   }
   // Ships with bow chasers like to point at you once they're close.
-  if (s.chasers && d < s.range * 0.8 && d > 90 && Math.abs(angDiff(s.h, bearing)) < 0.6) desired = bearing;
+  if (s.chasers && t.kind !== 'fort' && d < s.range * 0.8 && d > 90 && Math.abs(angDiff(s.h, bearing)) < 0.6) desired = bearing;
   // Don't point straight into the wind; take the nearest tack instead.
   const up = G.wind.dir + PI;
   const du = angDiff(up, desired);

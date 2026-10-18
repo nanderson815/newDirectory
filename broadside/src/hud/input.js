@@ -17,7 +17,7 @@ const clampWorld = (w) => ({ x: clamp(w.x, 30, S.G.W - 30), y: clamp(w.y, 30, S.
 // current station relative to the leader.
 function fleetFollow(leader, pts) {
   for (const o of S.G.ships) {
-    if (o === leader || o.team !== 'player' || !afloat(o) || o.boarding) continue;
+    if (o === leader || o.team !== 'player' || !afloat(o) || o.boarding || o.escort) continue;
     let dx = (o.x - leader.x) * 0.8, dy = (o.y - leader.y) * 0.8;
     const d = Math.hypot(dx, dy), max = 110;
     if (d > max) { dx *= max / d; dy *= max / d; }
@@ -29,7 +29,7 @@ function fleetFollow(leader, pts) {
 function shipAt(p) {
   let best = null, bd = Infinity;
   for (const s of S.G.ships) {
-    if (s.team !== 'player' || !afloat(s)) continue;
+    if (s.team !== 'player' || !afloat(s) || s.escort) continue; // merchantmen sail themselves
     const q = proj(s.x, s.y, 8);
     const d = Math.hypot(q.x - p.x, q.y - p.y);
     const reach = Math.max(34, s.L * 0.65 * pxPerUnit(s.x, s.y));
@@ -65,7 +65,7 @@ export function bindInput(onPause) {
       if (!inRect(p, c)) continue;
       if (c.fleet) {
         S.selectAll = !S.selectAll;
-        if (S.selectAll && !sel) S.selected = S.G.ships.find((x) => x.team === 'player' && afloat(x)) || null;
+        if (S.selectAll && !sel) S.selected = S.G.ships.find((x) => x.team === 'player' && afloat(x) && !x.escort) || null;
       } else if (afloat(c.ship) && c.ship.team === 'player') { S.selected = c.ship; S.selectAll = false; }
       return;
     }

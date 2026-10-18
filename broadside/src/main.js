@@ -14,6 +14,11 @@ import { update } from './sim/update.js';
 import { loadBattle, adoptBattle, resize, perf, watchPerf } from './game.js';
 import { dropMine } from './sim/combat.js';
 import { startLanding, landingFor } from './sim/forts.js';
+import { windFactor } from './sim/wind.js';
+import { GOALS } from './sim/goals/index.js';
+import { ABILITIES } from './sim/abilities/index.js';
+import { WHEN, DO } from './sim/events.js';
+import { spawnShip } from './sim/spawn.js';
 import { shipById, fortById } from './state.js';
 import { audioTick } from './audio/director.js';
 import { ui, initUI, openMenu, openBrief, startPlay, pauseGame, restoreScreen, syncSettings } from './ui/screens.js';
@@ -76,7 +81,7 @@ function start(data) {
 }
 
 // Hot reloads inside the Claude artifact viewer keep the current battle and screen.
-const SNAP = 2; // bump when the shape of G changes
+const SNAP = 3; // bump when the shape of G changes
 function snapshot() {
   if (!S.G) return {};
   return { snap: SNAP, G: JSON.parse(JSON.stringify(S.G)), selectedId: S.selected ? S.selected.id : null, screen: ui.screen, yardSel: ui.yardSel, save };
@@ -89,7 +94,8 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(boot, boot
 // Exposed for automated playtesting.
 window.__broadside = {
   get G() { return S.G; }, get S() { return S; }, get save() { return save; },
-  battleIndex, openBrief, startPlay, dropMine, startLanding, landingFor, shipById, fortById,
+  battleIndex, openBrief, startPlay, dropMine, startLanding, landingFor, shipById, fortById, windFactor,
+  GOALS, ABILITIES, events: { WHEN, DO }, spawnShip,
   startBattle(id) { openBrief(typeof id === 'number' ? id : battleIndex(id)); startPlay(); },
   proj: (x, y, z) => proj(x, y, z),
   setFire(m) { S.fireMode = m; syncSettings(); },

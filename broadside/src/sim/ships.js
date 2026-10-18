@@ -2,7 +2,9 @@ import { S, afloat } from '../state.js';
 import { CHASER_RELOAD } from '../config/ships.js';
 import { PI, clamp, rand, angDiff } from '../util.js';
 import { windFactor } from './wind.js';
-import { followPath, avoidIslands, aiSteer, shoreClear } from './steering.js';
+import { followPath, avoidIslands, aiSteer, escortSteer, shoreClear } from './steering.js';
+import { updateAbilities, abilityWind } from './abilities/index.js';
+import { checkExit } from './exit.js';
 import { findBroadsideTarget, findChaseTarget, fireBroadside, fireChasers, dropMine, crewMul } from './combat.js';
 import { spawn } from './particles.js';
 import { sfx } from '../audio/sfx.js';
@@ -27,7 +29,8 @@ export function updateShip(s, dt) {
   }
   if (!afloat(s)) return;
 
-  let desired = s.boarding ? null : s.team === 'player' ? followPath(s) : aiSteer(s, dt);
+  if (checkExit(s)) return;
+  let desired = s.boarding ? null : s.escort && s.team === 'player' ? escortSteer(s) : s.team === 'player' ? followPath(s) : aiSteer(s, dt);
   // Anchored: turn on the spot toward the chosen heading.
   if (s.pivot != null) desired = s.pivot;
   // Keep everyone on the map.
@@ -49,7 +52,7 @@ export function updateShip(s, dt) {
   // Lashed together for boarding, anchored or a hulk: dead in the water. Torn rigging (chain shot) crawls.
   const stopped = s.pivot != null || s.passive || !!s.boarding;
   s.slowT = Math.max(0, s.slowT - dt);
-  const targetV = stopped ? 0 : s.speed * windFactor(s.h) * hpF * (s.slowT > 0 ? 0.45 : 1);
+  const targetV = stopped ? 0 : s.speed * abilityWind(s, windFactor(s.h, s)) * hpF * (s.slowT > 0 ? 0.45 : 1);
   s.v += (targetV - s.v) * Math.min(1, dt * (stopped ? 1.6 : 0.8));
   s.x += Math.cos(s.h) * s.v * dt;
   s.y += Math.sin(s.h) * s.v * dt;
@@ -63,7 +66,7 @@ export function updateShip(s, dt) {
   s.flash = Math.max(0, s.flash - dt);
   // Crews fighting hand to hand on deck don't work the guns.
   if (!s.passive && !s.boarding) {
-    if (s.team === 'enemy' || S.fireMode === 'auto') {
+    if (s.team === 'enemy' || S.fireMode === 'auto' || s.escort) {
       for (let side = 0; side < 2; side++) {
         if (s.reload[side] > 0) continue;
         const tgt = findBroadsideTarget(s, side);
@@ -79,14 +82,7 @@ export function updateShip(s, dt) {
         if (tgt) fireChasers(s, tgt);
       }
     }
-    // Mine-laying bosses drop one astern whenever an English ship is near.
-    if (s.mineEvery) {
-      s.mineT -= dt;
-      if (s.mineT <= 0 && G.ships.some((o) => o.team !== s.team && afloat(o) && Math.hypot(o.x - s.x, o.y - s.y) < 300)) {
-        dropMine(s);
-        s.mineT = s.mineEvery;
-      }
-    }
+    updateAbilities(s, dt);
   }
 
   s.fxT -= dt;
@@ -96,7 +92,7 @@ export function updateShip(s, dt) {
       const bx = s.x - Math.cos(s.h) * s.L * 0.45, by = s.y - Math.sin(s.h) * s.L * 0.45;
       spawn('wake', bx, by, 0, 0, 1.6, s.B * 0.32);
     }
-    if (s.hp / s.maxHp < 0.36) {
+    if (s.hp / s.maxHp < 0.36 || s.burning) {
       const a = rand(-0.3, 0.3) * s.L;
       const fx = s.x + Math.cos(s.h) * a, fy = s.y + Math.sin(s.h) * a;
       spawn('fire', fx, fy, rand(-4, 4), rand(-4, 4), rand(0.3, 0.6), rand(3, 5), 10, 14);

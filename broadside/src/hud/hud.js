@@ -4,6 +4,8 @@ import { CAPTURE_TIME } from '../config/ships.js';
 import { projTo, proj, pxPerUnit, scratchA, scratchB } from '../render/camera.js';
 import { shipMeshes, fortTopZ } from '../render/scene.js';
 import { sideDir } from '../sim/combat.js';
+import { EXIT_BAND } from '../sim/battle.js';
+import { goalLines, eachGoal, hasGoalFlag } from '../sim/goals/index.js';
 import { landingFor } from '../sim/forts.js';
 import { boardingTarget, defence } from '../sim/boarding.js';
 import { AMMO, BOARDING } from '../config/ammo.js';
@@ -100,7 +102,7 @@ function drawRing(s) {
 const hpColour = (k) => (k > 0.6 ? '#6fd36a' : k > 0.3 ? COL.gold : '#ff5a4a');
 
 function drawBars(s) {
-  if (!afloat(s)) return;
+  if (!afloat(s) || s.hidden) return;
   const m = shipMeshes.get(s.id);
   const top = projTo(s.x, s.y, (m ? m.top : 40) + 12);
   const tx = top.x, y = top.y;
@@ -109,7 +111,10 @@ function drawBars(s) {
   ctx.fillStyle = 'rgba(20,30,40,0.6)'; roundRect(x - 1.5, y - 1.5, w + 3, 8, 4); ctx.fill();
   ctx.fillStyle = s.boss ? '#e2483a' : hpColour(k);
   roundRect(x, y, Math.max(2, w * k), 5, 2.5); ctx.fill();
-  if (s.slowT > 0) outlinedText('Rigging cut', tx, y + 15, 11, '#ffd6cf', 'center');
+  if (s.fireship) outlinedText('Fireship!', tx, y + 15, 11, '#ffb27a', 'center');
+  else if (s.flag) outlinedText('★ Flagship', tx, y + 15, 11, '#ffe08a', 'center');
+  else if (s.escort) outlinedText('Escort', tx, y + 15, 11, '#f4e3b8', 'center');
+  else if (s.slowT > 0) outlinedText('Rigging cut', tx, y + 15, 11, '#ffd6cf', 'center');
   else if (s.prize) outlinedText('Prize', tx, y + 15, 11, '#bfe3ff', 'center');
 }
 
@@ -203,6 +208,11 @@ const TIPS = {
   mine: 'Tap Drop mine to leave a mine astern. Lure an enemy across it.',
   land: 'Tap Land troops: your ship anchors and the boats row ashore.',
   board: 'She’s crippled! Tap Board! to send your marines across. More marines than defenders wins.',
+  fireship: 'A fireship! She explodes when she touches you. Sink her at range or steer clear.',
+  mortar: 'A red ring marks where a mortar shell will land. Sail out of it!',
+  exit: 'Get through the green dashed line at the top of the chart.',
+  chest: 'Sail over the gold rings to haul the treasure chests aboard.',
+  fog: 'Fog! You only see ships near your own. Keep the fleet together.',
 };
 let tip = null;
 function offerTip(id) {
@@ -239,16 +249,39 @@ function wrap(text, maxW) {
 }
 export const resetTip = () => { tip = null; };
 
-function objectiveLines() {
-  const G = S.G;
-  const ships = G.ships.filter((s) => s.team === 'enemy' && afloat(s)).length;
-  if (G.goal === 'capture') {
-    const held = G.forts.filter((f) => f.team === 'player' && f.state === 'active').length;
-    return [`Forts taken: ${held}/${G.forts.length}`, `Enemy ships: ${ships}`];
+// The exit band at the top of the chart (the right edge in landscape) for escorts and breakthroughs.
+function drawExit() {
+  const G = S.G, n = 24, pulse = 0.55 + 0.25 * Math.sin(S.clock * 3);
+  ctx.beginPath();
+  for (let i = 0; i <= n; i++) {
+    const k = i / n;
+    if (G.land) seaTo(G.W - EXIT_BAND, k * G.H, i === 0); else seaTo(k * G.W, EXIT_BAND, i === 0);
   }
-  if (G.goal === 'boss') return ['Sink the boss', `Enemy ships: ${ships}`];
-  if (G.goal === 'waves') return [`Wave ${G.wave}`, `Enemy ships: ${ships}`];
-  return [`Enemy ships: ${ships}`];
+  ctx.setLineDash([14, 10]); ctx.lineDashOffset = S.clock * 24;
+  ctx.lineWidth = 4; ctx.strokeStyle = `rgba(140,230,130,${pulse})`; ctx.stroke();
+  ctx.setLineDash([]); ctx.lineDashOffset = 0;
+  const q = G.land ? projTo(G.W - EXIT_BAND * 0.45, G.H * 0.5, 4) : projTo(G.W * 0.5, EXIT_BAND * 0.45, 4);
+  outlinedText(G.land ? 'EXIT ›' : '︿ EXIT ︿', q.x, q.y, 14, '#c6f5b8', 'center');
+}
+
+// Mortar shells in flight: a pulsing red ring where each will land.
+function drawShellTargets() {
+  for (const b of S.balls) {
+    if (b.kind !== 'shell') continue;
+    const k = Math.min(1, b.u), r = b.radius * (0.55 + 0.45 * k);
+    seaCircle(b.tx, b.ty, r, 28);
+    ctx.fillStyle = b.team === 'enemy' ? `rgba(255,70,50,${0.1 + 0.2 * k})` : `rgba(80,160,255,${0.1 + 0.2 * k})`; ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = b.team === 'enemy' ? '#ff5a4a' : '#6fc0ff'; ctx.stroke();
+  }
+}
+
+// Floating treasure: a gold marker over each chest still in the water.
+function drawChests() {
+  for (const c of S.G.chests) {
+    if (c.taken) continue;
+    seaCircle(c.x, c.y, 15 + Math.sin(S.clock * 4 + c.x) * 2.5, 20);
+    ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(255,214,90,0.85)'; ctx.stroke();
+  }
 }
 
 export function drawHUD() {
@@ -278,9 +311,18 @@ export function drawHUD() {
       drawPath(s, live ? S.drag.pts : s.path, s === sel);
     }
     for (const s of G.ships) if (s.team === 'player' && afloat(s) && s.pivot != null) drawPivot(s, S.drag && S.drag.ship === s && S.drag.mode === 'rotate');
-    if (S.selectAll) { for (const s of G.ships) if (s.team === 'player' && afloat(s)) drawRing(s); }
+    if (S.selectAll) { for (const s of G.ships) if (s.team === 'player' && afloat(s) && !s.escort) drawRing(s); }
     else if (sel) drawRing(sel);
     for (const s of G.ships) if (s.boarding && s.boarding.attacker) drawBoarding(s);
+  }
+  if (hasGoalFlag(G, 'exit')) drawExit();
+  if (G.chests && G.chests.length) drawChests();
+  drawShellTargets();
+  if (G.phase === 'play' && G.t > 1.5) {
+    eachGoal(G, 'tip', (g) => offerTip(g.tip));
+    if (G.fog) offerTip('fog');
+    if (S.balls.some((b) => b.kind === 'shell' && b.team === 'enemy')) offerTip('mortar');
+    if (G.ships.some((s) => s.fireship && afloat(s) && !s.hidden)) offerTip('fireship');
   }
   for (const s of G.ships) drawBars(s);
   for (const f of G.forts) drawFort(f);
@@ -293,22 +335,23 @@ export function drawHUD() {
   for (const s of G.ships) {
     if (s.team !== 'player' && s.origTeam !== 'player') continue;
     const alive = afloat(s) && s.team === 'player'; // a ship taken by Spanish boarders is lost to you
-    ctx.fillStyle = COL.hud; roundRect(x, y, w, h, 10); ctx.fill();
+    const safe = s.state === 'escaped';
+    ctx.fillStyle = s.escort ? 'rgba(92,70,40,0.78)' : COL.hud; roundRect(x, y, w, h, 10); ctx.fill();
     if (s === sel || (S.selectAll && alive)) { ctx.lineWidth = 2.5; ctx.strokeStyle = COL.gold; ctx.stroke(); }
     ctx.font = `15px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = alive ? COL.white : 'rgba(255,255,255,0.45)';
-    ctx.fillText(s.name, x + 10, y + 12);
+    ctx.fillStyle = alive || safe ? COL.white : 'rgba(255,255,255,0.45)';
+    ctx.fillText(s.flag ? `★ ${s.name}` : s.name, x + 10, y + 12);
     ctx.font = `11px ${FONT}`; ctx.textAlign = 'right';
-    ctx.fillStyle = alive ? 'rgba(255,255,255,0.7)' : '#ff8a7a';
-    ctx.fillText(alive ? s.label : afloat(s) ? 'Captured' : 'Sunk', x + w - 10, y + 12);
+    ctx.fillStyle = safe ? '#9fe08a' : alive ? 'rgba(255,255,255,0.7)' : '#ff8a7a';
+    ctx.fillText(safe ? 'Through!' : alive ? (s.escort ? 'Escort' : s.label) : afloat(s) ? 'Captured' : 'Sunk', x + w - 10, y + 12);
     ctx.fillStyle = 'rgba(0,0,0,0.35)'; roundRect(x + 10, y + 21, w - 20, 5, 2.5); ctx.fill();
     const k = s.hp / s.maxHp;
     if (k > 0) { ctx.fillStyle = hpColour(k); roundRect(x + 10, y + 21, Math.max(3, (w - 20) * k), 5, 2.5); ctx.fill(); }
-    hud.cards.push({ x, y, w, h, ship: s });
+    if (!s.escort) hud.cards.push({ x, y, w, h, ship: s }); // merchantmen can't be given orders
     y += h + 6;
   }
   // Fleet orders: select every ship, then one drawn course moves the whole squadron.
-  if (G.ships.filter((s) => s.team === 'player' && afloat(s)).length > 1) {
+  if (G.ships.filter((s) => s.team === 'player' && afloat(s) && !s.escort).length > 1) {
     if (G.phase === 'play' && G.t > 3) offerTip('fleet');
     ctx.fillStyle = S.selectAll ? 'rgba(242,182,50,0.92)' : COL.hud; roundRect(x, y, w, 26, 10); ctx.fill();
     ctx.lineWidth = 2; ctx.strokeStyle = S.selectAll ? COL.ink : 'rgba(255,255,255,0.35)'; ctx.stroke();
@@ -335,7 +378,7 @@ export function drawHUD() {
   ctx.beginPath(); ctx.moveTo(19, 0); ctx.lineTo(4, -10); ctx.lineTo(4, -4); ctx.lineTo(-17, -4); ctx.lineTo(-17, 4); ctx.lineTo(4, 4); ctx.lineTo(4, 10); ctx.closePath();
   ctx.fill(); ctx.stroke(); ctx.restore();
   outlinedText('WIND', wxs, wys + wr + 11, 12, COL.white, 'center');
-  objectiveLines().forEach((t, i) => outlinedText(t, wxs + wr, wys + wr + 28 + i * 18, 14, '#ffd6cf', 'right'));
+  goalLines(G).forEach((t, i) => outlinedText(t, wxs + wr, wys + wr + 28 + i * 18, 14, '#ffd6cf', 'right'));
 
   const playing = G.phase === 'play';
   // Manual fire buttons for the selected ship

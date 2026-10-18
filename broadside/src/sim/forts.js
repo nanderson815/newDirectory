@@ -22,7 +22,7 @@ export function updateFort(f, dt) {
   f.reload -= dt;
   let best = null, bd = Infinity;
   for (const s of G.ships) {
-    if (s.team === f.team || !afloat(s)) continue;
+    if (s.team === f.team || !afloat(s) || (s.hidden && f.team === 'player')) continue;
     const d = Math.hypot(s.x - f.x, s.y - f.y);
     if (d < f.range && d < bd) { bd = d; best = s; }
   }
@@ -61,7 +61,7 @@ function updateCapture(f, dt) {
   f.team = 'player'; f.state = 'active'; f.hp = Math.round(f.maxHp * 0.6);
   f.capture = null; f.reload = 1;
   S.G.stats.captured++;
-  showBanner(`${f.name} is ours!`, 'The garrison now fires on the Spanish');
+  showBanner(`${f.name} is ours!`, `The garrison now fires on the ${S.G.faction === 'pirate' ? 'pirates' : 'Spanish'}`);
   sfx.capture();
 }
 

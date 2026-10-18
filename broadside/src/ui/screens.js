@@ -1,3 +1,4 @@
+import { briefText, winText, loseText } from '../sim/goals/index.js';
 import { S, afloat } from '../state.js';
 import { $, store } from '../util.js';
 import { BATTLES, REGIONS } from '../config/battles.js';
@@ -43,16 +44,10 @@ function rosterText(B) {
   if (B.forts) parts.push(`${B.forts.length} fort${B.forts.length > 1 ? 's' : ''}`);
   return parts.join(', ');
 }
+// Each goal writes its own orders (src/sim/goals/).
 function goalText(B) {
-  if (B.goal === 'waves') return 'Survive as many waves as you can. Every fifth wave brings a flagship.';
   if (B.tutorial) return 'Follow your bosun’s orders, then sink the old hulk.';
-  if (B.goal === 'boss') { const b = B.enemy.find((e) => e.boss).boss; return `Sink ${b.captain}’s ${b.title}.`; }
-  if (B.goal === 'capture') {
-    return B.forts.length === 1
-      ? `Take ${B.forts[0].name}: shoot it silent, then land troops.`
-      : `Take all ${B.forts.length} forts: shoot each one silent, then land troops.`;
-  }
-  return `Sink all ${B.enemy.length} enemy ships.`;
+  return briefText(B) + (B.fog ? ' Fog limits what your lookouts can see.' : '');
 }
 function ordersHTML(B) {
   const li = [`<li><b>Orders:</b> ${esc(goalText(B))}</li>`];
@@ -238,7 +233,7 @@ export function endBattle() {
   music.stinger(G.result === 'win' || !!(G.goal === 'waves' && G.award && G.award.record && G.award.waves));
 }
 // Your own ships sunk or captured; prizes taken in the battle don't count against you if they sink.
-const shipsLost = (G) => G.ships.filter((s) => s.origTeam === 'player' && (s.team !== 'player' || !afloat(s))).length;
+const shipsLost = (G) => G.ships.filter((s) => s.origTeam === 'player' && !s.escort && s.state !== 'escaped' && (s.team !== 'player' || !afloat(s))).length;
 const prizesTaken = (G) => G.ships.filter((s) => s.prize && afloat(s)).length;
 
 function renderSkirmishEnd() {
@@ -271,12 +266,9 @@ function renderEnd() {
   $('endStars').hidden = !win;
   $('endStars').innerHTML = win ? starsHTML(a.stars, true) : '';
   let text;
-  if (!win && G.reason === 'marines') text = 'No ship has enough marines left to take the fort. Buy marines at the shipyard and try again.';
-  else if (!win) text = `Your fleet is sunk and the ${B.foe} holds the sea. Refit at the shipyard and try again.`;
+  if (!win) text = loseText(B, G.reason);
   else if (B.tutorial) text = 'Swift handles like a dream. You’re ready for the Spanish.';
-  else if (B.goal === 'boss') text = `${B.enemy.find((e) => e.boss).boss.captain} strikes his colours. ${lost ? 'The fleet limps home to refit.' : 'Not a single ship lost.'}`;
-  else if (B.goal === 'capture') text = `The English flag flies over ${B.forts.length > 1 ? 'both forts' : B.forts[0].name}. ${lost ? 'The fleet limps home to refit.' : 'Not a single ship lost.'}`;
-  else text = `The ${B.foe} is on the bottom. ${lost ? 'The fleet limps home to refit.' : 'Not a single ship lost. The admiral will hear of this.'}`;
+  else text = `${winText(B)} ${lost ? 'The fleet limps home to refit.' : 'Not a single ship lost. The admiral will hear of this.'}`;
   $('endText').textContent = text;
   $('endReward').hidden = !win;
   if (win) {
