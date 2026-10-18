@@ -372,14 +372,15 @@ function newBattle(idx) {
 
 // ---------- Wind ----------
 // Points of sail: angle between heading and where the wind blows to.
-const POINTS = [[0, 0.78], [0.785, 0.95], [1.571, 1.0], [2.1, 0.8], [2.6, 0.38], [PI, 0.22]];
+// Kept gentle: into the wind is slower, never a crawl.
+const POINTS = [[0, 0.9], [0.785, 0.97], [1.571, 1.0], [2.1, 0.9], [2.6, 0.7], [PI, 0.58]];
 function windFactor(h) {
   const a = Math.abs(angDiff(G.wind.dir, h));
   for (let i = 0; i < POINTS.length - 1; i++) {
     const [a0, f0] = POINTS[i], [a1, f1] = POINTS[i + 1];
     if (a <= a1) return lerp(f0, f1, (a - a0) / (a1 - a0));
   }
-  return 0.22;
+  return POINTS[POINTS.length - 1][1];
 }
 
 // ---------- Ship behaviour ----------
@@ -391,7 +392,7 @@ function followPath(s) {
     const p = s.path[0];
     const d = Math.hypot(p.x - s.x, p.y - s.y);
     const last = s.path.length === 1;
-    const inIsland = G.islands.some((is) => Math.hypot(p.x - is.x, p.y - is.y) < is.r + 14);
+    const inIsland = G.islands.some((is) => Math.hypot(p.x - is.x, p.y - is.y) < is.r + s.L * 0.3);
     const want = Math.atan2(p.y - s.y, p.x - s.x);
     const turnR = Math.max(s.v, 10) / s.turn;
     // Skip waypoints we've reached, that sit on land, or that are inside our turning circle.
@@ -399,9 +400,26 @@ function followPath(s) {
       s.path.shift();
       continue;
     }
-    return want;
+    return avoidIslands(s, want, d);
   }
   return null;
+}
+
+// Bends a heading around the nearest island that sits across it, passing on the side the course already leans to.
+function avoidIslands(s, desired, reach) {
+  let best = desired, bestD = Infinity;
+  for (const is of G.islands) {
+    const dx = is.x - s.x, dy = is.y - s.y, d = Math.hypot(dx, dy);
+    const clear = is.r + s.L * 0.3 + 16;
+    if (d - clear > Math.min(reach, 160) || d >= bestD) continue;
+    const toIs = Math.atan2(dy, dx);
+    const off = angDiff(desired, toIs);
+    if (Math.abs(off) > PI / 2 || Math.abs(Math.sin(off)) * d > clear) continue;
+    const tangent = Math.asin(clamp(clear / Math.max(d, clear), 0, 1));
+    best = toIs + (off > 0 ? -1 : 1) * (tangent + 0.12);
+    bestD = d;
+  }
+  return best;
 }
 
 function aiSteer(s, dt) {
@@ -434,15 +452,7 @@ function aiSteer(s, dt) {
   const up = G.wind.dir + PI;
   const du = angDiff(up, desired);
   if (Math.abs(du) < 0.6) desired = up + (du >= 0 ? 0.6 : -0.6);
-  // Steer around islands ahead.
-  for (const is of G.islands) {
-    const lx = s.x + Math.cos(s.h) * 95, ly = s.y + Math.sin(s.h) * 95;
-    if (Math.hypot(lx - is.x, ly - is.y) < is.r + 45) {
-      const side = angDiff(s.h, Math.atan2(is.y - s.y, is.x - s.x));
-      desired = s.h - Math.sign(side || 1) * 1.2;
-    }
-  }
-  return desired;
+  return avoidIslands(s, desired, 160);
 }
 
 function updateShip(s, dt) {
@@ -470,8 +480,13 @@ function updateShip(s, dt) {
     const toC = Math.atan2(G.H / 2 - s.y, G.W / 2 - s.x);
     if (desired == null || s.team === 'enemy') desired = toC;
   }
+  // Ships with no orders still dodge islands rather than sailing onto the beach.
+  if (desired == null) {
+    const dodge = avoidIslands(s, s.h, 140);
+    if (dodge !== s.h) desired = dodge;
+  }
   if (desired != null) {
-    const tr = s.turn * (0.35 + 0.65 * Math.min(1, s.v / s.speed));
+    const tr = s.turn * (0.55 + 0.45 * Math.min(1, s.v / s.speed));
     s.h += clamp(angDiff(s.h, desired), -tr * dt, tr * dt);
   }
   const hpF = 0.55 + 0.45 * s.hp / s.maxHp;
@@ -622,7 +637,7 @@ function hitShip(e, b) {
   }
 }
 
-function collide() {
+function collide(dt) {
   const live = G.ships.filter(afloat);
   for (let i = 0; i < live.length; i++) {
     const a = live[i];
@@ -641,7 +656,14 @@ function collide() {
       const min = is.r + a.L * 0.3;
       if (d < min) {
         a.x = is.x + (dx / d) * min; a.y = is.y + (dy / d) * min;
-        a.v *= 0.9;
+        // Slide along the shore: swing the bow onto the nearer tangent instead of grinding to a halt.
+        const n = Math.atan2(dy, dx);
+        if (Math.cos(a.h - n) < 0.2) {
+          const t1 = n + PI / 2, t2 = n - PI / 2;
+          const t = Math.abs(angDiff(a.h, t1)) < Math.abs(angDiff(a.h, t2)) ? t1 : t2;
+          a.h += clamp(angDiff(a.h, t), -3 * dt, 3 * dt);
+        }
+        a.v *= Math.pow(0.6, dt);
       }
     }
   }
@@ -1457,13 +1479,13 @@ function update(dt) {
   clock += dt;
   if (G && G.phase === 'play') {
     G.t += dt;
-    G.wind.dir = G.wind.base + Math.sin(G.t * 0.05) * 0.35 + Math.sin(G.t * 0.013 + 1) * 0.2;
+    G.wind.dir = G.wind.base + Math.sin(G.t * 0.05) * 0.2 + Math.sin(G.t * 0.013 + 1) * 0.1;
     for (let i = pending.length - 1; i >= 0; i--) {
       pending[i].t -= dt;
       if (pending[i].t <= 0) { fireGun(pending[i]); pending.splice(i, 1); }
     }
     for (const s of G.ships) updateShip(s, dt);
-    collide();
+    collide(dt);
     updateBalls(dt);
     checkEnd();
   }
@@ -1623,6 +1645,7 @@ window.__broadside = {
   proj: (x, y, z) => proj(x, y, z),
   setFire(m) { fireMode = m; syncSettings(); },
   step(n) { for (let i = 0; i < n; i++) update(1 / 60); render(); },
+  sim(n) { for (let i = 0; i < n; i++) update(1 / 60); },
   get drawCalls() { return renderer ? renderer.info.render.calls : 0; },
 };
 })();
