@@ -1,0 +1,1630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<!-- ARTIFACT-START -->
+<title>Broadside!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap">
+<style>
+  /* Layout: a full-bleed 3D sea with a 2D HUD canvas on top; parchment panels float over both for menus. */
+  :root {
+    --ink: #3a2414;
+    --parchment: #f7e6bd;
+    --parchment-deep: #ecd29a;
+    --gold: #f0a93a;
+    --red: #c8402f;
+    --sea: #2a8cc4;
+    --navy: #143452;
+    --font-display: "Lilita One", "Trebuchet MS", "Arial Rounded MT Bold", sans-serif;
+    --font-body: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+    color-scheme: light;
+  }
+  html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--sea);
+    color: var(--ink);
+    font-family: var(--font-body);
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  [hidden] { display: none !important; }
+  .stage { position: relative; width: 100%; height: 100%; }
+  #sea, #hud {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  #hud { touch-action: none; }
+  .overlay {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding-block: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    background: rgba(12, 40, 66, 0.36);
+    overflow-y: auto;
+  }
+  .panel {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 380px;
+    background: var(--parchment);
+    border: 4px solid var(--ink);
+    border-radius: 20px;
+    box-shadow: 0 8px 0 var(--ink);
+    padding: 22px 22px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .panel h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 48px;
+    line-height: 1;
+    color: var(--red);
+    text-shadow: 3px 3px 0 var(--ink);
+    letter-spacing: 0.5px;
+    text-wrap: balance;
+  }
+  .panel h2 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 20px;
+    line-height: 1.15;
+    color: var(--ink);
+    text-wrap: balance;
+  }
+  .eyebrow {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: #8a5a2b;
+  }
+  .orders {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+  .orders b { font-weight: 800; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    flex: 1 1 auto;
+    font-family: var(--font-display);
+    font-size: 22px;
+    color: var(--ink);
+    background: var(--gold);
+    border: 3px solid var(--ink);
+    border-radius: 14px;
+    box-shadow: 0 5px 0 var(--ink);
+    padding: 10px 18px 12px;
+    cursor: pointer;
+    transition: transform 0.06s, box-shadow 0.06s;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.quiet { background: var(--parchment-deep); font-size: 18px; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--ink); }
+  .btn:focus-visible, .toggle button:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .setting { display: flex; flex-direction: column; gap: 6px; }
+  .setting-label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #8a5a2b;
+  }
+  .toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border: 3px solid var(--ink);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .toggle button {
+    font-family: var(--font-body);
+    font-weight: 800;
+    font-size: 15px;
+    padding: 8px 6px;
+    border: 0;
+    background: var(--parchment);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .toggle button + button { border-left: 3px solid var(--ink); }
+  .toggle button[aria-pressed="true"] { background: var(--navy); color: #fff; }
+  .setting-note { margin: 0; font-size: 13px; line-height: 1.35; color: #6b4a2a; }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+  }
+  .stats div {
+    background: var(--parchment-deep);
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+  .stats dt { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #8a5a2b; }
+  .stats dd { margin: 2px 0 0; font-family: var(--font-display); font-size: 22px; font-variant-numeric: tabular-nums; }
+  .result-text { margin: 0; font-size: 15px; line-height: 1.4; }
+  .error-text { margin: 0; font-size: 14px; line-height: 1.4; color: var(--red); font-weight: 800; }
+  @media (prefers-reduced-motion: reduce) {
+    .btn { transition: none; }
+  }
+</style>
+</head><body>
+
+<div class="stage">
+  <canvas id="sea" aria-hidden="true"></canvas>
+  <canvas id="hud" aria-label="Battle map. Drag from one of your ships to plot its course."></canvas>
+</div>
+
+<div class="overlay" id="titleScreen">
+  <div class="panel">
+    <p class="eyebrow" id="battleEyebrow">Battle I · 1655</p>
+    <h1>Broadside!</h1>
+    <h2 id="battleName">The Tortuga Narrows</h2>
+    <ul class="orders">
+      <li><b>Drag from a ship</b> to draw its course. It sails along the line.</li>
+      <li><b>Cannons sit on the sides.</b> Bring an enemy off your port or starboard beam to hit it.</li>
+      <li><b>Mind the wind.</b> Sailing straight into it is slow. Islands block shot and hulls.</li>
+      <li><b>Orders:</b> sink the Spanish squadron of three ships.</li>
+    </ul>
+    <div class="setting">
+      <span class="setting-label" id="fireLabelA">Gunnery</span>
+      <div class="toggle" role="group" aria-labelledby="fireLabelA">
+        <button type="button" id="fireAutoA" data-fire="auto">Auto fire</button>
+        <button type="button" id="fireManualA" data-fire="manual">Manual fire</button>
+      </div>
+      <p class="setting-note" id="fireNoteA"></p>
+    </div>
+    <p class="error-text" id="glError" hidden>This game needs WebGL, and your browser didn't provide it. Try a recent Chrome or Safari.</p>
+    <div class="row">
+      <button type="button" class="btn" id="startBtn">Set sail</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pauseScreen" hidden>
+  <div class="panel">
+    <p class="eyebrow">Paused</p>
+    <h2>Captain's cabin</h2>
+    <div class="setting">
+      <span class="setting-label" id="fireLabelB">Gunnery</span>
+      <div class="toggle" role="group" aria-labelledby="fireLabelB">
+        <button type="button" id="fireAutoB" data-fire="auto">Auto fire</button>
+        <button type="button" id="fireManualB" data-fire="manual">Manual fire</button>
+      </div>
+      <p class="setting-note" id="fireNoteB"></p>
+    </div>
+    <div class="setting">
+      <span class="setting-label" id="soundLabel">Sound</span>
+      <div class="toggle" role="group" aria-labelledby="soundLabel">
+        <button type="button" id="soundOn" data-sound="on">On</button>
+        <button type="button" id="soundOff" data-sound="off">Off</button>
+      </div>
+    </div>
+    <div class="row">
+      <button type="button" class="btn" id="resumeBtn">Resume</button>
+      <button type="button" class="btn quiet" id="restartBtn">Restart</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="endScreen" hidden>
+  <div class="panel">
+    <p class="eyebrow" id="endEyebrow">Battle over</p>
+    <h1 id="endTitle">Victory!</h1>
+    <p class="result-text" id="endText"></p>
+    <dl class="stats">
+      <div><dt>Time</dt><dd id="statTime">0:00</dd></div>
+      <div><dt>Hit rate</dt><dd id="statHits">0%</dd></div>
+      <div><dt>Ships lost</dt><dd id="statLost">0</dd></div>
+    </dl>
+    <div class="row">
+      <button type="button" class="btn" id="againBtn">Fight again</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+(() => {
+'use strict';
+
+// ---------- Helpers ----------
+const TAU = Math.PI * 2, PI = Math.PI;
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a, b) => a + Math.random() * (b - a);
+const angDiff = (a, b) => { let d = (b - a) % TAU; if (d > PI) d -= TAU; else if (d < -PI) d += TAU; return d; };
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('broadside.' + k); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('broadside.' + k, v); } catch (e) { /* storage unavailable */ } },
+};
+const $ = (id) => document.getElementById(id);
+
+const COL = {
+  ink: '#3a2414', gold: '#f2b632', white: '#ffffff', parchment: '#f7e6bd', hud: 'rgba(20,52,82,0.74)',
+  blue: '#2f6fd6', red: '#d23c2c',
+};
+const FONT = '"Lilita One", "Trebuchet MS", sans-serif';
+
+// ---------- Ship classes ----------
+// L = length, B = beam (world units). speed in units/sec, turn in rad/sec, reload in sec.
+const TYPES = {
+  flagship: { label: 'Flagship', L: 84, B: 30, hp: 130, guns: 5, reload: 3.0, speed: 50, turn: 0.85, range: 255, masts: 3 },
+  sloop:    { label: 'Sloop',    L: 60, B: 22, hp: 70,  guns: 3, reload: 2.4, speed: 62, turn: 1.35, range: 235, masts: 2 },
+  galleon:  { label: 'Galleon',  L: 92, B: 34, hp: 150, guns: 6, reload: 3.4, speed: 42, turn: 0.65, range: 270, masts: 3 },
+  brig:     { label: 'Brig',     L: 66, B: 24, hp: 80,  guns: 3, reload: 2.7, speed: 56, turn: 1.1,  range: 240, masts: 2 },
+};
+const BALL_SPEED = 430;
+const BALL_DMG = 4;
+
+// Campaign table. Positions are fractions of a portrait map (x across, y down);
+// headings in degrees (0 = east, -90 = north). Later battles slot in here.
+const BATTLES = [
+  {
+    roman: 'I', year: 1655, name: 'The Tortuga Narrows', foe: 'Spanish squadron',
+    wind: 0,
+    player: [
+      { type: 'flagship', name: 'Resolute', x: 0.5,  y: 0.79, h: -90 },
+      { type: 'sloop',    name: 'Swift',    x: 0.24, y: 0.84, h: -90 },
+      { type: 'sloop',    name: 'Kestrel',  x: 0.76, y: 0.84, h: -90 },
+    ],
+    enemy: [
+      { type: 'galleon', name: 'San Felipe', x: 0.5,  y: 0.17, h: 90 },
+      { type: 'brig',    name: 'Santa Rosa', x: 0.27, y: 0.21, h: 90 },
+      { type: 'brig',    name: 'El Halcón',  x: 0.73, y: 0.21, h: 90 },
+    ],
+    islands: [
+      { x: 0.2,  y: 0.5,  r: 56 },
+      { x: 0.8,  y: 0.43, r: 42 },
+      { x: 0.62, y: 0.63, r: 26 },
+    ],
+    ai: { spread: 0.12, reloadMul: 1.15, dmgMul: 1.0 },
+  },
+];
+
+// ---------- State ----------
+let G = null;              // battle state (serialisable)
+let balls = [], pending = [], particles = [];
+let selected = null, drag = null, shake = 0, clock = 0;
+let hud = { cards: [], pause: null, fire: [] };
+let fireMode = store.get('fire', 'auto') === 'manual' ? 'manual' : 'auto';
+let muted = store.get('sound', 'on') === 'off';
+let cw = 1, ch = 1, dpr = 1, maxDpr = 2;
+
+const hudCv = $('hud');
+const ctx = hudCv.getContext('2d');
+
+// ---------- Battle setup ----------
+function makeShip(def, team, place, rot, id) {
+  const T = TYPES[def.type];
+  const [x, y] = place(def.x, def.y);
+  return {
+    id, team, name: def.name, type: def.type, label: T.label,
+    L: T.L, B: T.B, guns: T.guns, reloadTime: T.reload, speed: T.speed, turn: T.turn, range: T.range, masts: T.masts,
+    x, y, h: def.h * PI / 180 + rot, v: T.speed * 0.5,
+    hp: T.hp, maxHp: T.hp, reload: [rand(0.6, 1.6), rand(0.6, 1.6)],
+    path: [], state: 'afloat', sinkT: 0, flash: 0, yard: 0, bob: rand(0, TAU),
+    aiT: 0, targetId: null, ideal: rand(0.5, 0.72), fxT: 0,
+  };
+}
+
+function newBattle(idx) {
+  const B = BATTLES[idx];
+  const land = cw > ch * 1.05;
+  const ratio = clamp(Math.max(cw, ch) / Math.min(cw, ch), 1.25, 2.0);
+  const W = land ? Math.round(620 * ratio) : 620;
+  const H = land ? 620 : Math.round(620 * ratio);
+  // Landscape screens rotate the layout 90°: the player starts on the left.
+  const place = land ? (x, y) => [(1 - y) * W, x * H] : (x, y) => [x * W, y * H];
+  const rot = land ? PI / 2 : 0;
+  let id = 1;
+  const ships = [];
+  for (const d of B.player) ships.push(makeShip(d, 'player', place, rot, id++));
+  for (const d of B.enemy) ships.push(makeShip(d, 'enemy', place, rot, id++));
+  const islands = B.islands.map((d) => {
+    const [x, y] = place(d.x, d.y);
+    const verts = Array.from({ length: 14 }, () => rand(0.86, 1.08));
+    const palms = Array.from({ length: d.r > 40 ? 3 : d.r > 30 ? 2 : 1 }, () => {
+      const a = rand(0, TAU), rr = rand(0, d.r * 0.4);
+      return { x: Math.cos(a) * rr, y: Math.sin(a) * rr, s: rand(0.85, 1.15), rot: rand(0, TAU), lean: rand(0.08, 0.25) };
+    });
+    const rocks = Array.from({ length: 3 }, () => ({ a: rand(0, TAU), d: d.r * rand(1.02, 1.2), s: rand(3, 6) }));
+    return { x, y, r: d.r, verts, palms, rocks };
+  });
+  G = {
+    battle: idx, W, H, ships, islands,
+    wind: { base: B.wind * PI / 180 + rot, dir: B.wind * PI / 180 + rot },
+    t: 0, phase: 'title', endAt: null, result: null, dragged: false,
+    stats: { shots: 0, hits: 0 }, ai: B.ai,
+  };
+  balls = []; pending = []; particles = [];
+  selected = ships.find((s) => s.team === 'player');
+  drag = null;
+  buildScene();
+}
+
+// ---------- Wind ----------
+// Points of sail: angle between heading and where the wind blows to.
+const POINTS = [[0, 0.78], [0.785, 0.95], [1.571, 1.0], [2.1, 0.8], [2.6, 0.38], [PI, 0.22]];
+function windFactor(h) {
+  const a = Math.abs(angDiff(G.wind.dir, h));
+  for (let i = 0; i < POINTS.length - 1; i++) {
+    const [a0, f0] = POINTS[i], [a1, f1] = POINTS[i + 1];
+    if (a <= a1) return lerp(f0, f1, (a - a0) / (a1 - a0));
+  }
+  return 0.22;
+}
+
+// ---------- Ship behaviour ----------
+const afloat = (s) => s.state === 'afloat';
+const shipById = (id) => G.ships.find((s) => s.id === id);
+
+function followPath(s) {
+  while (s.path.length) {
+    const p = s.path[0];
+    const d = Math.hypot(p.x - s.x, p.y - s.y);
+    const last = s.path.length === 1;
+    const inIsland = G.islands.some((is) => Math.hypot(p.x - is.x, p.y - is.y) < is.r + 14);
+    const want = Math.atan2(p.y - s.y, p.x - s.x);
+    const turnR = Math.max(s.v, 10) / s.turn;
+    // Skip waypoints we've reached, that sit on land, or that are inside our turning circle.
+    if ((last ? d < 22 : d < 44) || inIsland || (d < turnR * 1.15 && Math.abs(angDiff(s.h, want)) > 1.25)) {
+      s.path.shift();
+      continue;
+    }
+    return want;
+  }
+  return null;
+}
+
+function aiSteer(s, dt) {
+  s.aiT -= dt;
+  let t = s.targetId != null ? shipById(s.targetId) : null;
+  if (s.aiT <= 0 || !t || !afloat(t)) {
+    let best = null, bd = Infinity;
+    for (const o of G.ships) {
+      if (o.team === s.team || !afloat(o)) continue;
+      const d = Math.hypot(o.x - s.x, o.y - s.y);
+      if (d < bd) { bd = d; best = o; }
+    }
+    s.targetId = best ? best.id : null; t = best; s.aiT = 1.5;
+  }
+  if (!t) return null;
+  const dx = t.x - s.x, dy = t.y - s.y, d = Math.hypot(dx, dy);
+  const bearing = Math.atan2(dy, dx);
+  const ideal = s.range * s.ideal;
+  let desired;
+  if (d > s.range * 1.1) {
+    desired = bearing;
+  } else {
+    // Hold the target on the beam and orbit at a comfortable gun range.
+    const a1 = bearing + PI / 2, a2 = bearing - PI / 2;
+    const base = Math.abs(angDiff(s.h, a1)) < Math.abs(angDiff(s.h, a2)) ? a1 : a2;
+    const corr = clamp((d - ideal) / ideal, -1, 1) * 0.6;
+    desired = base + Math.sign(angDiff(base, bearing)) * corr;
+  }
+  // Don't point straight into the wind; take the nearest tack instead.
+  const up = G.wind.dir + PI;
+  const du = angDiff(up, desired);
+  if (Math.abs(du) < 0.6) desired = up + (du >= 0 ? 0.6 : -0.6);
+  // Steer around islands ahead.
+  for (const is of G.islands) {
+    const lx = s.x + Math.cos(s.h) * 95, ly = s.y + Math.sin(s.h) * 95;
+    if (Math.hypot(lx - is.x, ly - is.y) < is.r + 45) {
+      const side = angDiff(s.h, Math.atan2(is.y - s.y, is.x - s.x));
+      desired = s.h - Math.sign(side || 1) * 1.2;
+    }
+  }
+  return desired;
+}
+
+function updateShip(s, dt) {
+  if (s.state === 'sinking') {
+    s.sinkT += dt;
+    s.v *= Math.pow(0.4, dt);
+    s.x += Math.cos(s.h) * s.v * dt; s.y += Math.sin(s.h) * s.v * dt;
+    s.fxT -= dt;
+    if (s.fxT <= 0) {
+      s.fxT = 0.08;
+      spawn('bubble', s.x + rand(-s.L / 3, s.L / 3), s.y + rand(-s.B / 2, s.B / 2), rand(-5, 5), rand(-5, 5), rand(0.6, 1.1), rand(3, 6));
+    }
+    if (s.sinkT > 3.2) {
+      s.state = 'sunk';
+      for (let i = 0; i < 9; i++) spawn('plank', s.x + rand(-s.L / 3, s.L / 3), s.y + rand(-s.B / 2, s.B / 2), rand(-6, 6), rand(-6, 6), rand(30, 45), rand(6, 12));
+    }
+    return;
+  }
+  if (!afloat(s)) return;
+
+  let desired = s.team === 'player' ? followPath(s) : aiSteer(s, dt);
+  // Keep everyone on the map.
+  const m = 55;
+  if (s.x < m || s.x > G.W - m || s.y < m || s.y > G.H - m) {
+    const toC = Math.atan2(G.H / 2 - s.y, G.W / 2 - s.x);
+    if (desired == null || s.team === 'enemy') desired = toC;
+  }
+  if (desired != null) {
+    const tr = s.turn * (0.35 + 0.65 * Math.min(1, s.v / s.speed));
+    s.h += clamp(angDiff(s.h, desired), -tr * dt, tr * dt);
+  }
+  const hpF = 0.55 + 0.45 * s.hp / s.maxHp;
+  const targetV = s.speed * windFactor(s.h) * hpF;
+  s.v += (targetV - s.v) * Math.min(1, dt * 0.8);
+  s.x += Math.cos(s.h) * s.v * dt;
+  s.y += Math.sin(s.h) * s.v * dt;
+  s.x = clamp(s.x, 18, G.W - 18); s.y = clamp(s.y, 18, G.H - 18);
+
+  // Brace the yards to the wind.
+  const r = angDiff(s.h, G.wind.dir);
+  s.yard += (clamp(r * 0.45, -0.75, 0.75) - s.yard) * Math.min(1, dt * 2);
+
+  s.reload[0] -= dt; s.reload[1] -= dt;
+  s.flash = Math.max(0, s.flash - dt);
+  if (s.team === 'enemy' || fireMode === 'auto') {
+    for (let side = 0; side < 2; side++) {
+      if (s.reload[side] > 0) continue;
+      const tgt = findBroadsideTarget(s, side);
+      if (tgt) fireBroadside(s, side, tgt);
+    }
+  }
+
+  s.fxT -= dt;
+  if (s.fxT <= 0) {
+    s.fxT = 0.09;
+    if (s.v > 12) {
+      const bx = s.x - Math.cos(s.h) * s.L * 0.45, by = s.y - Math.sin(s.h) * s.L * 0.45;
+      spawn('wake', bx, by, 0, 0, 1.6, s.B * 0.32);
+    }
+    if (s.hp / s.maxHp < 0.36) {
+      const a = rand(-0.3, 0.3) * s.L;
+      const fx = s.x + Math.cos(s.h) * a, fy = s.y + Math.sin(s.h) * a;
+      spawn('fire', fx, fy, rand(-4, 4), rand(-4, 4), rand(0.3, 0.6), rand(3, 5), 10, 14);
+      if (Math.random() < 0.5) spawn('soot', fx, fy, Math.cos(G.wind.dir) * 18, Math.sin(G.wind.dir) * 18, rand(1.4, 2.2), rand(4, 6), 14, 16);
+    }
+  }
+}
+
+function sideDir(s, side) { return s.h + (side === 0 ? -PI / 2 : PI / 2); } // 0 = port, 1 = starboard
+
+function findBroadsideTarget(s, side) {
+  const dir = sideDir(s, side);
+  let best = null, bd = Infinity;
+  for (const e of G.ships) {
+    if (e.team === s.team || !afloat(e)) continue;
+    const d = Math.hypot(e.x - s.x, e.y - s.y);
+    if (d > s.range || d >= bd) continue;
+    if (Math.abs(angDiff(dir, Math.atan2(e.y - s.y, e.x - s.x))) < 0.62) { best = e; bd = d; }
+  }
+  return best;
+}
+
+// Fires a rippling broadside. With no target (manual fire) the shot goes out to full range abeam.
+function fireBroadside(s, side, tgt) {
+  const mul = s.team === 'enemy' ? G.ai.reloadMul : 1;
+  s.reload[side] = s.reloadTime * mul * rand(0.95, 1.05);
+  for (let i = 0; i < s.guns; i++) {
+    pending.push({ t: i * 0.075 + rand(0, 0.04), shipId: s.id, side, gi: i, targetId: tgt ? tgt.id : null });
+  }
+  if (s.team === 'player') G.stats.shots += s.guns;
+}
+
+function fireGun(p) {
+  const s = shipById(p.shipId);
+  if (!s || !afloat(s)) return;
+  const sgn = p.side === 0 ? -1 : 1;
+  const along = s.guns === 1 ? 0 : lerp(-s.L * 0.28, s.L * 0.28, p.gi / (s.guns - 1));
+  const c = Math.cos(s.h), sn = Math.sin(s.h);
+  const ox = along, oy = sgn * s.B * 0.55;
+  const gx = s.x + c * ox - sn * oy, gy = s.y + sn * ox + c * oy;
+  const dir = sideDir(s, p.side);
+  const t = p.targetId != null ? shipById(p.targetId) : null;
+  let ang, dist;
+  if (t && afloat(t)) {
+    const d0 = Math.hypot(t.x - gx, t.y - gy);
+    const lead = d0 / BALL_SPEED;
+    const ax = t.x + Math.cos(t.h) * t.v * lead, ay = t.y + Math.sin(t.h) * t.v * lead;
+    ang = Math.atan2(ay - gy, ax - gx);
+    // Guns only traverse a little; clamp the aim to the broadside arc.
+    ang = dir + clamp(angDiff(dir, ang), -0.7, 0.7);
+    dist = Math.hypot(ax - gx, ay - gy);
+  } else {
+    ang = dir; dist = s.range * 0.95;
+  }
+  const spread = s.team === 'enemy' ? G.ai.spread : 0.07;
+  ang += rand(-spread, spread);
+  dist = clamp(dist * rand(0.92, 1.1), 40, s.range * 1.1);
+  balls.push({
+    x: gx, y: gy, vx: Math.cos(ang) * BALL_SPEED, vy: Math.sin(ang) * BALL_SPEED,
+    travel: 0, max: dist, team: s.team, dmg: BALL_DMG * (s.team === 'enemy' ? G.ai.dmgMul : 1),
+  });
+  spawn('flash', gx + Math.cos(dir) * 5, gy + Math.sin(dir) * 5, 0, 0, 0.14, 6, 6, 0);
+  for (let k = 0; k < 3; k++) {
+    spawn('smoke', gx + Math.cos(dir) * 8, gy + Math.sin(dir) * 8,
+      Math.cos(dir) * rand(20, 45) + Math.cos(G.wind.dir) * 12, Math.sin(dir) * rand(20, 45) + Math.sin(G.wind.dir) * 12,
+      rand(1.2, 2.0), rand(5, 8), 7, rand(6, 14));
+  }
+  // A little recoil.
+  s.x -= Math.cos(dir) * 0.6; s.y -= Math.sin(dir) * 0.6;
+  sfx.boom(s.team === 'player' ? 0.9 : 0.6);
+}
+
+function updateBalls(dt) {
+  for (let i = balls.length - 1; i >= 0; i--) {
+    const b = balls[i];
+    b.x += b.vx * dt; b.y += b.vy * dt; b.travel += BALL_SPEED * dt;
+    let done = false;
+    for (const e of G.ships) {
+      if (e.team === b.team || !afloat(e)) continue;
+      const dx = b.x - e.x, dy = b.y - e.y;
+      const c = Math.cos(-e.h), sn = Math.sin(-e.h);
+      const lx = dx * c - dy * sn, ly = dx * sn + dy * c;
+      if ((lx * lx) / (e.L * e.L * 0.25) + (ly * ly) / (e.B * e.B * 0.3) < 1) {
+        hitShip(e, b); done = true; break;
+      }
+    }
+    if (!done) {
+      for (const is of G.islands) {
+        if (Math.hypot(b.x - is.x, b.y - is.y) < is.r * 0.95) {
+          for (let k = 0; k < 6; k++) spawn('sand', b.x, b.y, rand(-40, 40), rand(-40, 40), rand(0.4, 0.7), rand(1.5, 3), 8, rand(20, 50));
+          done = true; break;
+        }
+      }
+    }
+    if (!done && b.travel >= b.max) {
+      spawn('splash', b.x, b.y, 0, 0, 0.6, 8);
+      for (let k = 0; k < 6; k++) spawn('drop', b.x, b.y, rand(-25, 25), rand(-25, 25), rand(0.5, 0.8), rand(1.6, 3), 1, rand(50, 90));
+      sfx.splash();
+      done = true;
+    }
+    if (done || b.x < -50 || b.y < -50 || b.x > G.W + 50 || b.y > G.H + 50) balls.splice(i, 1);
+  }
+}
+
+function hitShip(e, b) {
+  e.hp -= b.dmg; e.flash = 0.14;
+  if (b.team === 'player') G.stats.hits++;
+  for (let k = 0; k < 7; k++) spawn('splinter', b.x, b.y, rand(-60, 60), rand(-60, 60), rand(0.6, 1.0), rand(2, 4.5), 10, rand(30, 70));
+  spawn('smoke', b.x, b.y, rand(-8, 8), rand(-8, 8), 0.8, 5, 10, 8);
+  sfx.crack();
+  if (e.team === 'player' && !reduceMotion) shake = Math.max(shake, 5);
+  if (e.hp <= 0 && e.state === 'afloat') {
+    e.hp = 0; e.state = 'sinking'; e.sinkT = 0; e.path = [];
+    spawn('splash', e.x, e.y, 0, 0, 1.0, e.L * 0.45);
+    sfx.boom(1.2, 0.6);
+    if (selected === e) selected = G.ships.find((s) => s.team === 'player' && afloat(s)) || null;
+  }
+}
+
+function collide() {
+  const live = G.ships.filter(afloat);
+  for (let i = 0; i < live.length; i++) {
+    const a = live[i];
+    for (let j = i + 1; j < live.length; j++) {
+      const b = live[j];
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 0.01;
+      const min = (a.L + b.L) * 0.34;
+      if (d < min) {
+        const push = (min - d) / 2, nx = dx / d, ny = dy / d;
+        a.x -= nx * push; a.y -= ny * push; b.x += nx * push; b.y += ny * push;
+        a.v *= 0.97; b.v *= 0.97;
+      }
+    }
+    for (const is of G.islands) {
+      const dx = a.x - is.x, dy = a.y - is.y, d = Math.hypot(dx, dy) || 0.01;
+      const min = is.r + a.L * 0.3;
+      if (d < min) {
+        a.x = is.x + (dx / d) * min; a.y = is.y + (dy / d) * min;
+        a.v *= 0.9;
+      }
+    }
+  }
+}
+
+// ---------- Particles (simulated in map space, z is height above water) ----------
+const GRAVITY = { drop: 160, splinter: 140, sand: 140 };
+function spawn(kind, x, y, vx, vy, life, size, z = 0, vz = 0) {
+  if (particles.length > 900) particles.shift();
+  particles.push({ kind, x, y, z, vx, vy, vz, life, max: life, size, rot: rand(0, TAU), spin: rand(-6, 6) });
+}
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dt;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    const drag = p.kind === 'smoke' || p.kind === 'soot' ? 1.6 : p.kind === 'plank' ? 0.3 : 2.2;
+    p.vx -= p.vx * Math.min(1, drag * dt); p.vy -= p.vy * Math.min(1, drag * dt);
+    if (p.kind === 'plank' && G) { p.vx += Math.cos(G.wind.dir) * 2 * dt; p.vy += Math.sin(G.wind.dir) * 2 * dt; }
+    const g = GRAVITY[p.kind];
+    if (g) {
+      p.vz -= g * dt;
+      if (p.z <= 0.3 && p.vz < 0) {
+        if (p.kind === 'drop') { p.life = 0; continue; }
+        p.z = 0.3; p.vz = 0; p.vx *= 0.3; p.vy *= 0.3; p.spin = 0;
+      }
+    } else {
+      p.vz -= p.vz * Math.min(1, dt * 1.2);
+    }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+    p.rot += p.spin * dt * (p.kind === 'plank' ? 0.05 : 1);
+  }
+}
+
+// ---------- Sound (synthesised, starts after the first tap) ----------
+const sfx = (() => {
+  let ac = null, master = null, noise = null, last = 0;
+  function init() {
+    if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      master = ac.createGain(); master.gain.value = 0.45; master.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      const d = noise.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    } catch (e) { ac = null; }
+  }
+  function burst(type, freq, dur, vol, q) {
+    const now = ac.currentTime;
+    const src = ac.createBufferSource(); src.buffer = noise;
+    const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; if (q) f.Q.value = q;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(vol, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(now, rand(0, 0.5)); src.stop(now + dur + 0.05);
+  }
+  return {
+    init,
+    boom(vol = 1, pitch = 1) {
+      if (!ac || muted) return;
+      const now = ac.currentTime; if (now - last < 0.035) return; last = now;
+      burst('lowpass', 520 * pitch, 0.7, 0.9 * vol);
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.frequency.setValueAtTime(90 * pitch, now); o.frequency.exponentialRampToValueAtTime(35, now + 0.25);
+      g.gain.setValueAtTime(0.6 * vol, now); g.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+      o.connect(g); g.connect(master); o.start(now); o.stop(now + 0.32);
+    },
+    splash() { if (ac && !muted) burst('bandpass', 1400, 0.28, 0.12, 0.8); },
+    crack() { if (ac && !muted) burst('bandpass', 2400, 0.12, 0.35, 1.5); },
+  };
+})();
+
+// ---------- 3D scene ----------
+// Map coords (x right, y down) map to three coords (x right, y up, z toward the viewer).
+const hasGL = typeof THREE !== 'undefined';
+let renderer = null, scene = null, camera = null, water = null, pools = null;
+let worldObjs = [], shipMeshes = new Map();
+const wx = (x) => x - G.W / 2;
+const wz = (y) => y - G.H / 2;
+
+let toonRamp = null, inkMat = null;
+const matCache = new Map();
+// Shared toon materials keyed by colour; pass opts for a one-off.
+function toon(color, opts) {
+  if (!opts && matCache.has(color)) return matCache.get(color);
+  const m = new THREE.MeshToonMaterial(Object.assign({ color, gradientMap: toonRamp }, opts || {}));
+  if (!opts) matCache.set(color, m);
+  return m;
+}
+// Inverted-hull ink outline, the classic cel-shaded look.
+function withOutline(mesh, grow) {
+  const o = new THREE.Mesh(mesh.geometry, inkMat);
+  o.scale.setScalar(1 + (grow || 0.06));
+  mesh.add(o);
+  return mesh;
+}
+
+let tmpV, M4, Q, E, P3, S3, C3, ray, seaPlane, ndc, hitP;
+function initGL() {
+  if (!hasGL) return false;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas: $('sea'), antialias: true, powerPreference: 'high-performance' });
+  } catch (e) { renderer = null; return false; }
+  renderer.setClearColor(0x2a8cc4);
+  tmpV = new THREE.Vector3(); M4 = new THREE.Matrix4(); Q = new THREE.Quaternion(); E = new THREE.Euler();
+  P3 = new THREE.Vector3(); S3 = new THREE.Vector3();
+  ray = new THREE.Raycaster(); seaPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  ndc = new THREE.Vector2(); hitP = new THREE.Vector3();
+  C3 = {
+    smoke: new THREE.Color('#f4f6f8'), soot: new THREE.Color('#55565c'), drop: new THREE.Color('#ffffff'),
+    flash: new THREE.Color('#ffd65a'), fire: new THREE.Color('#ff8a2a'),
+    splinter: new THREE.Color('#c48a4a'), plank: new THREE.Color('#9a6233'), sand: new THREE.Color('#e3c27e'),
+  };
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(32, 1, 5, 20000);
+  toonRamp = new THREE.DataTexture(new Uint8Array([110, 110, 110, 255, 190, 190, 190, 255, 255, 255, 255, 255]), 3, 1);
+  toonRamp.minFilter = toonRamp.magFilter = THREE.NearestFilter;
+  toonRamp.needsUpdate = true;
+  inkMat = new THREE.MeshBasicMaterial({ color: COL.ink, side: THREE.BackSide });
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x6a9cc0, 1.6));
+  const sun = new THREE.DirectionalLight(0xfff4e0, 2.4);
+  sun.position.set(-0.55, 1, 0.45);
+  scene.add(sun);
+
+  water = new THREE.Mesh(
+    new THREE.PlaneGeometry(8000, 8000).rotateX(-PI / 2),
+    new THREE.ShaderMaterial({
+      uniforms: { uT: { value: 0 }, uWind: { value: new THREE.Vector2(1, 0) }, uHalf: { value: new THREE.Vector2(300, 600) } },
+      vertexShader: 'varying vec2 vP; void main(){ vec4 wp = modelMatrix * vec4(position,1.0); vP = wp.xz; gl_Position = projectionMatrix * viewMatrix * wp; }',
+      fragmentShader: `
+        precision mediump float;
+        uniform float uT; uniform vec2 uWind; uniform vec2 uHalf; varying vec2 vP;
+        void main(){
+          vec2 p = vP - uWind * uT * 7.0;
+          float n = sin(p.x*0.035 + sin(p.y*0.021)*2.0 + uT*0.7) * sin(p.y*0.045 + sin(p.x*0.017)*2.0 - uT*0.5);
+          vec3 deep = vec3(0.12, 0.47, 0.72);
+          vec3 light = vec3(0.24, 0.66, 0.87);
+          vec3 col = mix(deep, light, smoothstep(-1.0, 1.0, n) * 0.55 + 0.25);
+          float c = sin(p.x*0.12 + sin(p.y*0.08 + uT)*1.7) * sin(p.y*0.10 + sin(p.x*0.05)*1.3 + uT*0.6);
+          col = mix(col, vec3(0.92, 0.98, 1.0), smoothstep(0.90, 0.96, c) * 0.55);
+          vec2 d = abs(vP) - uHalf;
+          col *= 1.0 - 0.22 * smoothstep(0.0, 80.0, max(d.x, d.y));
+          gl_FragColor = vec4(col, 1.0);
+        }`,
+    })
+  );
+  scene.add(water);
+
+  // Instanced pools: one draw call each for every cannonball and particle on screen.
+  const mkPool = (geo, mat, n, colored) => {
+    const m = new THREE.InstancedMesh(geo, mat, n);
+    m.frustumCulled = false; m.count = 0;
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    if (colored) { m.setColorAt(0, new THREE.Color(1, 1, 1)); m.instanceColor.setUsage(THREE.DynamicDrawUsage); }
+    scene.add(m);
+    return m;
+  };
+  const puffGeo = new THREE.IcosahedronGeometry(1, 1);
+  const ringGeo = new THREE.RingGeometry(0.72, 1, 24).rotateX(-PI / 2);
+  pools = {
+    ball: mkPool(new THREE.SphereGeometry(3.2, 10, 8), toon('#1e1a18'), 400),
+    ballShadow: mkPool(new THREE.CircleGeometry(3, 10).rotateX(-PI / 2), new THREE.MeshBasicMaterial({ color: 0x0b2d4a, transparent: true, opacity: 0.3, depthWrite: false }), 400),
+    puff: mkPool(puffGeo, toon('#ffffff', {}), 1000, true),
+    glow: mkPool(puffGeo, new THREE.MeshBasicMaterial({ color: 0xffffff }), 400, true),
+    debris: mkPool(new THREE.BoxGeometry(1, 1, 1), toon('#ffffff', {}), 600, true),
+    rings: [0.55, 0.32, 0.14].map((op) => mkPool(ringGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: op, depthWrite: false }), 400)),
+  };
+  pools.ballShadow.renderOrder = 1;
+  pools.rings.forEach((r) => (r.renderOrder = 1));
+  return true;
+}
+
+function hullShape(L, B, k) {
+  const l = (L / 2) * (k || 1), b = (B / 2) * (k || 1);
+  const sh = new THREE.Shape();
+  sh.moveTo(l, 0);
+  sh.quadraticCurveTo(l * 0.6, -b * 1.08, -l * 0.1, -b);
+  sh.quadraticCurveTo(-l * 0.82, -b * 0.96, -l, -b * 0.66);
+  sh.lineTo(-l, b * 0.66);
+  sh.quadraticCurveTo(-l * 0.82, b * 0.96, -l * 0.1, b);
+  sh.quadraticCurveTo(l * 0.6, b * 1.08, l, 0);
+  return sh;
+}
+
+// Extrudes a flat shape upward (three's y axis), optionally tapering toward the keel.
+function liftedExtrude(shape, depth, bevel, taper) {
+  const geo = new THREE.ExtrudeGeometry(shape, { depth, bevelEnabled: bevel > 0, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 2, curveSegments: 10 });
+  geo.rotateX(-PI / 2);
+  if (taper) {
+    const pos = geo.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const t = clamp(pos.getY(i) / depth, 0, 1);
+      pos.setZ(i, pos.getZ(i) * lerp(taper, 1, t));
+      pos.setX(i, pos.getX(i) * lerp(0.92, 1, t));
+    }
+    geo.computeVertexNormals();
+  }
+  return geo;
+}
+
+const sailTex = {};
+function sailTexture(team) {
+  if (sailTex[team]) return sailTex[team];
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d');
+  x.fillStyle = '#fbf3dc'; x.fillRect(0, 0, 128, 128);
+  x.fillStyle = 'rgba(200,180,130,0.35)';
+  for (let i = 1; i < 4; i++) x.fillRect(i * 32 - 1, 0, 2, 128);
+  if (team === 'player') {
+    x.fillStyle = COL.blue; x.fillRect(0, 50, 128, 26);
+  } else {
+    // The red Burgundy saltire flown by Spanish ships.
+    x.strokeStyle = COL.red; x.lineWidth = 14; x.lineCap = 'round';
+    x.beginPath(); x.moveTo(26, 22); x.lineTo(102, 106); x.moveTo(102, 22); x.lineTo(26, 106); x.stroke();
+  }
+  x.strokeStyle = COL.ink; x.lineWidth = 8; x.strokeRect(0, 0, 128, 128);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  sailTex[team] = t;
+  return t;
+}
+
+function sailGeometry(w, h) {
+  const geo = new THREE.PlaneGeometry(w, h, 8, 4);
+  geo.rotateY(PI / 2); // spans the beam (z), faces forward (+x)
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const z = pos.getZ(i) / (w / 2), y = pos.getY(i) / (h / 2);
+    pos.setX(i, w * 0.22 * (1 - z * z) * (0.75 + 0.25 * (1 - y * y)));
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// One model per class and flag, built once and cloned per ship (geometry and materials are shared).
+const templates = new Map();
+function shipTemplate(type, team) {
+  const key = type + ':' + team;
+  if (templates.has(key)) return templates.get(key);
+  const T = TYPES[type];
+  const L = T.L, B = T.B, d = B * 0.5;
+  const isP = team === 'player';
+  const root = new THREE.Group();
+  const body = new THREE.Group(); body.name = 'body';
+  root.add(body);
+  const base = -d * 0.32;
+  const hull = new THREE.Mesh(liftedExtrude(hullShape(L, B), d, 1.4, 0.72), [toon('#e0ad6b'), toon(isP ? '#a5672f' : '#7a3a28')]);
+  hull.name = 'hull';
+  hull.position.y = base;
+  withOutline(hull, 0.05);
+  body.add(hull);
+  const wale = new THREE.Mesh(liftedExtrude(hullShape(L * 1.025, B * 1.06), 2.2, 0, 0), toon(isP ? COL.blue : '#c9a227'));
+  wale.position.y = base + d * 0.55;
+  body.add(wale);
+  const deckY = base + d + 1.4;
+  const castle = new THREE.Mesh(new THREE.BoxGeometry(L * 0.2, d * 0.75, B * 0.74), toon(isP ? '#c28145' : '#93483a'));
+  castle.position.set(-L * 0.39, deckY + d * 0.3, 0);
+  withOutline(castle, 0.08);
+  body.add(castle);
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(L * 0.21, 1.6, B * 0.78), toon(isP ? COL.blue : COL.red));
+  rail.position.set(-L * 0.39, deckY + d * 0.7, 0);
+  body.add(rail);
+  const gunGeo = new THREE.CylinderGeometry(1.5, 1.9, 6, 8).rotateX(PI / 2);
+  const gunMat = toon('#2a2522');
+  for (let i = 0; i < T.guns; i++) {
+    const ax = T.guns === 1 ? 0 : lerp(-L * 0.28, L * 0.28, i / (T.guns - 1));
+    for (const side of [-1, 1]) {
+      const gun = new THREE.Mesh(gunGeo, gunMat);
+      gun.position.set(ax, deckY - d * 0.35, side * (B / 2 + 0.5));
+      body.add(gun);
+    }
+  }
+  const wood = toon('#7a4a22');
+  const sprit = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.3, L * 0.3, 6), wood);
+  sprit.rotation.z = -PI / 2 + 0.28;
+  sprit.position.set(L * 0.58, deckY + 4, 0);
+  body.add(sprit);
+  const mastXs = T.masts === 3 ? [0.27, 0.02, -0.25] : [0.15, -0.18];
+  const sailMat = toon('#ffffff', { map: sailTexture(team), side: THREE.DoubleSide });
+  let top = 0;
+  mastXs.forEach((mxk, mi) => {
+    const main = T.masts === 3 ? mi === 1 : mi === 0;
+    const mh = L * (main ? 0.66 : 0.54);
+    const mx = mxk * L;
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.7, mh, 7), wood);
+    mast.position.set(mx, deckY + mh / 2, 0);
+    withOutline(mast, 0.25);
+    body.add(mast);
+    const pivot = new THREE.Group();
+    pivot.name = 'pivot';
+    pivot.position.set(mx, deckY, 0);
+    body.add(pivot);
+    const w = B * (main ? 1.55 : 1.35);
+    for (const t of [{ w, h: mh * 0.4, y: mh * 0.33 }, { w: w * 0.78, h: mh * 0.3, y: mh * 0.7 }]) {
+      const sail = new THREE.Mesh(sailGeometry(t.w, t.h), sailMat);
+      sail.name = 'sail';
+      sail.position.set(0.8, t.y, 0);
+      pivot.add(sail);
+      const yard = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, t.w * 1.08, 5).rotateX(PI / 2), wood);
+      yard.position.set(0.6, t.y + t.h / 2, 0);
+      pivot.add(yard);
+    }
+    if (main) {
+      const nest = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 2.6, 2.6, 10), wood);
+      nest.position.set(mx, deckY + mh * 0.86, 0);
+      withOutline(nest, 0.12);
+      body.add(nest);
+      top = deckY + mh;
+      const flagPivot = new THREE.Group();
+      flagPivot.name = 'flag';
+      flagPivot.position.set(mx, top - 1, 0);
+      flagPivot.add(new THREE.Mesh(new THREE.PlaneGeometry(14, 8, 4, 1).translate(7, 0, 0), toon(isP ? COL.blue : COL.red, { side: THREE.DoubleSide })));
+      body.add(flagPivot);
+    }
+  });
+  const shadowGeo = new THREE.ShapeGeometry(hullShape(L, B, 1.08)).rotateX(-PI / 2);
+  const tpl = { root, top, shadowGeo };
+  templates.set(key, tpl);
+  return tpl;
+}
+
+function buildShip(s) {
+  const tpl = shipTemplate(s.type, s.team);
+  const g = tpl.root.clone(true);
+  const ref = { g, sails: [], pivots: [], body: null, flagPivot: null, hullMat: null, top: tpl.top };
+  g.traverse((o) => {
+    if (o.name === 'body') ref.body = o;
+    else if (o.name === 'sail') ref.sails.push(o);
+    else if (o.name === 'pivot') ref.pivots.push(o);
+    else if (o.name === 'flag') ref.flagPivot = o;
+    else if (o.name === 'hull') {
+      // Each hull gets its own side material so it can flash white when hit.
+      ref.hullMat = o.material[1].clone();
+      o.material = [o.material[0], ref.hullMat];
+    }
+  });
+  scene.add(g);
+  ref.shadow = new THREE.Mesh(tpl.shadowGeo, new THREE.MeshBasicMaterial({ color: 0x0b2d4a, transparent: true, opacity: 0.26, depthWrite: false }));
+  ref.shadow.renderOrder = 1;
+  scene.add(ref.shadow);
+  shipMeshes.set(s.id, ref);
+}
+
+function islandShape(is, k) {
+  const n = is.verts.length;
+  const sh = new THREE.Shape();
+  const pt = (i) => {
+    const a = (i / n) * TAU, r = is.r * k * is.verts[i % n];
+    return [Math.cos(a) * r, -Math.sin(a) * r];
+  };
+  const p0 = pt(0);
+  sh.moveTo(p0[0], p0[1]);
+  for (let i = 1; i <= n; i++) {
+    const p = pt(i);
+    const am = ((i - 0.5) / n) * TAU, rm = is.r * k * (is.verts[i % n] + is.verts[(i - 1) % n]) / 2 * 1.05;
+    sh.quadraticCurveTo(Math.cos(am) * rm, -Math.sin(am) * rm, p[0], p[1]);
+  }
+  return sh;
+}
+
+function buildIsland(is) {
+  const g = new THREE.Group();
+  g.position.set(wx(is.x), 0, wz(is.y));
+  const flat = (k, color, op, y) => {
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(islandShape(is, k), 24).rotateX(-PI / 2),
+      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false }));
+    m.position.y = y; m.renderOrder = 1;
+    g.add(m);
+  };
+  flat(1.55, 0x9fe6f0, 0.45, 0.2);
+  flat(1.25, 0xcdf5f7, 0.6, 0.3);
+  const sand = new THREE.Mesh(liftedExtrude(islandShape(is, 0.94), 5, 3.5, 0), toon('#f2d68f'));
+  sand.position.y = -1;
+  withOutline(sand, 0.04);
+  g.add(sand);
+  const grass = new THREE.Mesh(liftedExtrude(islandShape(is, 0.6), 4 + is.r * 0.08, 2.5, 0), toon('#7cc957'));
+  grass.position.y = 5;
+  g.add(grass);
+  if (is.r > 40) {
+    const hill = new THREE.Mesh(new THREE.SphereGeometry(is.r * 0.32, 12, 8), toon('#68b84a'));
+    hill.scale.y = 0.55; hill.position.set(is.r * 0.12, 9, is.r * 0.1);
+    withOutline(hill, 0.05);
+    g.add(hill);
+  }
+  for (const r of is.rocks) {
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(r.s, 0), toon('#8b8f96'));
+    rock.position.set(Math.cos(r.a) * r.d, 0.5, -Math.sin(r.a) * r.d);
+    rock.rotation.set(r.a, r.a * 2, 0);
+    withOutline(rock, 0.12);
+    g.add(rock);
+  }
+  for (const p of is.palms) g.add(buildPalm(p));
+  scene.add(g);
+  worldObjs.push(g);
+}
+
+let leafGeo = null, nutGeo = null;
+function buildPalm(p) {
+  leafGeo = leafGeo || new THREE.SphereGeometry(1, 8, 6);
+  nutGeo = nutGeo || new THREE.SphereGeometry(1.5, 6, 5);
+  const g = new THREE.Group();
+  g.position.set(p.x, 8, p.y);
+  g.rotation.y = p.rot;
+  const h = 26 * p.s;
+  const tilt = new THREE.Group();
+  tilt.rotation.z = p.lean;
+  g.add(tilt);
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 2.2, h, 6), toon('#9a6a3a'));
+  trunk.position.y = h / 2;
+  withOutline(trunk, 0.2);
+  tilt.add(trunk);
+  const crown = new THREE.Group();
+  crown.position.y = h;
+  tilt.add(crown);
+  for (let i = 0; i < 6; i++) {
+    const arm = new THREE.Group();
+    arm.rotation.y = (i / 6) * TAU;
+    const leaf = new THREE.Mesh(leafGeo, toon(i % 2 ? '#5cbf4c' : '#49a83d'));
+    leaf.scale.set(10 * p.s, 1.4, 3.6 * p.s);
+    leaf.position.set(8 * p.s, -2, 0);
+    leaf.rotation.z = -0.35;
+    withOutline(leaf, 0.1);
+    arm.add(leaf);
+    crown.add(arm);
+  }
+  for (let i = 0; i < 3; i++) {
+    const nut = new THREE.Mesh(nutGeo, toon('#6b4220'));
+    nut.position.set(Math.cos(i * 2.1) * 1.8, -1.5, Math.sin(i * 2.1) * 1.8);
+    crown.add(nut);
+  }
+  return g;
+}
+
+function buildScene() {
+  if (!renderer) return;
+  for (const m of shipMeshes.values()) { scene.remove(m.g); scene.remove(m.shadow); m.hullMat.dispose(); m.shadow.material.dispose(); }
+  for (const o of worldObjs) {
+    scene.remove(o);
+    o.traverse((c) => { if (c.isMesh && c.material !== inkMat) c.geometry.dispose(); });
+  }
+  shipMeshes = new Map(); worldObjs = [];
+  for (const is of G.islands) buildIsland(is);
+  for (const s of G.ships) buildShip(s);
+  water.material.uniforms.uHalf.value.set(G.W / 2, G.H / 2);
+  fitCamera();
+}
+
+// Tilt the camera and back it off until the whole map fits on screen.
+function fitCamera() {
+  if (!renderer || !G) return;
+  camera.aspect = cw / ch;
+  camera.updateProjectionMatrix();
+  const tilt = 54 * PI / 180;
+  const dir = new THREE.Vector3(0, Math.sin(tilt), Math.cos(tilt));
+  const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([a, b]) => new THREE.Vector3(a * (G.W / 2 + 6), 0, b * (G.H / 2 + 6)));
+  const topRoom = 1 - (2 * 40) / ch; // keep the far edge just clear of the top HUD row
+  const target = new THREE.Vector3();
+  const place = (dist) => {
+    camera.position.copy(dir).multiplyScalar(dist).add(target);
+    camera.lookAt(target);
+    camera.updateMatrixWorld();
+  };
+  const fits = () => corners.every((c) => { const p = c.clone().project(camera); return Math.abs(p.x) <= 1 && p.y <= topRoom && p.y >= -1; });
+  // Slide the look-at point along the map so it sits evenly in the frame, then back off until it fits.
+  for (let pass = 0; pass < 3; pass++) {
+    let lo = 50, hi = 30000;
+    for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; place(mid); if (fits()) hi = mid; else lo = mid; }
+    place(hi);
+    const far = corners[0].clone().project(camera).y, near = corners[2].clone().project(camera).y;
+    const slack = (topRoom - far) - (near + 1);
+    if (Math.abs(slack) < 0.01) break;
+    target.z -= slack * 0.25 * G.H;
+  }
+  camera.userData.base = camera.position.clone();
+}
+
+function setInst(mesh, i, x, y, z, sx, sy, sz, rx, ry, rz) {
+  E.set(rx || 0, ry || 0, rz || 0); Q.setFromEuler(E);
+  P3.set(x, y, z); S3.set(sx, sy, sz);
+  M4.compose(P3, Q, S3);
+  mesh.setMatrixAt(i, M4);
+}
+
+function syncScene() {
+  water.material.uniforms.uT.value = clock;
+  water.material.uniforms.uWind.value.set(Math.cos(G.wind.dir), Math.sin(G.wind.dir));
+  for (const s of G.ships) {
+    const m = shipMeshes.get(s.id);
+    if (!m) continue;
+    if (s.state === 'sunk') { m.g.visible = false; m.shadow.visible = false; continue; }
+    const sinkK = s.state === 'sinking' ? clamp(s.sinkT / 3.2, 0, 1) : 0;
+    m.g.position.set(wx(s.x), 0, wz(s.y));
+    m.g.rotation.y = -s.h;
+    const r = angDiff(s.h, G.wind.dir);
+    const heel = Math.sin(r) * 0.07 * Math.min(1, s.v / s.speed);
+    m.body.position.y = Math.sin(clock * 2 + s.bob) * 0.9 - sinkK * sinkK * 46;
+    m.body.rotation.x = Math.sin(clock * 1.6 + s.bob) * 0.045 + heel + sinkK * 0.7;
+    m.body.rotation.z = Math.sin(clock * 1.25 + s.bob * 2) * 0.025 - sinkK * 0.35;
+    for (const p of m.pivots) p.rotation.y = -s.yard;
+    const fill = Math.cos(r - s.yard);
+    for (let i = 0; i < m.sails.length; i++) m.sails[i].scale.x = fill > 0.15 ? 0.35 + 0.65 * fill : 0.14 * Math.sin(clock * 14 + i);
+    if (m.flagPivot) m.flagPivot.rotation.y = -r + Math.sin(clock * 9 + s.bob) * 0.22;
+    m.hullMat.emissive.setScalar(s.flash > 0 ? (s.flash / 0.14) * 0.7 : 0);
+    m.shadow.visible = sinkK < 0.6;
+    m.shadow.position.set(wx(s.x) + 7, 0.25, wz(s.y) + 9);
+    m.shadow.rotation.y = -s.h;
+    m.shadow.material.opacity = 0.26 * (1 - sinkK);
+  }
+
+  // Cannonballs fly a low arc from muzzle height.
+  let n = 0;
+  for (const b of balls) {
+    if (n >= 400) break;
+    const k = clamp(b.travel / b.max, 0, 1);
+    const z = 6 + Math.sin(PI * k) * 14 - k * 5;
+    setInst(pools.ball, n, wx(b.x), z, wz(b.y), 1, 1, 1);
+    setInst(pools.ballShadow, n, wx(b.x) + z * 0.3, 0.3, wz(b.y) + z * 0.35, 1, 1, 1);
+    n++;
+  }
+  pools.ball.count = pools.ballShadow.count = n;
+  pools.ball.instanceMatrix.needsUpdate = pools.ballShadow.instanceMatrix.needsUpdate = true;
+
+  let np = 0, ng = 0, nd = 0;
+  const nr = [0, 0, 0];
+  for (const p of particles) {
+    const k = p.life / p.max, f = 1 - k;
+    const X = wx(p.x), Z = wz(p.y);
+    switch (p.kind) {
+      case 'smoke': case 'soot': case 'drop': {
+        // Cartoon puffs swell, then pop out of existence instead of fading.
+        const pop = p.kind === 'drop' ? 1 : (k < 0.35 ? k / 0.35 : 1) * (0.55 + f * 0.9);
+        const sc = p.size * pop;
+        if (np < 1000) { setInst(pools.puff, np, X, p.z, Z, sc, sc, sc, p.rot, p.rot, 0); pools.puff.setColorAt(np, C3[p.kind]); np++; }
+        break;
+      }
+      case 'flash': case 'fire': {
+        const sc = p.size * (0.4 + k * 0.8);
+        if (ng < 400) { setInst(pools.glow, ng, X, p.z, Z, sc, sc, sc); pools.glow.setColorAt(ng, C3[p.kind]); ng++; }
+        break;
+      }
+      case 'splinter': case 'plank': case 'sand': {
+        const fade = p.kind === 'plank' ? Math.min(1, p.life / 4) : 1;
+        const len = p.size * fade, th = p.kind === 'plank' ? 2.2 : 1.4;
+        const y = p.kind === 'plank' ? 0.6 + Math.sin(clock * 2 + p.rot * 5) * 0.3 : p.z;
+        if (nd < 600) { setInst(pools.debris, nd, X, y, Z, len, th, p.kind === 'sand' ? len : th * 1.8, 0, p.rot, p.kind === 'plank' ? 0 : p.rot); pools.debris.setColorAt(nd, C3[p.kind]); nd++; }
+        break;
+      }
+      case 'wake': case 'splash': case 'bubble': {
+        const grow = p.kind === 'wake' ? 0.7 + f * 1.6 : p.kind === 'splash' ? 0.4 + f * 1.8 : 0.6 + f * 0.6;
+        const band = k > 0.6 ? 0 : k > 0.3 ? 1 : 2;
+        if (nr[band] < 400) { const sc = p.size * grow; setInst(pools.rings[band], nr[band], X, 0.5, Z, sc, 1, sc); nr[band]++; }
+        if (p.kind === 'splash' && f < 0.5 && np < 1000) {
+          // A white water column that rises and collapses.
+          const col = p.size * 0.6 * (1 - f * 2);
+          setInst(pools.puff, np, X, col * 0.5, Z, p.size * 0.32, col + 0.1, p.size * 0.32); pools.puff.setColorAt(np, C3.drop); np++;
+        }
+        break;
+      }
+    }
+  }
+  pools.puff.count = np; pools.glow.count = ng; pools.debris.count = nd;
+  pools.rings.forEach((r, i) => { r.count = nr[i]; r.instanceMatrix.needsUpdate = true; });
+  for (const pl of [pools.puff, pools.glow, pools.debris]) {
+    pl.instanceMatrix.needsUpdate = true;
+    if (pl.instanceColor) pl.instanceColor.needsUpdate = true;
+  }
+
+  const base = camera.userData.base;
+  if (base) {
+    camera.position.copy(base);
+    if (shake) { camera.position.x += rand(-shake, shake) * 1.5; camera.position.z += rand(-shake, shake) * 1.5; }
+  }
+}
+
+// ---------- Screen projection for the HUD ----------
+function proj(x, y, z) {
+  tmpV.set(wx(x), z || 0, wz(y)).project(camera);
+  return { x: (tmpV.x + 1) / 2 * cw, y: (1 - tmpV.y) / 2 * ch };
+}
+function toWorld(px, py) {
+  ndc.set((px / cw) * 2 - 1, -((py / ch) * 2 - 1));
+  ray.setFromCamera(ndc, camera);
+  if (!ray.ray.intersectPlane(seaPlane, hitP)) return null;
+  return { x: hitP.x + G.W / 2, y: hitP.z + G.H / 2 };
+}
+function pxPerUnit(x, y) {
+  const a = proj(x, y, 0), b = proj(x + 10, y, 0);
+  return Math.hypot(b.x - a.x, b.y - a.y) / 10;
+}
+
+// ---------- HUD drawing ----------
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Traces a polyline laid on the sea surface, in screen space.
+function seaPoly(pts) {
+  ctx.beginPath();
+  for (let i = 0; i < pts.length; i++) {
+    const q = proj(pts[i][0], pts[i][1], 0.5);
+    if (i) ctx.lineTo(q.x, q.y); else ctx.moveTo(q.x, q.y);
+  }
+}
+
+function drawArcs(s) {
+  // Broadside arcs for the selected ship; they fill up as the guns reload.
+  for (let side = 0; side < 2; side++) {
+    const dir = sideDir(s, side);
+    const prog = clamp(1 - s.reload[side] / s.reloadTime, 0, 1);
+    const wedge = (rad) => {
+      const pts = [[s.x, s.y]];
+      for (let i = 0; i <= 16; i++) { const a = dir - 0.62 + (1.24 * i) / 16; pts.push([s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad]); }
+      seaPoly(pts); ctx.closePath();
+    };
+    wedge(s.range);
+    ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fill();
+    ctx.setLineDash([6, 8]); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.stroke(); ctx.setLineDash([]);
+    if (prog > 0.02) {
+      wedge(s.range * prog);
+      ctx.fillStyle = prog >= 1 ? 'rgba(242,182,50,0.22)' : 'rgba(255,255,255,0.1)'; ctx.fill();
+    }
+  }
+}
+
+function drawPath(s, pts, active) {
+  if (!pts.length) return;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  seaPoly([[s.x, s.y], ...pts.map((p) => [p.x, p.y])]);
+  ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(20,52,82,0.35)'; ctx.stroke();
+  ctx.setLineDash([2, 11]); ctx.lineWidth = 4;
+  ctx.strokeStyle = active ? COL.gold : 'rgba(255,255,255,0.85)'; ctx.stroke(); ctx.setLineDash([]);
+  const last = pts[pts.length - 1], e = proj(last.x, last.y, 0.5);
+  ctx.strokeStyle = active ? COL.gold : COL.white; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(e.x - 6, e.y - 6); ctx.lineTo(e.x + 6, e.y + 6); ctx.moveTo(e.x + 6, e.y - 6); ctx.lineTo(e.x - 6, e.y + 6); ctx.stroke();
+}
+
+function drawRing(s) {
+  const pts = [];
+  const rr = s.L * 0.62;
+  for (let i = 0; i <= 40; i++) { const a = (i / 40) * TAU; pts.push([s.x + Math.cos(a) * rr, s.y + Math.sin(a) * rr]); }
+  seaPoly(pts);
+  ctx.setLineDash([10, 8]); ctx.lineDashOffset = -clock * 20; ctx.lineWidth = 3; ctx.strokeStyle = COL.gold; ctx.stroke();
+  ctx.setLineDash([]); ctx.lineDashOffset = 0;
+}
+
+function drawBars(s) {
+  if (!afloat(s)) return;
+  const m = shipMeshes.get(s.id);
+  const top = proj(s.x, s.y, (m ? m.top : 40) + 12);
+  const w = Math.max(26, s.L * 0.62 * pxPerUnit(s.x, s.y)), x = top.x - w / 2, y = top.y;
+  const k = s.hp / s.maxHp;
+  ctx.fillStyle = 'rgba(20,30,40,0.6)'; roundRect(x - 1.5, y - 1.5, w + 3, 8, 4); ctx.fill();
+  ctx.fillStyle = k > 0.6 ? '#6fd36a' : k > 0.3 ? COL.gold : '#ff5a4a';
+  roundRect(x, y, Math.max(2, w * k), 5, 2.5); ctx.fill();
+}
+
+function outlinedText(text, x, y, size, color, align) {
+  ctx.font = `${size}px ${FONT}`;
+  ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(20,40,60,0.85)';
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = color; ctx.fillText(text, x, y);
+}
+
+function drawHUD() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, cw, ch);
+  hud = { cards: [], pause: null, fire: [] };
+  if (!G || !renderer) return;
+  if (G.phase !== 'title') {
+    if (selected && afloat(selected)) drawArcs(selected);
+    for (const s of G.ships) {
+      if (s.team !== 'player' || !afloat(s)) continue;
+      const live = drag && drag.ship === s && drag.pts.length;
+      drawPath(s, live ? drag.pts : s.path, s === selected);
+    }
+    if (selected && afloat(selected)) drawRing(selected);
+  }
+  for (const s of G.ships) drawBars(s);
+  if (G.phase === 'title') return;
+
+  // Fleet cards (tap to select)
+  let y = 10;
+  const x = 10, w = 132, h = 32;
+  for (const s of G.ships) {
+    if (s.team !== 'player') continue;
+    const alive = afloat(s);
+    ctx.fillStyle = COL.hud; roundRect(x, y, w, h, 10); ctx.fill();
+    if (s === selected && alive) { ctx.lineWidth = 2.5; ctx.strokeStyle = COL.gold; ctx.stroke(); }
+    ctx.font = `15px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = alive ? COL.white : 'rgba(255,255,255,0.45)';
+    ctx.fillText(s.name, x + 10, y + 12);
+    ctx.font = `11px ${FONT}`; ctx.textAlign = 'right';
+    ctx.fillStyle = alive ? 'rgba(255,255,255,0.7)' : '#ff8a7a';
+    ctx.fillText(alive ? s.label : 'Sunk', x + w - 10, y + 12);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)'; roundRect(x + 10, y + 21, w - 20, 5, 2.5); ctx.fill();
+    const k = s.hp / s.maxHp;
+    if (k > 0) { ctx.fillStyle = k > 0.6 ? '#6fd36a' : k > 0.3 ? COL.gold : '#ff5a4a'; roundRect(x + 10, y + 21, Math.max(3, (w - 20) * k), 5, 2.5); ctx.fill(); }
+    hud.cards.push({ x, y, w, h, ship: s });
+    y += h + 6;
+  }
+  // Pause button
+  const pr = 20, px = cw - 10 - pr, py = 10 + pr;
+  ctx.fillStyle = COL.hud; ctx.beginPath(); ctx.arc(px, py, pr, 0, TAU); ctx.fill();
+  ctx.fillStyle = COL.white; ctx.fillRect(px - 6, py - 7, 4, 14); ctx.fillRect(px + 2, py - 7, 4, 14);
+  hud.pause = { x: px, y: py, r: pr + 8 };
+  // Wind rose: the arrow follows the wind as seen through the tilted camera.
+  const wr = 27, wxs = cw - 10 - wr, wys = py + pr + 12 + wr;
+  ctx.fillStyle = COL.parchment; ctx.strokeStyle = COL.ink; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.arc(wxs, wys, wr, 0, TAU); ctx.fill(); ctx.stroke();
+  const c0 = proj(G.W / 2, G.H / 2, 0), c1 = proj(G.W / 2 + Math.cos(G.wind.dir) * 50, G.H / 2 + Math.sin(G.wind.dir) * 50, 0);
+  ctx.save(); ctx.translate(wxs, wys); ctx.rotate(Math.atan2(c1.y - c0.y, c1.x - c0.x));
+  ctx.fillStyle = '#4b8fd6'; ctx.strokeStyle = COL.ink; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(19, 0); ctx.lineTo(4, -10); ctx.lineTo(4, -4); ctx.lineTo(-17, -4); ctx.lineTo(-17, 4); ctx.lineTo(4, 4); ctx.lineTo(4, 10); ctx.closePath();
+  ctx.fill(); ctx.stroke(); ctx.restore();
+  outlinedText('WIND', wxs, wys + wr + 11, 12, COL.white, 'center');
+  const left = G.ships.filter((s) => s.team === 'enemy' && afloat(s)).length;
+  outlinedText(`Enemy: ${left}`, wxs + wr, wys + wr + 28, 14, '#ffd6cf', 'right');
+
+  // Manual fire buttons for the selected ship
+  if (fireMode === 'manual' && selected && afloat(selected) && G.phase === 'play') {
+    const bw = Math.min(150, (cw - 48) / 2), bh = 54, by = ch - 14 - bh;
+    const sides = [{ side: 0, label: 'Fire port', x: 16 }, { side: 1, label: 'Fire starboard', x: cw - 16 - bw }];
+    for (const b of sides) {
+      const ready = selected.reload[b.side] <= 0;
+      const prog = clamp(1 - selected.reload[b.side] / selected.reloadTime, 0, 1);
+      ctx.fillStyle = COL.hud; roundRect(b.x, by, bw, bh, 14); ctx.fill();
+      ctx.save(); roundRect(b.x, by, bw, bh, 14); ctx.clip();
+      ctx.fillStyle = ready ? 'rgba(242,182,50,0.95)' : 'rgba(242,182,50,0.35)';
+      ctx.fillRect(b.x, by, bw * prog, bh); ctx.restore();
+      ctx.lineWidth = 3; ctx.strokeStyle = COL.ink; roundRect(b.x, by, bw, bh, 14); ctx.stroke();
+      ctx.font = `${bw < 130 ? 16 : 18}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = ready ? COL.ink : COL.white;
+      ctx.fillText(ready ? b.label : 'Reloading', b.x + bw / 2, by + bh / 2);
+      hud.fire.push({ x: b.x, y: by, w: bw, h: bh, side: b.side });
+    }
+  }
+
+  // First-time hint
+  if (G.phase === 'play' && !G.dragged && G.t < 14) {
+    ctx.globalAlpha = clamp(Math.min(G.t * 2, 14 - G.t), 0, 1);
+    const hy = fireMode === 'manual' ? ch - 92 : ch - 34;
+    outlinedText('Drag from a ship to draw its course', cw / 2, hy, 18, COL.white, 'center');
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ---------- Input ----------
+function shipAt(p) {
+  let best = null, bd = Infinity;
+  for (const s of G.ships) {
+    if (s.team !== 'player' || !afloat(s)) continue;
+    const q = proj(s.x, s.y, 8);
+    const d = Math.hypot(q.x - p.x, q.y - p.y);
+    const reach = Math.max(34, s.L * 0.65 * pxPerUnit(s.x, s.y));
+    if (d < reach && d < bd) { bd = d; best = s; }
+  }
+  return best;
+}
+const inRect = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+const clampWorld = (w) => ({ x: clamp(w.x, 30, G.W - 30), y: clamp(w.y, 30, G.H - 30) });
+
+hudCv.addEventListener('pointerdown', (e) => {
+  if (!G || !renderer || G.phase !== 'play') return;
+  const p = { x: e.offsetX, y: e.offsetY };
+  if (hud.pause && Math.hypot(p.x - hud.pause.x, p.y - hud.pause.y) < hud.pause.r) { pause(); return; }
+  for (const b of hud.fire) {
+    if (inRect(p, b)) {
+      if (selected && afloat(selected) && selected.reload[b.side] <= 0) fireBroadside(selected, b.side, findBroadsideTarget(selected, b.side));
+      return;
+    }
+  }
+  for (const c of hud.cards) {
+    if (inRect(p, c)) { if (afloat(c.ship)) selected = c.ship; return; }
+  }
+  const w = toWorld(p.x, p.y);
+  if (!w) return;
+  const s = shipAt(p);
+  if (s) {
+    selected = s;
+    drag = { ship: s, pts: [], id: e.pointerId, from: w };
+  } else if (selected && afloat(selected)) {
+    drag = { ship: selected, pts: [clampWorld(w)], id: e.pointerId, from: w };
+  } else return;
+  try { hudCv.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+});
+hudCv.addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const w = toWorld(e.offsetX, e.offsetY);
+  if (!w) return;
+  const last = drag.pts.length ? drag.pts[drag.pts.length - 1] : drag.from;
+  if (Math.hypot(w.x - last.x, w.y - last.y) > 12) drag.pts.push(clampWorld(w));
+});
+function endDrag(e) {
+  if (!drag || e.pointerId !== drag.id) return;
+  if (drag.pts.length && afloat(drag.ship)) { drag.ship.path = drag.pts; G.dragged = true; }
+  drag = null;
+}
+hudCv.addEventListener('pointerup', endDrag);
+hudCv.addEventListener('pointercancel', (e) => { if (drag && e.pointerId === drag.id) drag = null; });
+
+// ---------- Update ----------
+function update(dt) {
+  clock += dt;
+  if (G && G.phase === 'play') {
+    G.t += dt;
+    G.wind.dir = G.wind.base + Math.sin(G.t * 0.05) * 0.35 + Math.sin(G.t * 0.013 + 1) * 0.2;
+    for (let i = pending.length - 1; i >= 0; i--) {
+      pending[i].t -= dt;
+      if (pending[i].t <= 0) { fireGun(pending[i]); pending.splice(i, 1); }
+    }
+    for (const s of G.ships) updateShip(s, dt);
+    collide();
+    updateBalls(dt);
+    checkEnd();
+  }
+  updateParticles(dt);
+  shake = Math.max(0, shake - dt * 20);
+}
+
+function checkEnd() {
+  if (G.endAt != null) {
+    if (G.t >= G.endAt) showEnd();
+    return;
+  }
+  const pa = G.ships.some((s) => s.team === 'player' && afloat(s));
+  const ea = G.ships.some((s) => s.team === 'enemy' && afloat(s));
+  if (!pa || !ea) { G.result = pa ? 'win' : 'lose'; G.endAt = G.t + 2.4; }
+}
+
+function render() {
+  if (renderer && G) {
+    syncScene();
+    renderer.render(scene, camera);
+  }
+  drawHUD();
+}
+
+function resize() {
+  const r = hudCv.getBoundingClientRect();
+  cw = Math.max(1, r.width); ch = Math.max(1, r.height);
+  dpr = Math.min(maxDpr, window.devicePixelRatio || 1);
+  hudCv.width = Math.round(cw * dpr); hudCv.height = Math.round(ch * dpr);
+  if (renderer) { renderer.setPixelRatio(dpr); renderer.setSize(cw, ch, false); }
+  fitCamera();
+}
+
+// Adaptive resolution: if frames run long for a couple of seconds, render fewer pixels.
+const perf = { acc: 0, n: 0, cooldown: 3 };
+function watchPerf(dtMs) {
+  if (!renderer || document.hidden) return;
+  perf.acc += dtMs; perf.n++;
+  perf.cooldown -= dtMs / 1000;
+  if (perf.n >= 90) {
+    const avg = perf.acc / perf.n;
+    perf.acc = 0; perf.n = 0;
+    if (perf.cooldown <= 0 && avg > 24 && maxDpr > 1) {
+      maxDpr = Math.max(1, maxDpr - 0.25);
+      perf.cooldown = 3;
+      resize();
+    }
+  }
+}
+
+// ---------- Screens & settings ----------
+const FIRE_NOTES = {
+  auto: 'Gun crews fire whenever an enemy is in a broadside arc.',
+  manual: 'You fire each side yourself with the buttons at the bottom.',
+};
+function syncSettings() {
+  for (const k of ['A', 'B']) {
+    $('fireAuto' + k).setAttribute('aria-pressed', String(fireMode === 'auto'));
+    $('fireManual' + k).setAttribute('aria-pressed', String(fireMode === 'manual'));
+    $('fireNote' + k).textContent = FIRE_NOTES[fireMode];
+  }
+  $('soundOn').setAttribute('aria-pressed', String(!muted));
+  $('soundOff').setAttribute('aria-pressed', String(muted));
+}
+document.querySelectorAll('[data-fire]').forEach((b) => b.addEventListener('click', () => {
+  fireMode = b.dataset.fire; store.set('fire', fireMode); syncSettings();
+}));
+document.querySelectorAll('[data-sound]').forEach((b) => b.addEventListener('click', () => {
+  muted = b.dataset.sound === 'off'; store.set('sound', muted ? 'off' : 'on'); syncSettings();
+  if (!muted) sfx.init();
+}));
+
+function showTitle() {
+  const B = BATTLES[G.battle];
+  $('battleEyebrow').textContent = `Battle ${B.roman} · ${B.year}`;
+  $('battleName').textContent = B.name;
+  $('titleScreen').hidden = false; $('pauseScreen').hidden = true; $('endScreen').hidden = true;
+}
+function play() {
+  if (!renderer) return;
+  sfx.init();
+  G.phase = 'play';
+  $('titleScreen').hidden = true; $('pauseScreen').hidden = true; $('endScreen').hidden = true;
+}
+function pause() {
+  if (!G || G.phase !== 'play') return;
+  G.phase = 'paused'; drag = null;
+  $('pauseScreen').hidden = false;
+}
+function showEnd() {
+  G.phase = 'over';
+  const B = BATTLES[G.battle];
+  const win = G.result === 'win';
+  const lost = G.ships.filter((s) => s.team === 'player' && !afloat(s)).length;
+  $('endEyebrow').textContent = `Battle ${B.roman} · ${B.name}`;
+  $('endTitle').textContent = win ? 'Victory!' : 'Defeat';
+  $('endText').textContent = win
+    ? `The ${B.foe} is on the bottom. ${lost === 0 ? 'Not a single ship lost. The admiral will hear of this.' : 'The fleet limps home to refit.'}`
+    : `Your fleet is sunk. The ${B.foe} sails on. Try keeping your sloops off the galleon's broadside.`;
+  const sec = Math.floor(G.t);
+  $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+  $('statHits').textContent = G.stats.shots ? `${Math.round((100 * G.stats.hits) / G.stats.shots)}%` : '–';
+  $('statLost').textContent = String(lost);
+  $('endScreen').hidden = false;
+}
+$('startBtn').addEventListener('click', play);
+$('resumeBtn').addEventListener('click', play);
+$('restartBtn').addEventListener('click', () => { newBattle(G.battle); play(); });
+$('againBtn').addEventListener('click', () => { newBattle(G.battle); play(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+window.addEventListener('resize', resize);
+
+// ---------- Loop ----------
+let lastT = performance.now();
+function frame(now) {
+  const raw = now - lastT;
+  lastT = now;
+  watchPerf(raw);
+  update(Math.min(0.05, raw / 1000));
+  render();
+  requestAnimationFrame(frame);
+}
+
+function snapshot() {
+  if (!G) return {};
+  return { G: JSON.parse(JSON.stringify(G)), selectedId: selected ? selected.id : null };
+}
+
+function start(data) {
+  const ok = initGL();
+  if (!ok) { $('glError').hidden = false; $('startBtn').disabled = true; }
+  resize();
+  if (data && data.G && data.G.ships) {
+    G = data.G;
+    buildScene();
+    selected = G.ships.find((s) => s.id === data.selectedId) || null;
+    $('titleScreen').hidden = true;
+    if (G.phase === 'play' || G.phase === 'paused') { G.phase = 'paused'; $('pauseScreen').hidden = false; }
+    else if (G.phase === 'over') showEnd();
+    else showTitle();
+  } else {
+    newBattle(0);
+    showTitle();
+  }
+  syncSettings();
+  requestAnimationFrame((t) => { lastT = t; frame(t); });
+}
+
+window.claude?.hot?.snapshot?.(snapshot);
+const boot = () => (window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {}));
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(boot, boot); else boot();
+
+// Exposed for automated playtesting.
+window.__broadside = {
+  get G() { return G; }, get balls() { return balls; }, newBattle, play,
+  proj: (x, y, z) => proj(x, y, z),
+  setFire(m) { fireMode = m; syncSettings(); },
+  step(n) { for (let i = 0; i < n; i++) update(1 / 60); render(); },
+  get drawCalls() { return renderer ? renderer.info.render.calls : 0; },
+};
+})();
+</script>
+</body></html>
