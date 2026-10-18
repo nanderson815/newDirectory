@@ -5,6 +5,7 @@ import { BATTLES, REGIONS } from '../config/battles.js';
 import { hatSVG } from '../config/hats.js';
 import { ENDLESS_ID, ENDLESS } from '../config/endless.js';
 import { save, isUnlocked } from '../save.js';
+import { mainGoal } from '../sim/goals/index.js';
 
 const W = 1000, H = 700;
 const MIN_SCALE = 0.8; // below this the nodes crowd each other, so small screens pan instead
@@ -196,7 +197,7 @@ const SHIP = '<svg viewBox="0 0 40 36" class="cn-you" aria-hidden="true"><path d
 const stars = (n) => `<span class="cn-stars" aria-hidden="true">${[0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}">★</i>`).join('')}</span>`;
 
 function nodeHTML(b, i, next) {
-  const p = NODES[b.id], open = isUnlocked(i), won = save.stars[b.id] || 0, boss = b.goal === 'boss';
+  const p = NODES[b.id], open = isUnlocked(i), won = save.stars[b.id] || 0, boss = mainGoal(b) === 'boss';
   const hat = boss && save.hats.includes(b.hat);
   const cls = ['cnode', boss ? 'boss' : '', open ? 'open' : 'locked', won ? 'won' : '', hat ? 'hat-won' : '', i === next ? 'next' : ''].filter(Boolean).join(' ');
   const disc = boss ? hatSVG(b.hat, !open) + (open ? '' : LOCK) : open ? `<b>${esc(b.roman === '0' ? '★' : b.roman)}</b>` : LOCK;

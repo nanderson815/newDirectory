@@ -1,3 +1,4 @@
+import { briefText, winText, loseText, mainGoal } from '../sim/goals/index.js';
 import { S, afloat } from '../state.js';
 import { $, store } from '../util.js';
 import { BATTLES } from '../config/battles.js';
@@ -46,18 +47,8 @@ const enemyForts = (B) => (B.forts || []).filter((f) => f.team !== 'player');
 const ownForts = (B) => (B.forts || []).filter((f) => f.team === 'player');
 const isPirate = (B) => B.faction === 'pirate';
 const bossOf = (B) => { const e = B.enemy.find((x) => x.boss); return e ? e.boss : null; };
-// Calico Kate is the one boss who isn’t a "he"; `who` is how a sentence names a boss ("the Capitán General").
+// Calico Kate is the one boss who isn’t a "he".
 const his = (B) => (STORY[B.id] && STORY[B.id].her ? 'her' : 'his');
-const who = (B) => (STORY[B.id] && STORY[B.id].who) || bossOf(B).captain;
-const cap = (t) => t[0].toUpperCase() + t.slice(1);
-const listOf = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
-const flagship = () => (save.fleet[0] ? save.fleet[0].name : 'your flagship');
-function duration(secs) {
-  const m = Math.floor(secs / 60), s = Math.round(secs % 60);
-  if (!m) return `${s} seconds`;
-  if (s === 30) return `${m}½ minutes`;
-  return s ? `${m} min ${s} s` : `${m} minute${m > 1 ? 's' : ''}`;
-}
 function rosterText(B) {
   const counts = {};
   for (const e of B.enemy) counts[e.type] = (counts[e.type] || 0) + 1;
@@ -67,42 +58,20 @@ function rosterText(B) {
   if (B.waves && B.waves.length) parts.push(`then ${B.waves.length} wave${B.waves.length > 1 ? 's' : ''} of reinforcements`);
   return parts.join(', ');
 }
+// Each goal writes its own orders (src/sim/goals/).
 function goalText(B) {
-  if (B.goal === 'waves') return 'Survive as many waves as you can. Every fifth wave brings a flagship.';
   if (B.tutorial) return 'Follow your bosun’s orders, then sink the old hulk.';
-  if (B.goal === 'boss') { const b = bossOf(B); return `Sink ${who(B)}’s ${b.title}.`; }
-  if (B.goal === 'capture') {
-    const forts = enemyForts(B);
-    return forts.length === 1
-      ? `Take ${forts[0].name}: shoot it silent, then land troops.`
-      : `Take all ${forts.length} forts: shoot each one silent, then land troops.`;
-  }
-  if (B.goal === 'treasure') {
-    const n = (B.chests || []).length;
-    return `Haul up ${B.need} of the ${n} floating treasure chests: sail any ship over a chest to bring it aboard.`;
-  }
-  if (B.goal === 'escort') {
-    const names = (B.escort || []).map((e) => e.name), all = B.need >= names.length;
-    const whom = all ? (names.length === 2 ? `both merchantmen, ${listOf(names)},` : `all ${names.length} merchantmen`)
-      : B.need === 1 ? `at least one of the merchantmen, ${listOf(names)},` : `at least ${B.need} of the merchantmen`;
-    return `Get ${whom} out through the top of the chart. They sail on their own; keep the raiders off them.`;
-  }
-  if (B.goal === 'defend') {
-    const forts = ownForts(B).map((f) => f.name);
-    return `Hold ${forts.length ? listOf(forts) : 'your fort'} for ${duration(B.hold)} against wave after wave of attackers.`;
-  }
-  if (B.goal === 'breakthrough') return `Get your flagship, ${flagship()}, out through the top of the chart. The rest of the fleet can cover her.`;
-  return `Sink all ${B.enemy.length} enemy ships.`;
+  return briefText(B);
 }
 function ordersHTML(B) {
   const li = [`<li><b>Orders:</b> ${esc(goalText(B))}</li>`];
-  if (B.goal === 'waves') li.push(`<li>Between waves your ships patch ${Math.round(0.25 * 100)}% of their hull and restock mines. Each wave beaten pays ${WAVE_GOLD} gold.${save.best ? ` Your best: wave ${save.best}.` : ''}</li>`);
+  if (mainGoal(B) === 'waves') li.push(`<li>Between waves your ships patch ${Math.round(0.25 * 100)}% of their hull and restock mines. Each wave beaten pays ${WAVE_GOLD} gold.${save.best ? ` Your best: wave ${save.best}.` : ''}</li>`);
   else if (!B.tutorial) li.push(`<li><b>${isPirate(B) ? 'Pirates' : 'Enemy'}:</b> ${esc(rosterText(B))}.</li>`);
   if (B.fog) li.push('<li><b>Fog:</b> your lookouts only see ships close to your own. Keep the fleet together and watch the edges of the murk.</li>');
   if (ownForts(B).length) li.push('<li>Your fort’s guns fire on anything in range, but it can’t dodge. Hunt down the bomb ketches before they wear it down.</li>');
   if (enemyForts(B).length) li.push('<li>Forts fire in every direction. Once one is silenced, stop a ship beside it and tap <b>Land troops</b>.</li>');
   if (S.G && S.G.ships.some((s) => s.team === 'player' && s.mines > 0)) li.push('<li>Select a ship with mines and tap <b>Drop mine</b> to leave one astern.</li>');
-  if (!B.tutorial && B.goal !== 'boss' && B.goal !== 'breakthrough') li.push(`<li>Batter an enemy below ${Math.round(BOARDING.hpFrac * 100)}% hull, sail alongside and tap <b>Board!</b> to take her as a prize (+${BOARDING.prizeGold} gold).</li>`);
+  if (!B.tutorial && mainGoal(B) !== 'boss' && mainGoal(B) !== 'breakthrough') li.push(`<li>Batter an enemy below ${Math.round(BOARDING.hpFrac * 100)}% hull, sail alongside and tap <b>Board!</b> to take her as a prize (+${BOARDING.prizeGold} gold).</li>`);
   if (!B.tutorial) li.push('<li class="note">Drag from a ship to steer. Hold it to anchor and turn. Tap it to clear its course.</li>');
   return li.join('');
 }
@@ -209,7 +178,7 @@ export function openHats() {
 export function openBrief(i) {
   loadBattle(i);
   const B = battleDef(i);
-  $('briefEyebrow').textContent = B.goal === 'waves' ? `Skirmish · ${B.year}` : B.tutorial ? `Tutorial · ${B.year}` : `Battle ${B.roman} · ${B.year}`;
+  $('briefEyebrow').textContent = mainGoal(B) === 'waves' ? `Skirmish · ${B.year}` : B.tutorial ? `Tutorial · ${B.year}` : `Battle ${B.roman} · ${B.year}`;
   $('briefTitle').textContent = B.name;
   $('briefText').textContent = B.brief;
   const log = STORY[B.id];
@@ -218,7 +187,7 @@ export function openBrief(i) {
     $('briefLogDate').textContent = `Captain’s log · ${logDate(B.id, B.year)}`;
     $('briefLogText').textContent = log.before;
   }
-  const boss = B.goal === 'boss' ? bossOf(B) : null;
+  const boss = mainGoal(B) === 'boss' ? bossOf(B) : null;
   $('briefBoss').hidden = !boss;
   if (boss) {
     const have = save.hats.includes(boss.hat), hatName = HATS[boss.hat].name.replace(/^Calico Kate's /, '').toLowerCase();
@@ -300,7 +269,7 @@ export function endBattle() {
   music.stinger(G.result === 'win' || !!(G.goal === 'waves' && G.award && G.award.record && G.award.waves));
 }
 // Your own ships sunk or captured; prizes taken in the battle don't count against you if they sink.
-const shipsLost = (G) => G.ships.filter((s) => s.origTeam === 'player' && (s.team !== 'player' || !afloat(s))).length;
+const shipsLost = (G) => G.ships.filter((s) => s.origTeam === 'player' && !s.escort && s.state !== 'escaped' && (s.team !== 'player' || !afloat(s))).length;
 const prizesTaken = (G) => G.ships.filter((s) => s.prize && afloat(s)).length;
 
 function renderSkirmishEnd() {
@@ -324,46 +293,16 @@ function renderSkirmishEnd() {
   primary.hidden = false; primary.textContent = 'Try again'; primary.dataset.go = ENDLESS_ID;
 }
 
-function winText(G, B, lost) {
-  const tail = lost ? 'The fleet limps home to refit.' : 'Not a single ship lost.';
-  const foe = isPirate(B) ? 'pirate' : 'Spanish';
+// The goal modules (src/sim/goals/) say how a battle was won or lost; the fleet's fate is added here.
+function victoryText(B, lost) {
   if (B.tutorial) return 'Swift handles like a dream. You’re ready for the Spanish.';
-  if (B.goal === 'boss') return `${cap(who(B))} strikes ${his(B)} colours. ${tail}`;
-  if (B.goal === 'capture') {
-    const forts = enemyForts(B);
-    return `The English flag flies over ${forts.length > 1 ? (forts.length === 2 ? 'both forts' : 'every fort') : forts[0].name}. ${tail}`;
-  }
-  if (B.goal === 'treasure') {
-    const n = G.got != null ? G.got : B.need;
-    return `${n} chest${n === 1 ? '' : 's'} of treasure hauled aboard, and the ${isPirate(B) ? 'pirates' : 'Spanish'} left empty-handed. ${tail}`;
-  }
-  if (B.goal === 'escort') {
-    const n = G.escaped != null ? G.escaped : B.need, of = (B.escort || []).length;
-    return `${n >= of ? (of === 2 ? 'Both merchantmen' : 'Every merchantman') : `${n} of the ${of} merchantmen`} reached open sea with the silver. ${tail}`;
-  }
-  if (B.goal === 'defend') {
-    const forts = ownForts(B).map((f) => f.name);
-    return `${forts.length ? listOf(forts) : 'The fort'} still stand${forts.length > 1 ? '' : 's'} and the ${foe} attack is broken. ${tail}`;
-  }
-  if (B.goal === 'breakthrough') return `${flagship()} slips through the ${foe} line and away. ${tail}`;
-  return `Every ${foe} ship is on the bottom. ${lost ? tail : 'Not a single ship lost. The Admiral will hear of this.'}`;
+  return `${winText(B)} ${lost ? 'The fleet limps home to refit.' : 'Not a single ship lost. The Admiral will hear of this.'}`;
 }
-
-// Why the battle was lost. The sim reports 'marines' (no troops left to take a fort); for the newer goals it may
-// also report 'escort' (merchantmen lost), 'fort' (your fort fell), 'flagship' (flagship sunk) or 'treasure'
-// (the enemy got the chests). With no reason, the goal explains it while any of your warships still float.
-function loseText(G, B) {
-  const retry = 'Refit at the shipyard and try again.';
-  const fleetAfloat = G.ships.some((s) => s.team === 'player' && afloat(s) && !(TYPES[s.type] || {}).merchant);
-  const why = G.reason || (fleetAfloat ? { escort: 'escort', defend: 'fort', breakthrough: 'flagship', treasure: 'treasure' }[B.goal] : null);
-  const enemies = isPirate(B) ? 'the pirates' : 'the Spanish';
-  if (why === 'marines') return 'No ship has enough marines left to take the fort. Buy marines at the shipyard and try again.';
-  if (why === 'escort') return `Too many merchantmen went to the bottom, and the colony’s silver with them. ${retry}`;
-  if (why === 'fort') { const f = ownForts(B)[0]; return `${f ? f.name : 'The fort'} has fallen to ${enemies}. ${retry}`; }
-  if (why === 'flagship') return `${flagship()} was lost before she could break through. ${retry}`;
-  if (why === 'treasure') return `${enemies[0].toUpperCase() + enemies.slice(1)} hauled up the treasure first. ${retry}`;
-  const boss = B.goal === 'boss' ? bossOf(B) : null;
-  return `Your fleet is sunk and the sea belongs to ${boss ? who(B) : `the ${B.foe}`}. ${retry}`;
+function defeatText(G, B) {
+  if (G.reason && G.reason !== 'fleet') return loseText(B, G.reason);
+  const boss = mainGoal(B) === 'boss' ? bossOf(B) : null;
+  const foe = boss ? (STORY[B.id] && STORY[B.id].who) || boss.captain : isPirate(B) ? 'the pirates' : `the ${B.foe}`;
+  return `Your fleet is sunk and the sea belongs to ${foe}. Refit at the shipyard and try again.`;
 }
 
 function renderEnd() {
@@ -375,7 +314,7 @@ function renderEnd() {
   $('endTitle').textContent = win ? (G.battle === BATTLES.length - 1 ? 'The sea is England’s!' : 'Victory!') : 'Defeat';
   $('endStars').hidden = !win;
   $('endStars').innerHTML = win ? starsHTML(a.stars, true) : '';
-  $('endText').textContent = win ? winText(G, B, lost) : loseText(G, B);
+  $('endText').textContent = win ? victoryText(B, lost) : defeatText(G, B);
   const log = win && STORY[B.id];
   $('endLog').hidden = !log;
   if (log) {

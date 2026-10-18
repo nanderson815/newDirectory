@@ -36,11 +36,13 @@ await B(() => {
   G.ships.filter((s) => s.team === 'enemy' && s !== e).forEach((s) => { s.x = 40; s.y = 40; s.passive = true; });
   r.pivot = r.h; r.v = 0; r.reload = [0, 0];
   e.passive = true; e.v = 0; e.x = r.x + Math.cos(r.h + Math.PI / 2) * 150; e.y = r.y + Math.sin(r.h + Math.PI / 2) * 150;
-  b.sim(90);
+  // Damage numbers fade after a second, so keep the most seen at once.
+  window.__maxFloaters = 0;
+  for (let i = 0; i < 90; i++) { b.sim(1); window.__maxFloaters = Math.max(window.__maxFloaters, b.S.floaters.length); }
 });
 const slowed = await B(() => window.__broadside.G.ships.find((s) => s.team === 'enemy' && s.slowT > 0) != null);
 check(slowed, 'chain shot hits leave the target with cut rigging', failures);
-const floaters = await B(() => window.__broadside.S.floaters.length);
+const floaters = await B(() => window.__maxFloaters);
 check(floaters > 0, `hits show damage numbers (${floaters})`, failures);
 await B(() => window.__broadside.step(1));
 await shot(page, 'f1-chain-shot');
