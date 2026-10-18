@@ -25,6 +25,8 @@ export async function open(browser, { width = 390, height = 844, save = null } =
   page.on('console', (m) => { if (m.type() === 'error') page.errors.push('console: ' + m.text()); });
   // Fonts come from Google; offline runs just use the fallback faces.
   await page.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+  // The single-file build loads three.js from jsDelivr; serve the installed copy so tests run offline.
+  await page.route('https://cdn.jsdelivr.net/npm/three@*/build/three.module.js', (r) => r.fulfill({ path: path.join(ROOT, 'node_modules/three/build/three.module.js'), contentType: 'application/javascript', headers: { 'Access-Control-Allow-Origin': '*' } }));
   await page.addInitScript((s) => {
     try { localStorage.clear(); if (s) localStorage.setItem('broadside.save.v1', JSON.stringify(s)); } catch (e) { /* ignore */ }
   }, save);
