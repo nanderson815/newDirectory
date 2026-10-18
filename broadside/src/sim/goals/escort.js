@@ -1,4 +1,5 @@
 import { afloat, showBanner } from '../../state.js';
+import { exitBand } from './marks.js';
 
 // Bring `need` of the merchantmen in `ships` (ship defs) out through the exit at the top of the chart.
 // They sail themselves and can't be given orders; enemy captains go for them first.
@@ -7,8 +8,8 @@ export default {
   id: 'escort',
   about: 'Bring merchantmen out through the exit at the top of the chart.',
   params: { need: 'how many must get through', ships: 'the merchantmen (ship defs); they sail themselves' },
-  exit: true,
   tip: 'exit',
+  draw: (o, G, api) => exitBand(G, api),
   setup(o, G, ctx) {
     o.got = 0;
     o.ids = o.ships.map((d) => ctx.add({ ...d, escort: true }, 'player').id);

@@ -60,12 +60,12 @@ export const PRESETS = {
 
 export const REGION_WEATHER = { port: 'sunny', windward: 'sunny', main: 'sunset', golden: 'storm', pirate: 'sunny', campeche: 'sunset', armada: 'storm' };
 
-// Per-battle overrides by battle id, e.g. { tortuga: 'storm' }.
+// Per-battle overrides by battle id, e.g. { tortuga: 'storm' }. A battle def's own `weather` wins over both.
 export const BATTLE_WEATHER = {};
 
 // The resolved preset for a battle definition: a fresh object, with the boss mood applied.
 export function weatherFor(battle) {
-  const name = (battle && BATTLE_WEATHER[battle.id]) || (battle && REGION_WEATHER[battle.region]) || 'sunny';
+  const name = (battle && (battle.weather || BATTLE_WEATHER[battle.id] || REGION_WEATHER[battle.region])) || 'sunny';
   const p = PRESETS[name] || PRESETS.sunny;
   const w = { ...p, name, light: { ...p.light }, screen: { ...(p.screen || {}) }, isBoss: !!battle && battle.goal === 'boss' };
   if (w.isBoss && p.boss) {

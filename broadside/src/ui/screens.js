@@ -1,14 +1,15 @@
 import { briefText, winText, loseText, mainGoal } from '../sim/goals/index.js';
-import { S, afloat } from '../state.js';
+import { S, afloat, selfSailing } from '../state.js';
 import { $, store } from '../util.js';
 import { BATTLES } from '../config/battles.js';
 import { TYPES } from '../config/ships.js';
 import { UPGRADES, MAX_FLEET } from '../config/upgrades.js';
 import { HATS, HAT_ORDER, hatSVG } from '../config/hats.js';
 import { AMMO, AMMO_COSTS, BOARDING } from '../config/ammo.js';
-import { battleDef, ENDLESS_ID, WAVE_GOLD } from '../config/endless.js';
+import { battleDef, ENDLESS_ID, ENDLESS, WAVE_GOLD } from '../config/endless.js';
+import { LAB_ID } from '../config/lab.js';
 import {
-  save, resetSave, recordSkirmish, fleetStats, refitOffer, upgradeOffer, buyUpgrade, buyRefit, buyAmmo, nextHire, buyHire, recordWin, lvl,
+  save, resetSave, recordSkirmish, starsFor, fleetStats, refitOffer, upgradeOffer, buyUpgrade, buyRefit, buyAmmo, nextHire, buyHire, isUnlocked, recordWin, lvl,
 } from '../save.js';
 import { loadBattle } from '../game.js';
 import { R } from '../render/gl.js';
@@ -55,7 +56,8 @@ function rosterText(B) {
   const parts = Object.entries(counts).map(([t, n]) => `${n} ${n === 1 ? TYPES[t].label.toLowerCase() : PLURAL[t] || TYPES[t].label.toLowerCase() + 's'}`);
   const forts = enemyForts(B).length;
   if (forts) parts.push(`${forts} fort${forts > 1 ? 's' : ''}`);
-  if (B.waves && B.waves.length) parts.push(`then ${B.waves.length} wave${B.waves.length > 1 ? 's' : ''} of reinforcements`);
+  const waves = (B.events || []).filter((e) => e.spawn).length;
+  if (waves) parts.push(`then ${waves} wave${waves > 1 ? 's' : ''} of reinforcements`);
   return parts.join(', ');
 }
 // Each goal writes its own orders (src/sim/goals/).
@@ -178,7 +180,7 @@ export function openHats() {
 export function openBrief(i) {
   loadBattle(i);
   const B = battleDef(i);
-  $('briefEyebrow').textContent = mainGoal(B) === 'waves' ? `Skirmish · ${B.year}` : B.tutorial ? `Tutorial · ${B.year}` : `Battle ${B.roman} · ${B.year}`;
+  $('briefEyebrow').textContent = i === LAB_ID ? `Battle lab · ${B.year}` : mainGoal(B) === 'waves' ? `Skirmish · ${B.year}` : B.tutorial ? `Tutorial · ${B.year}` : `Battle ${B.roman} · ${B.year}`;
   $('briefTitle').textContent = B.name;
   $('briefText').textContent = B.brief;
   const log = STORY[B.id];
@@ -262,14 +264,16 @@ export function endBattle() {
   const G = S.G;
   if (!G || G.phase === 'over') return;
   G.phase = 'over';
-  if (G.goal === 'waves' && !G.award) G.award = recordSkirmish(G.wavesCleared, G.wavesCleared * WAVE_GOLD);
+  // A battle from the lab is played for its own sake: nothing is written to the save.
+  if (G.battle === LAB_ID && !G.award) G.award = { lab: true, gold: 0, stars: starsFor(shipsLost(G)), hat: null, first: false, prizes: 0, prizeGold: 0, waves: G.wavesCleared, best: save.best || 0, record: false };
+  else if (G.goal === 'waves' && !G.award) G.award = recordSkirmish(G.wavesCleared, G.wavesCleared * WAVE_GOLD);
   else if (G.result === 'win' && !G.award) G.award = recordWin(G.battle, shipsLost(G), prizesTaken(G));
   renderEnd();
   showScreen('endScreen');
   music.stinger(G.result === 'win' || !!(G.goal === 'waves' && G.award && G.award.record && G.award.waves));
 }
 // Your own ships sunk or captured; prizes taken in the battle don't count against you if they sink.
-const shipsLost = (G) => G.ships.filter((s) => s.origTeam === 'player' && !s.escort && s.state !== 'escaped' && (s.team !== 'player' || !afloat(s))).length;
+const shipsLost = (G) => G.ships.filter((s) => s.origTeam === 'player' && !selfSailing(s) && s.state !== 'escaped' && (s.team !== 'player' || !afloat(s))).length;
 const prizesTaken = (G) => G.ships.filter((s) => s.prize && afloat(s)).length;
 
 function renderSkirmishEnd() {
@@ -290,7 +294,7 @@ function renderSkirmishEnd() {
   $('statHits').textContent = G.stats.shots ? `${Math.round((100 * G.stats.hits) / G.stats.shots)}%` : '–';
   $('statLost').textContent = String(shipsLost(G));
   const primary = $('endPrimary');
-  primary.hidden = false; primary.textContent = 'Try again'; primary.dataset.go = ENDLESS_ID;
+  primary.hidden = false; primary.textContent = 'Try again'; primary.dataset.go = G.battle;
 }
 
 // The goal modules (src/sim/goals/) say how a battle was won or lost; the fleet's fate is added here.
@@ -308,10 +312,10 @@ function defeatText(G, B) {
 function renderEnd() {
   const G = S.G;
   if (G.goal === 'waves') return renderSkirmishEnd();
-  const B = BATTLES[G.battle], win = G.result === 'win', a = G.award;
+  const B = battleDef(G.battle), win = G.result === 'win', a = G.award;
   const lost = shipsLost(G);
-  $('endEyebrow').textContent = B.tutorial ? 'Shakedown Cruise' : `Battle ${B.roman} · ${B.name}`;
-  $('endTitle').textContent = win ? (G.battle === BATTLES.length - 1 ? 'The sea is England’s!' : 'Victory!') : 'Defeat';
+  $('endEyebrow').textContent = a && a.lab ? `Battle lab · ${B.name}` : B.tutorial ? 'Shakedown Cruise' : `Battle ${B.roman} · ${B.name}`;
+  $('endTitle').textContent = win ? (G.battle === BATTLES.length - 1 && !a.lab ? 'The sea is England’s!' : 'Victory!') : 'Defeat';
   $('endStars').hidden = !win;
   $('endStars').innerHTML = win ? starsHTML(a.stars, true) : '';
   $('endText').textContent = win ? victoryText(B, lost) : defeatText(G, B);
@@ -321,23 +325,23 @@ function renderEnd() {
     $('endLogDate').textContent = `Captain’s log · ${logDate(B.id, B.year)}`;
     $('endLogText').textContent = log.after;
   }
-  $('endReward').hidden = !win;
-  if (win) {
+  $('endReward').hidden = !win || a.lab;
+  if (win && !a.lab) {
     const notes = [a.stars === 3 ? 'flawless bonus' : '', a.prizes ? `${a.prizes} prize${a.prizes > 1 ? 's' : ''} +${a.prizeGold}` : '', a.first ? '' : 'replay'].filter(Boolean).join(' · ');
     $('endReward').innerHTML = `${COIN}<span>+${a.gold} gold</span>${notes ? `<span class="up-desc">${notes}</span>` : ''}`;
   }
-  if (win) coinShower(Math.min(28, 8 + Math.round(a.gold / 25)));
+  if (win && !a.lab) coinShower(Math.min(28, 8 + Math.round(a.gold / 25)));
   $('endHat').hidden = !(win && a.hat);
   if (win && a.hat) $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p>You won the <b>${esc(HATS[a.hat].name.toLowerCase())}</b>! It’s in your hat collection.</p>`;
   const sec = Math.floor(G.t);
   $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   $('statHits').textContent = G.stats.shots ? `${Math.round((100 * G.stats.hits) / G.stats.shots)}%` : '–';
   $('statLost').textContent = String(lost);
-  const next = G.battle + 1 < BATTLES.length ? G.battle + 1 : null;
-  const primary = $('endPrimary');
-  primary.hidden = win && next == null;
-  primary.textContent = win ? 'Next battle' : 'Try again';
-  primary.dataset.go = win ? String(next) : String(G.battle);
+  const next = typeof G.battle === 'number' && G.battle + 1 < BATTLES.length ? G.battle + 1 : null;
+  const primary = $('endPrimary'), again = !win || a.lab; // a lab battle has no next battle, only another go
+  primary.hidden = !again && next == null;
+  primary.textContent = again ? (win ? 'Play again' : 'Try again') : 'Next battle';
+  primary.dataset.go = again ? String(G.battle) : String(next);
 }
 
 // Gold coins tumble down the results screen after a win.
@@ -431,7 +435,7 @@ export function initUI() {
   $('resumeBtn').addEventListener('click', startPlay);
   $('restartBtn').addEventListener('click', () => { loadBattle(S.G.battle); startPlay(); });
   $('retreatBtn').addEventListener('click', openChart);
-  $('endPrimary').addEventListener('click', (e) => { const go = e.currentTarget.dataset.go; openBrief(go === ENDLESS_ID ? go : +go); });
+  $('endPrimary').addEventListener('click', (e) => { const go = e.currentTarget.dataset.go; openBrief(go === ENDLESS_ID || go === LAB_ID ? go : +go); });
   $('endChart').addEventListener('click', openChart);
   syncSettings();
 }

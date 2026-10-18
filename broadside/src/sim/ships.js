@@ -1,10 +1,10 @@
-import { S, afloat } from '../state.js';
+import { S, afloat, selfSailing } from '../state.js';
 import { CHASER_RELOAD } from '../config/ships.js';
 import { PI, clamp, rand, angDiff } from '../util.js';
 import { windFactor } from './wind.js';
 import { followPath, avoidIslands, aiSteer, escortSteer, shoreClear } from './steering.js';
 import { updateAbilities, abilityWind } from './abilities/index.js';
-import { checkExit } from './exit.js';
+import { checkExit, sailOff } from './exit.js';
 import { findBroadsideTarget, findChaseTarget, fireBroadside, fireChasers, dropMine, crewMul } from './combat.js';
 import { spawn } from './particles.js';
 import { sfx } from '../audio/sfx.js';
@@ -27,15 +27,17 @@ export function updateShip(s, dt) {
     }
     return;
   }
+  if (s.fled && s.state === 'escaped') { if (s.fledT < 2) sailOff(s, dt); return; }
   if (!afloat(s)) return;
 
   if (checkExit(s)) return;
-  let desired = s.boarding ? null : s.escort && s.team === 'player' ? escortSteer(s) : s.team === 'player' ? followPath(s) : aiSteer(s, dt);
+  // Merchantmen make for the exit, allies and the enemy have captains of their own, the rest follow your courses.
+  let desired = s.boarding ? null : s.escort && s.team === 'player' ? escortSteer(s) : s.team === 'player' && !s.ally ? followPath(s) : aiSteer(s, dt);
   // Anchored: turn on the spot toward the chosen heading.
   if (s.pivot != null) desired = s.pivot;
   // Keep everyone on the map.
   const m = 55;
-  if (s.pivot == null && !s.passive && !s.boarding && (s.x < m || s.x > G.W - m || s.y < m || s.y > G.H - m)) {
+  if (s.pivot == null && !s.passive && !s.boarding && !s.fleeing && (s.x < m || s.x > G.W - m || s.y < m || s.y > G.H - m)) {
     const toC = Math.atan2(G.H / 2 - s.y, G.W / 2 - s.x);
     if (desired == null || s.team === 'enemy') desired = toC;
   }
@@ -66,7 +68,7 @@ export function updateShip(s, dt) {
   s.flash = Math.max(0, s.flash - dt);
   // Crews fighting hand to hand on deck don't work the guns.
   if (!s.passive && !s.boarding) {
-    if (s.team === 'enemy' || S.fireMode === 'auto' || s.escort) {
+    if (s.team === 'enemy' || S.fireMode === 'auto' || selfSailing(s)) {
       for (let side = 0; side < 2; side++) {
         if (s.reload[side] > 0) continue;
         const tgt = findBroadsideTarget(s, side);

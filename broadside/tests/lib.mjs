@@ -31,12 +31,13 @@ export async function open(browser, { width = 390, height = 844, save = null } =
     try { localStorage.clear(); if (s) localStorage.setItem('broadside.save.v1', JSON.stringify(s)); } catch (e) { /* ignore */ }
   }, save);
   await page.goto(PAGE);
-  await page.waitForFunction(() => window.__broadside && window.__broadside.G, null, { timeout: 60000 });
+  await page.waitForFunction(() => window.__broadside && window.__broadside.G, null, { timeout: 180000 });
   await page.addScriptTag({ path: path.join(here, 'bot.js') });
   return page;
 }
 
-export const shot = (page, name) => page.screenshot({ path: path.join(OUT, name + '.png') });
+// Software WebGL renders slowly on a busy machine, so screenshots get longer than Playwright's default 30s.
+export const shot = (page, name) => page.screenshot({ path: path.join(OUT, name + '.png'), timeout: 120000 });
 
 // Runs the bot captain for up to `secs` of game time; returns the battle result or null.
 export async function botPlay(page, secs = 240) {

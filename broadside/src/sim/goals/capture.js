@@ -1,4 +1,4 @@
-import { afloat } from '../../state.js';
+import { afloat, selfSailing } from '../../state.js';
 
 // Take every enemy fort: shoot it silent, then land troops.
 const targets = (G) => G.forts.filter((f) => f.origTeam === 'enemy');
@@ -12,7 +12,7 @@ export default {
   failed(o, G) {
     const needed = targets(G).filter((f) => !held(f));
     const stuck = needed.length && !needed.some((f) => f.capture) &&
-      !needed.some((f) => G.ships.some((s) => s.team === 'player' && afloat(s) && !s.escort && s.marines >= f.need));
+      !needed.some((f) => G.ships.some((s) => s.team === 'player' && afloat(s) && !selfSailing(s) && s.marines >= f.need));
     return stuck ? 'marines' : null;
   },
   hud: (o, G) => [`Forts taken: ${targets(G).filter(held).length}/${targets(G).length}`],
