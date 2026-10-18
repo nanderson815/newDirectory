@@ -315,7 +315,7 @@ export function syncScene() {
     }
     // Burning: licking flames along the deck and a column of black smoke streaming downwind.
     // Fireships burn from the start unless the sim says otherwise.
-    const burning = s.burning === true || (s.burning === undefined && TYPES[s.type] && TYPES[s.type].fireship);
+    const T = TYPES[s.type], burning = s.burning === true || (s.burning === undefined && !!(s.fireship || (s.abilities && s.abilities.fireship) || (T && T.abilities && T.abilities.fireship)));
     if (burning && (!sinking || s.sinkT < 2.2)) {
       const wdx = Math.cos(G.wind.dir), wdy = Math.sin(G.wind.dir);
       // Each tongue of flame: a broad orange base and a yellow tip that rises, shrinks and starts again.

@@ -341,7 +341,8 @@ export function shipTemplate(s, faction) {
   const look = shipLook(s, faction);
   const T = TYPES[s.type] || TYPES.brig;
   const sp = SPEC[s.type] || {};
-  const mortar = !!(s.mortar || T.mortar);
+  const ab = (k) => (s.abilities && s.abilities[k]) || (T.abilities && T.abilities[k]) || s[k] || T[k];
+  const mortar = !!ab('mortar');
   const key = [s.type, look, s.guns, s.chasers, mortar ? 1 : 0].join(':');
   if (templates.has(key)) return templates.get(key);
   const Lk = LOOKS[look];
