@@ -122,21 +122,25 @@ Gold is spent sparingly: one gold button per screen. Captions are gold-hi on gla
 
 ### Battle HUD
 Drawn every frame on the HUD canvas, only through the kit (`src/hud/hud.js`; screenshots: `node tests/hud-shots.mjs`).
+Every colour, stroke and shadow comes from the kit: `MARK` names what a colour means on the sea (chosen, enemy,
+friend, exit, warn) and `tint()` fades it; nothing in the HUD or the goal markers spells out a colour. Boxes only
+where a touch target or a paragraph needs one (buttons, tips, toasts).
 - **Layout** (12px edge plus safe-area insets): fleet dock top left; pause, wind rose and the objective (a quiet
-  right-aligned caption block, first line brighter) top right; the boss's crimson card between them; the action
+  right-aligned caption block, first line brighter) top right; the boss's name over a long red bar between them; the action
   bar bottom centre; the recentre button above its right end. Tips sit above the action bar (top centre in
   landscape). Off-screen enemies are edge chevrons that slide clear of all of these.
-- **Fleet dock:** one glass panel, a 44px row per ship you command (name over a 3px hull bar), hairlines between
-  rows, a gold hairline round the chosen one (with Whole fleet on, only that row; every name turns gold). Words
+- **Fleet dock:** no box: a 44px row per ship you command (her name, soft-shadowed, over a 3px hull bar); the chosen
+  one's name is gold with a short gold rule beside it (with Whole fleet on, every name turns gold and the rule marks
+  that row). Words
   appear only when they say something (Sunk, Captured, Through, Prize). Merchantmen or allies share one compact row
   of short bars.
-- **Action bar:** 52px stacked tiles (icon over a short label). Loaded guns: gold hairline, gold ink, soft glow; a
-  reload line fills along the bottom. Toggled (anchored): gold hairline. The one main action (Board or Land when it
+- **Action bar:** 52px stacked tiles (icon over a short label). A reload line fills along the bottom; loaded guns are
+  gold ink over a full gold line. Toggled (anchored): gold hairline. The one main action (Board or Land when it
   will work) is the only gold fill. Shot shows every shot she carries with the loaded one ringed; a tap loads the next.
 - **On the sea:** thin lines with a soft dark underlay (`seaStroke`), never wedges or fills: the gun-range rim with end
   ticks and a reload sweep, the course ribbon, a fine gold ring for the chosen ship, red rings for engage targets,
   goal rings (gold reach and chests, blue protect, red target, green exit). Words on the sea are small spaced
-  capitals (`api.label` for goals and abilities). Hull bars over ships are 3px: your ships by how sound they are,
+  capitals (`api.label`, `api.ring`, `api.stroke` for goals and abilities). Hull bars over ships are 3px: your ships by how sound they are,
   the enemy's in red; lost hull flashes pale and drains away. Nothing is drawn for a ship hidden in fog or gone.
 - **Moments:** damage numbers in Fraunces with a spring pop (cream when you hit, coral when you're hit; a floater
   may carry a word such as "Raked!" and a tone), glass toasts over the ship, banners that glide in over a soft dark
