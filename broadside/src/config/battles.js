@@ -73,7 +73,7 @@ export const BATTLES = [
       { x: 0.5, y: 0.55, r: 44, stretch: 2, angle: 8 }, { x: 0.18, y: 0.63, r: 32, stretch: 1.4, angle: 70 },
       { x: 0.8, y: 0.58, r: 30, stretch: 1.6, angle: 110 }, { x: 0.52, y: 0.3, r: 28, stretch: 1.3, angle: -20 },
     ],
-    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.72, hpMul: 1.9 },
+    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.72, hpMul: 1.8 },
   },
   {
     id: 'rojo', region: 'windward', roman: 'III', year: 1656, name: 'La Bruja', foe: 'Capitán Rojo',
@@ -365,7 +365,7 @@ export const BATTLES = [
     goal: 'boss', hat: 'armada', reward: 900, wind: 0,
     brief: 'The Capitán General leads the last great Armada in the Real Felipe: mines astern, mortars aboard, a harbour fort behind her and galleys in reserve. Win this and the sea is England’s.',
     enemy: [
-      { type: 'manowar', name: 'Real Felipe', x: 0.5, y: 0.08, h: 90, hp: 780, chasers: 2,
+      { type: 'manowar', name: 'Real Felipe', x: 0.5, y: 0.08, h: 90, hp: 815, chasers: 2,
         abilities: { mineLayer: { every: 9 }, mortar: { range: 460, reload: 7, dmg: 24, radius: 38 } },
         boss: { captain: 'Capitán General', title: 'Real Felipe', hat: 'armada' } },
       { type: 'galleon', name: 'San Felipe', x: 0.26, y: 0.14, h: 90 },
