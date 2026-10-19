@@ -289,13 +289,14 @@ function setupRain(G, rain) {
 }
 
 // ---------- Fog ----------
-// Two stacked sheets of drifting fog over the whole map, one draw. The fragment shader thins the fog to faint
+// A sheet of drifting fog over the whole map, one draw (a single layer: it covers the screen, so fill rate is
+// what it costs). The fragment shader thins the fog to faint
 // wisps inside the lookouts' sight (a clear bubble around each of your ships) and thickens it into banks
 // beyond, so whatever lies out there is lost in it.
 const FOG_EYES = 6;
 function veilGeometry() {
   const pos = [], layer = [], idx = [];
-  [16, 34].forEach((y, l) => {
+  [22].forEach((y, l) => {
     const b = l * 4;
     pos.push(-0.5, y, -0.5, 0.5, y, -0.5, -0.5, y, 0.5, 0.5, y, 0.5);
     layer.push(l, l, l, l);
@@ -356,7 +357,7 @@ function setupFog(G, w) {
   m.userData.radius = (b && b.fog) || cfg.radius || 0;
   m.scale.set(G.W + 900, 1, G.H + 900);
 }
-const PRESETS_FOG = { color: '#e7ecec', alpha: 0.75, wisp: 0.14, radius: 230 };
+const PRESETS_FOG = { color: '#e7ecec', alpha: 0.85, wisp: 0.16, radius: 230 };
 
 function moveFog(G, clock) {
   const u = fx.veil.material.uniforms;
