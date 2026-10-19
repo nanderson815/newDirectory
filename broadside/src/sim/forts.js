@@ -3,6 +3,7 @@ import { CAPTURE_TIME } from '../config/ships.js';
 import { rand } from '../util.js';
 import { spawn } from './particles.js';
 import { shoreClear } from './steering.js';
+import { coreDist } from './terrain.js';
 import { sfx } from '../audio/sfx.js';
 
 // Coastal forts: a stone tower whose guns cover every direction. Pound one silent, then stop a ship
@@ -37,7 +38,7 @@ export function updateFort(f, dt) {
 export function canLand(s, f) {
   if (!s || !afloat(s) || s.team !== 'player' || f.state === 'active') return false;
   const is = S.G.islands[f.island];
-  return Math.hypot(s.x - is.x, s.y - is.y) < shoreClear(is, s) + 50;
+  return coreDist(is, s.x, s.y) < shoreClear(is, s) + 50;
 }
 const SLOW_ENOUGH = 20;
 

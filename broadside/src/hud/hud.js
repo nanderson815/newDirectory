@@ -218,14 +218,16 @@ function drawBoarding(s) {
 function drawFloaters() {
   const fl = S.floaters;
   for (let i = fl.length - 1; i >= 0; i--) {
-    const f = fl[i], age = S.clock - f.born;
-    if (age > 1.1) { fl.splice(i, 1); continue; }
-    const q = projTo(f.x, f.y, 60 + age * 40);
-    const size = Math.min(26, 14 + f.value * 0.5);
-    ctx.globalAlpha = clamp((1.1 - age) * 3, 0, 1);
-    const pop = age < 0.12 ? 1 + (0.12 - age) * 3 : 1;
-    ctx.save(); ctx.translate(q.x + Math.sin(f.born * 13) * 10, q.y); ctx.scale(pop, pop);
-    outlinedText(`-${Math.round(f.value)}`, 0, 0, size, f.team === 'player' ? '#ff8a7a' : '#fff1b0', 'center');
+    const f = fl[i], age = S.clock - f.born, life = f.life || 1.1;
+    if (age > life) { fl.splice(i, 1); continue; }
+    // Callouts (f.text: "Raked!", "Mast down!", src/sim/hazards.js) ride a little higher and stay longer.
+    const q = projTo(f.x, f.y, (f.z0 || 60) + age * (f.text ? 24 : 40));
+    const size = f.text ? 17 : Math.min(26, 14 + f.value * 0.5);
+    ctx.globalAlpha = clamp((life - age) * 3, 0, 1);
+    const pop = age < 0.12 ? 1 + (0.12 - age) * (f.text ? 5 : 3) : 1;
+    ctx.save(); ctx.translate(q.x + (f.text ? 0 : Math.sin(f.born * 13) * 10), q.y); ctx.scale(pop, pop);
+    if (f.text) outlinedText(f.text, 0, 0, size, f.color, 'center');
+    else outlinedText(`-${Math.round(f.value)}`, 0, 0, size, f.team === 'player' ? '#ff8a7a' : '#fff1b0', 'center');
     ctx.restore();
   }
   ctx.globalAlpha = 1;
@@ -289,6 +291,10 @@ const TIPS = {
   protect: 'Keep the ships and forts ringed in blue safe. Lose one and the battle is lost.',
   hunt: 'Sink the ships ringed in red. The rest don’t matter.',
   fog: 'Fog! You only see ships near your own. Keep the fleet together.',
+  rake: 'Raked! Shot that flies the length of a ship, in through her stern or bow, does far more damage. Cross an enemy’s stern to rake her, and never show her yours.',
+  crit: 'A lucky hit! Shot can bring down a mast (slower for good), smash the rudder (sluggish helm) or start a fire. Raking shots do it more often.',
+  shoal: 'Aground! Pale water is shallow. Brigs and bigger stick fast there; sloops, schooners and xebecs sail right over.',
+  reef: 'Reef! The rocks under the surf hole any ship that crosses them. Steer round the white water.',
 };
 let tip = null;
 function offerTip(id) {
@@ -324,7 +330,7 @@ function wrap(text, maxW) {
   if (line) out.push(line);
   return out;
 }
-export const resetTip = () => { tip = null; };
+export const resetTip = () => { tip = null; S.tipAsk = null; };
 
 // Mortar shells in flight: a pulsing red ring where each will land.
 function drawShellTargets() {
@@ -397,6 +403,8 @@ export function drawHUD() {
     if (G.fog) offerTip('fog');
     if (S.balls.some((b) => b.kind === 'shell' && b.team === 'enemy')) offerTip('mortar');
     if (G.ships.some((s) => s.fireship && afloat(s) && !s.hidden)) offerTip('fireship');
+    // Tips the sim asks for when something first happens (a rake, a lucky hit, running aground).
+    if (S.tipAsk) for (const id of S.tipAsk) { offerTip(id); if ((save.tips || []).includes(id)) S.tipAsk.delete(id); }
   }
   for (const s of G.ships) drawBars(s);
   for (const f of G.forts) drawFort(f);

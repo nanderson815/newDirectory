@@ -7,6 +7,7 @@ import { R, toon } from './gl.js';
 import { wx, wz, fitCamera } from './camera.js';
 import { bakeStatic, buildIsland, buildShipMesh, buildFortMesh, sharedIslandGeos, chestGeometries, setShipFading, setShipTorn, FORT_BASE_Y, FORT_SCALE } from './models.js';
 import { WX, applyWeather, syncWeather } from './weather.js';
+import { buildTerrain, lostMasts } from './terrain.js';
 
 let worldObjs = [];
 export let shipMeshes = new Map();
@@ -57,6 +58,9 @@ export function buildScene() {
   isles.traverse((c) => { if (c.isMesh && !shared.has(c.geometry)) c.geometry.dispose(); });
   scene.add(world);
   worldObjs.push(world);
+  // Shoals, reefs and coastlines (render/terrain.js), baked once per battle.
+  const terrain = buildTerrain(G);
+  if (terrain) { scene.add(terrain); worldObjs.push(terrain); }
 
   for (const f of G.forts) {
     const m = buildFortMesh(f, wx, wz);
@@ -170,6 +174,11 @@ export function syncScene() {
     // Sinking: the masts go by the board one after another, alternating sides.
     const mu = m.u.uMast.value;
     mu.set(0, 0, 0, broken);
+    // Masts shot away (src/sim/hazards.js) lie toppled over the side; the main mast, with the flag, goes last.
+    if (s.mastsDown && !sinking) {
+      const lost = lostMasts(m.pivots.length, m.tpl.mainIdx);
+      for (let i = 0; i < Math.min(s.mastsDown, lost.length); i++) mu.setComponent(lost[i], (s.id + i) & 1 ? 1.4 : -1.4);
+    }
     if (sinking) for (let i = 0; i < 3; i++) { const t = clamp((s.sinkT - 0.25 - i * 0.22) / 1.5, 0, 1); mu.setComponent(i, t * t * 1.55 * ((s.id + i) & 1 ? 1 : -1)); }
     for (const p of m.pivots) { p.rotation.y = p.userData.fa ? m.boom : -s.yard; p.rotation.x = mu.getComponent(p.userData.mast); }
     if (m.tpl.oars && !sinking) m.oar += dt * (1.6 + 3.2 * clamp(s.v / s.speed, 0, 1));

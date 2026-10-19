@@ -93,6 +93,34 @@ export const sfx = {
     duck(0.45, 0.8);
     heat(0.4);
   },
+  // Combat moments and sea hazards (src/sim/hazards.js), built from the existing takes:
+  // rake: a doubled, deeper crunch; mast: a groan of timber then the splash as it goes over the side;
+  // rudder: a low knock; fire: a dull whump; ground: a long scrape of sand; reef: rock on planking.
+  crit(kind, x, y) {
+    if (!on() || !claim('crit', 3, 0.25)) return;
+    const p = where(x, y), t = now();
+    const o = (extra) => Object.assign({ pan: p.pan, cut: p.cut }, extra);
+    if (kind === 'rake') {
+      play(sample('wood', take(4)), o({ at: t, rate: rand(0.7, 0.8), gain: 0.9 * p.gain, verb: 0.15 }));
+      play(sample('wood', take(4)), o({ at: t + 0.05, rate: rand(0.6, 0.7), gain: 0.6 * p.gain, verb: 0.2 }));
+      heat(0.15);
+    } else if (kind === 'mast') {
+      play(sample('creak', take(3)), o({ at: t, rate: rand(0.55, 0.65), gain: 0.9 * p.gain, verb: 0.2 }));
+      play(sample('splash', take(3)), o({ at: t + 0.45, rate: rand(0.5, 0.6), gain: 0.8 * p.gain, verb: 0.2 }));
+    } else if (kind === 'rudder') {
+      play(sample('wood', take(4)), o({ at: t, rate: rand(0.5, 0.58), gain: 0.85 * p.gain, verb: 0.15 }));
+      play(sample('creak', take(3)), o({ at: t + 0.08, rate: rand(0.8, 0.9), gain: 0.5 * p.gain }));
+    } else if (kind === 'fire') {
+      play(sample('fort', take(2)), o({ at: t, rate: rand(1.5, 1.7), gain: 0.45 * p.gain, verb: 0.2 }));
+    } else if (kind === 'ground') {
+      play(sample('stone', take(2)), o({ at: t, rate: rand(0.45, 0.55), gain: 0.8 * p.gain, verb: 0.2 }));
+      play(sample('creak', take(3)), o({ at: t + 0.05, rate: rand(0.45, 0.5), gain: 0.7 * p.gain }));
+    } else {
+      play(sample('stone', take(2)), o({ at: t, rate: rand(0.8, 0.95), gain: 0.75 * p.gain, verb: 0.15 }));
+      play(sample('wood', take(4)), o({ at: t + 0.06, rate: rand(0.7, 0.8), gain: 0.5 * p.gain }));
+    }
+    duck(0.15, 0.3);
+  },
   // A ship going down; bigger hulls go down lower.
   sink(x, y, size = 80) {
     if (!on()) return;

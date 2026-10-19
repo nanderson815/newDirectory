@@ -46,7 +46,7 @@ export function showToast(text, ship, secs = 1.2) {
 
 // Damage numbers: hits on the same target within a moment add up into one number instead of a pile.
 export function addDamage(u, dmg) {
-  const f = S.floaters.find((q) => q.id === u.id && S.clock - q.born < 0.35);
+  const f = S.floaters.find((q) => q.id === u.id && !q.text && S.clock - q.born < 0.35);
   if (f) { f.value += dmg; f.x = u.x; f.y = u.y; return; }
   if (S.floaters.length > 40) S.floaters.shift();
   S.floaters.push({ id: u.id, x: u.x, y: u.y, value: dmg, born: S.clock, team: u.team });

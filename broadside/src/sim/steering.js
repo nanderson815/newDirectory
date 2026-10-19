@@ -1,12 +1,45 @@
-import { S, afloat, shipById, unitById } from '../state.js';
+import { S, afloat, shipById, unitById, showToast } from '../state.js';
 import { upChart } from './battle.js';
 import { edgeHeading } from './exit.js';
 import { abilitySteer } from './abilities/index.js';
 import { eachGoal, hasGoalFlag } from './goals/index.js';
 import { PI, clamp, angDiff } from '../util.js';
+import { corePt, coreDist, grounds, coastGap } from './terrain.js';
 
-// Distance a ship's centre must keep from an island: the drawn beach plus bevel plus most of the hull.
+// Distance a ship's centre must keep from an island's core: the drawn beach plus bevel plus most of the hull.
 export const shoreClear = (is, s) => is.r * 1.05 + s.L * 0.42;
+// The same for the rest of the geography (src/sim/terrain.js): reefs hole any hull, shoals only ground big
+// ships, and a coast is kept off like a beach.
+const reefClear = (c, s) => c.r + s.L * 0.35;
+const shoalClear = (c, s) => c.r + s.L * 0.3;
+const coastClear = (s) => s.L * 0.42 + 6;
+const NONE = [];
+// Capsule obstacles for ship s: [list, clearance, kind] (0 island, 1 reef, 2 shoal).
+function obstacleLists(s) {
+  const G = S.G;
+  OBS[0][0] = G.islands; OBS[1][0] = G.reefs || NONE; OBS[2][0] = grounds(s) ? G.shoals || NONE : NONE;
+  return OBS;
+}
+const OBS = [[NONE, shoreClear, 0], [NONE, reefClear, 1], [NONE, shoalClear, 2]];
+
+// How far (x, y) sits inside the room ship s must keep from the geography: <= 0 is clear water for her.
+export function penetration(s, x, y) {
+  let pen = -Infinity;
+  for (const [list, clear] of obstacleLists(s)) {
+    for (const c of list) { const p = corePt(c, x, y); pen = Math.max(pen, clear(c, s) - Math.hypot(x - p.x, y - p.y)); }
+  }
+  for (const c of S.G.coasts || NONE) pen = Math.max(pen, coastClear(s) - coastGap(c, x, y));
+  return pen;
+}
+export const blockedAt = (s, x, y) => penetration(s, x, y) > 0;
+const inShoal = (s, p) => (S.G.shoals || NONE).some((c) => coreDist(c, p.x, p.y) < shoalClear(c, s));
+// Feelers: is the way ahead on heading h clear for `look` units? Sailing out of somewhere she shouldn't be
+// (pushed against a beach, stuck on a shoal) counts as clear as long as it doesn't take her deeper in.
+function wayClear(s, h, look) {
+  const here = Math.max(0, penetration(s, s.x, s.y)), c = Math.cos(h), sn = Math.sin(h);
+  for (const k of [0.35, 0.7, 1]) if (penetration(s, s.x + c * look * k, s.y + sn * look * k) > here + 0.5) return false;
+  return true;
+}
 
 // The player's ships: an engage order (keep that target on the beam) or else the drawn course.
 const gone = (s, u) => !u || (u.kind === 'fort' ? u.state !== 'active' || u.team === s.team : !afloat(u) || u.team === s.team);
@@ -31,11 +64,13 @@ export function followPath(s) {
     const p = s.path[0];
     const d = Math.hypot(p.x - s.x, p.y - s.y);
     const last = s.path.length === 1;
-    const onLand = G.islands.some((is) => Math.hypot(p.x - is.x, p.y - is.y) < shoreClear(is, s));
+    const onLand = blockedAt(s, p.x, p.y);
     const want = Math.atan2(p.y - s.y, p.x - s.x);
     const turnR = Math.max(s.v, 10) / s.turn;
     // Skip waypoints we've reached, that sit on land, or that are inside our turning circle.
     if ((last ? d < 22 : d < 44) || onLand || (d < turnR * 1.15 && Math.abs(angDiff(s.h, want)) > 1.25)) {
+      // A course that ends on land or in water too shallow for her: say so rather than just stopping.
+      if (onLand && last && s.team === 'player' && s.id > 0 && d > 60) showToast(grounds(s) && inShoal(s, p) ? 'Too shallow for her' : 'She can’t sail there', s, 1.4);
       s.path.shift();
       continue;
     }
@@ -44,27 +79,49 @@ export function followPath(s) {
   return null;
 }
 
-// Bends a heading around the nearest island that sits across it, passing on the side the course already leans to.
+// Bends a heading around the nearest obstacle that sits across it (an island, a reef, or a shoal she'd run aground
+// on), passing on the side the course already leans to; then checks the way is clear of everything, the coast
+// included, and swings the bow further if it isn't. Long islands block the whole span between their ends.
 export function avoidIslands(s, desired, reach) {
   const G = S.G;
   let best = desired, bestD = Infinity;
-  for (const is of G.islands) {
-    const dx = is.x - s.x, dy = is.y - s.y, d = Math.hypot(dx, dy);
-    const clear = shoreClear(is, s) + 14;
-    if (d - clear > Math.min(reach, 160) || d >= bestD) continue;
-    const toIs = Math.atan2(dy, dx);
-    const off = angDiff(desired, toIs);
-    if (Math.abs(off) > PI / 2 || Math.abs(Math.sin(off)) * d > clear) continue;
-    const tangent = Math.asin(clamp(clear / Math.max(d, clear), 0, 1));
-    // Pass on the side the course leans to, unless that gap is blocked by the map edge.
-    const open = (side) => {
-      const px = is.x + Math.cos(toIs + side * PI / 2) * clear, py = is.y + Math.sin(toIs + side * PI / 2) * clear;
-      return px > 25 && px < G.W - 25 && py > 25 && py < G.H - 25;
-    };
-    let side = off > 0 ? -1 : 1;
-    if (!open(side) && open(-side)) side = -side;
-    best = toIs + side * (tangent + 0.12);
-    bestD = d;
+  const open = (a, dist) => {
+    const px = s.x + Math.cos(a) * dist, py = s.y + Math.sin(a) * dist;
+    return px > 25 && px < G.W - 25 && py > 25 && py < G.H - 25 && !(G.coasts || NONE).some((c) => coastGap(c, px, py) < coastClear(s));
+  };
+  for (const [list, clearOf, kind] of obstacleLists(s)) {
+    for (const c of list) {
+      const p = corePt(c, s.x, s.y), d = Math.hypot(p.x - s.x, p.y - s.y);
+      const clear = clearOf(c, s) + 14;
+      if (d - clear > Math.min(reach, 160) || d >= bestD) continue;
+      // Already in the shallows or over the reef: just sail out of it.
+      if (kind && d < c.r) continue;
+      // The arc of headings it blocks, relative to the desired one: the union of its two end circles.
+      const ux = Math.cos(c.ang || 0) * (c.hl || 0), uy = Math.sin(c.ang || 0) * (c.hl || 0);
+      let lo = Infinity, hi = -Infinity, behind = 0;
+      for (const e of [-1, 1]) {
+        const ex = c.x + ux * e - s.x, ey = c.y + uy * e - s.y, de = Math.hypot(ex, ey);
+        const off = angDiff(desired, Math.atan2(ey, ex)), tan = Math.asin(clamp(clear / Math.max(de, clear), 0, 1));
+        if (Math.abs(off) > PI / 2 + tan) behind++;
+        lo = Math.min(lo, off - tan); hi = Math.max(hi, off + tan);
+        if (!c.hl) break;
+      }
+      if (behind === (c.hl ? 2 : 1) || lo > 0 || hi < 0 || hi - lo > PI * 1.9) continue;
+      // Pass on the side the course leans to, unless that gap is blocked by the map edge or the coast.
+      const reachD = Math.sqrt(Math.max(0, d * d - clear * clear)) + 10;
+      let edge = -lo < hi ? lo - 0.12 : hi + 0.12;
+      const other = edge === lo - 0.12 ? hi + 0.12 : lo - 0.12;
+      if (!open(desired + edge, reachD) && open(desired + other, reachD)) edge = other;
+      best = desired + edge;
+      bestD = d;
+    }
+  }
+  const look = Math.min(reach, 110);
+  if (look > 24 && !wayClear(s, best, look)) {
+    const pref = Math.sign(angDiff(desired, best)) || 1;
+    for (let k = 1; k <= 15; k++) {
+      for (const sg of [pref, -pref]) { const h = best + sg * k * 0.2; if (wayClear(s, h, look)) return h; }
+    }
   }
   return best;
 }
@@ -135,8 +192,21 @@ export function beamSteer(s, t) {
   const reach = s.standoff || s.range;
   const ideal = (s.standoff || s.range * s.ideal) + (t.kind === 'fort' ? G.islands[t.island].r : 0);
   let desired;
+  // Raking (src/sim/combat.js): where we sit relative to her bow-stern line. 1 = dead ahead or astern of her.
+  const ship = t.kind !== 'fort';
+  const fromT = Math.atan2(-dy, -dx), along = ship ? Math.abs(Math.cos(angDiff(t.h, fromT))) : 0;
   if (d > Math.max(reach, ideal) * 1.1) {
     desired = bearing;
+    // Closing on her beam would take her broadside through our bow: come in at an angle, toward her stern.
+    if (ship && d < t.range * 1.6 && along < 0.8) {
+      const sx = t.x - Math.cos(t.h) * 80, sy = t.y - Math.sin(t.h) * 80;
+      desired = bearing + (Math.sign(angDiff(bearing, Math.atan2(sy - s.y, sx - s.x))) || 1) * 0.5;
+    }
+  } else if (ship && s.crafty && s.speed >= t.speed * 0.95 && along < 0.93 && d > 80 && t.reload && t.reload[angDiff(t.h, fromT) < 0 ? 0 : 1] > 1) {
+    // A crafty captain, while the broadside facing him is reloading, works round to cross her stern and rake
+    // her rather than trade broadsides.
+    const qx = t.x - Math.cos(t.h) * ideal, qy = t.y - Math.sin(t.h) * ideal;
+    desired = Math.atan2(qy - s.y, qx - s.x);
   } else {
     const a1 = bearing + PI / 2, a2 = bearing - PI / 2;
     const base = Math.abs(angDiff(s.h, a1)) < Math.abs(angDiff(s.h, a2)) ? a1 : a2;
