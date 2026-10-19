@@ -23,6 +23,9 @@ import { GOALS } from './sim/goals/index.js';
 import { ABILITIES } from './sim/abilities/index.js';
 import { WHEN, DO } from './sim/events.js';
 import { spawnShip } from './sim/spawn.js';
+import { TERRAIN, fleetLayout, coreDist, coastGap } from './sim/terrain.js';
+import { applyCrit, RAKE, CRIT } from './sim/hazards.js';
+import { blockedAt } from './sim/steering.js';
 import { shipById, fortById } from './state.js';
 import { audioTick } from './audio/director.js';
 import { ui, initUI, openMenu, openBrief, startPlay, pauseGame, restoreScreen, syncSettings } from './ui/screens.js';
@@ -102,7 +105,7 @@ function battleParam() {
 // Dev builds check the content tables against the primitive registries at boot (npm run check does the same).
 if (import.meta.env.DEV) {
   import('./config/validate.js').then(({ validateContent }) => {
-    const problems = validateContent({ BATTLES, REGIONS, FLEET_SLOTS, TYPES, HATS, HAT_ORDER, GOALS, ABILITIES, WHEN, DO, ENDLESS, waveEnemies });
+    const problems = validateContent({ BATTLES, REGIONS, FLEET_SLOTS, TYPES, HATS, HAT_ORDER, GOALS, ABILITIES, WHEN, DO, ENDLESS, waveEnemies, TERRAIN, fleetLayout });
     if (problems.length) console.warn(`Broadside content: ${problems.length} problem(s)\n  ${problems.join('\n  ')}`);
   });
 }
@@ -122,7 +125,9 @@ if (document.fonts && document.fonts.ready) document.fonts.ready.then(boot, boot
 window.__broadside = {
   get G() { return S.G; }, get S() { return S; }, get save() { return save; },
   battleIndex, openBrief, startPlay, dropMine, startLanding, landingFor, shipById, fortById, windFactor,
-  GOALS, ABILITIES, events: { WHEN, DO }, spawnShip,
+  GOALS, ABILITIES, events: { WHEN, DO }, spawnShip, blockedAt,
+  // Combat rules and geography (src/sim/hazards.js, src/sim/terrain.js), for tests.
+  hazards: { applyCrit, RAKE, CRIT }, terrain: { coreDist, coastGap },
   startBattle(id) { openBrief(typeof id === 'number' ? id : battleIndex(id)); startPlay(); },
   // Plays an ad-hoc battle definition (same shape as src/config/battles.js; see src/config/lab.js for the
   // defaults). It goes through the briefing and results screens but never touches the save. brief: true stops

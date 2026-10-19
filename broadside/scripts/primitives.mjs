@@ -26,7 +26,7 @@ const STATS = ['hp', 'guns', 'reload', 'speed', 'turn', 'range', 'marines', 'mas
 export function renderPrimitives(C) {
   // Only the registries and the type/hat tables go in, never the battles, so rebalancing battles.js never
   // makes this file stale.
-  const { TYPES, HATS, GOALS, ABILITIES, WHEN, DO } = C;
+  const { TYPES, HATS, GOALS, ABILITIES, WHEN, DO, TERRAIN, RAKE, CRIT } = C;
   const out = [
     '# Broadside primitives',
     '',
@@ -41,6 +41,8 @@ export function renderPrimitives(C) {
     `- [Event actions](#event-actions-do): ${Object.keys(DO).map(code).join(', ')}`,
     `- [Ship types](#ship-types): ${Object.keys(TYPES).map(code).join(', ')}`,
     `- [Hats](#hats): ${Object.keys(HATS).map(code).join(', ')}`,
+    `- [Geography and openings](#geography-and-openings): ${Object.keys(TERRAIN).map(code).join(', ')}`,
+    '- [Combat rules](#combat-rules): raking fire, critical hits',
     '',
     '## Goals',
     '',
@@ -88,6 +90,30 @@ export function renderPrimitives(C) {
 
   out.push('## Hats', '', 'Won by finishing a battle that sets `hat` (bosses carry the same id in `boss.hat`).', '');
   out.push(table(['hat', 'name', 'from'], Object.entries(HATS).map(([id, h]) => [code(id), h.name, h.from])), '');
+
+  out.push('## Geography and openings', '', 'Battle fields from `TERRAIN` in `src/sim/terrain.js`. Positions are portrait fractions and radii map',
+    'units, as for islands; landscape turns the whole layout (coasts and long axes included). Ships may not start on',
+    'land, on a reef, or (if they are big enough to ground) on a shoal; `npm run check` says so.', '');
+  for (const [id, T] of Object.entries(TERRAIN)) {
+    out.push(`### \`${id}\``, '', T.about, '');
+    out.push(table([id === 'fleetAt' ? 'value' : 'field', 'description'], Object.entries(T.params).map(([k, d]) => [code(k), d])), '');
+  }
+  out.push('Example: a narrow channel between a coast and a long island, with shoals off the cape.', '', '```js',
+    "coast: { side: 'left', depth: 0.2, capes: [{ at: 0.45, width: 0.3, depth: 0.1 }] },",
+    'islands: [{ x: 0.72, y: 0.46, r: 34, stretch: 2.6, angle: 80 }],',
+    'shoals: [{ x: 0.42, y: 0.3, r: 34, stretch: 1.6, angle: 20 }],',
+    "reefs: [{ x: 0.55, y: 0.66, r: 12, stretch: 4, angle: -10 }], fleetAt: 'left',", '```', '');
+
+  out.push('## Combat rules', '', 'From `RAKE` and `CRIT` in `src/sim/hazards.js`.', '');
+  out.push(`- **Raking fire.** A ball that flies within ${Math.round(RAKE.cone * 180 / Math.PI)}° of the target's bow-stern line has come in`,
+    `  through her stern (×${RAKE.stern} damage) or her bow (×${RAKE.bow}). The hit shows "Raked!" over the ship. Enemy captains`,
+    '  come in at an angle rather than bows-on to a broadside, and some (bosses more often) work round to cross your stern',
+    '  while the broadside facing them is reloading.',
+    `- **Critical hits.** Each round-shot ball that lands (bow chasers too; not chain or grape) has a ${CRIT.chance * 100}% chance`,
+    `  of a lucky hit, ${CRIT.rakeChance * 100}% when it rakes (a stern rake finds the rudder twice as often):`,
+    `  - *Mast down*: ${Math.round(CRIT.mastSlow * 100)}% slower for the rest of the battle (at worst ${Math.round(CRIT.mastMin * 100)}% speed); she always keeps her main mast, and the lost one lies toppled over the side (\`s.mastsDown\`).`,
+    `  - *Rudder shot away*: the helm answers at ${CRIT.rudderTurn * 100}% for ${CRIT.rudderSecs} s (\`s.rudderT\`).`,
+    `  - *Fire aboard*: ${CRIT.fireDps} hull a second for ${CRIT.fireSecs} s (\`s.fireT\`).`, '');
   return out.join('\n');
 }
 

@@ -7,6 +7,8 @@ import { sfx } from '../audio/sfx.js';
 import { updateShell } from './abilities/mortar.js';
 import { abilitiesSunk } from './abilities/index.js';
 import { goalsSunk } from './goals/index.js';
+import { RAKE, rakeEnd, raked, rollCrit } from './hazards.js';
+import { coreDist, coastGap } from './terrain.js';
 
 const BROADSIDE_ARC = 0.62;  // half-angle of each side's firing arc
 const CHASER_ARC = 0.32;     // half-angle of the bow chasers' arc
@@ -164,11 +166,20 @@ export function updateBalls(dt) {
       for (let ii = 0; ii < G.islands.length; ii++) {
         if (ii === b.skip) continue;
         const is = G.islands[ii];
-        if (Math.hypot(b.x - is.x, b.y - is.y) >= is.r * 0.95) continue;
+        if (coreDist(is, b.x, b.y) >= is.r * 0.95) continue;
         // Shot that lands on a fort's island hits the fort if it's the enemy's and still firing.
         const f = is.fort ? G.forts.find((q) => q.island === ii) : null;
         if (f && f.team !== b.team && f.state === 'active') hitFort(f, b);
         else for (let k = 0; k < 6; k++) spawn('sand', b.x, b.y, rand(-40, 40), rand(-40, 40), rand(0.4, 0.7), rand(1.5, 3), 8, rand(20, 50));
+        done = true;
+        break;
+      }
+    }
+    // Shot that falls short on a coast throws up sand.
+    if (!done && G.coasts) {
+      for (const c of G.coasts) {
+        if (coastGap(c, b.x, b.y) > -4) continue;
+        for (let k = 0; k < 6; k++) spawn('sand', b.x, b.y, rand(-40, 40), rand(-40, 40), rand(0.4, 0.7), rand(1.5, 3), 8, rand(20, 50));
         done = true;
         break;
       }
@@ -188,8 +199,12 @@ export function updateBalls(dt) {
 
 export function hitShip(e, b) {
   const G = S.G;
-  e.hp -= b.dmg; e.flash = 0.14;
-  addDamage(e, b.dmg);
+  // A ball that runs her length, in through the stern or the bow, rakes her (src/sim/hazards.js).
+  const end = rakeEnd(e, b), dmg = end ? b.dmg * RAKE[end] : b.dmg;
+  e.hp -= dmg; e.flash = 0.14;
+  addDamage(e, dmg);
+  if (end) raked(e, b, end);
+  rollCrit(e, b, end);
   if (b.kind === 'chain') e.slowT = Math.max(e.slowT, AMMO.chain.slow);
   // Each pellet that lands has a fair chance of cutting down a man; a full grape broadside from a frigate kills three or four.
   if (b.kind === 'grape') { if (Math.random() < 0.25) e.marines = Math.max(0, e.marines - 1); e.crewHit = Math.min(8, e.crewHit + 0.15); }

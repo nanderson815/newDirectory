@@ -244,20 +244,23 @@ function drawFort(f) {
 }
 
 // Damage numbers (and words: "Raked!", "Mast down!") rise and fade off whatever was hit. A floater is
-// { id, x, y, born, team, value?, text?, tone? } (see addDamage in state.js); hits on the English show in coral.
+// { id, x, y, born, team, value?, text?, tone?, life?, z0? } (addDamage, addFloater in state.js; callout in
+// src/sim/hazards.js); hits on the English show in coral.
 const RISE = 34;
 function drawFloaters() {
   const fl = S.floaters;
   for (let i = fl.length - 1; i >= 0; i--) {
-    const f = fl[i], age = S.clock - f.born, dur = f.text && f.value == null ? 1.5 : 1.1;
+    const f = fl[i], age = S.clock - f.born, word = !!f.text && !f.value;
+    const dur = f.life || (word ? 1.5 : 1.1);
     if (age > dur) { fl.splice(i, 1); continue; }
     const u = f.id != null ? unitById(f.id) : null;
     if (u && u.hidden) continue;
-    const q = projTo(f.x, f.y, 60 + RISE * EASE.out(Math.min(1, age / dur)));
-    const v = f.value != null ? Math.round(f.value) : null;
+    // Callouts (f.text: "Raked!", "Mast down!", src/sim/hazards.js) ride higher (f.z0 stacks them) and stay longer.
+    const q = projTo(f.x, f.y, (f.z0 || 60) + (word ? RISE * 0.7 : RISE) * EASE.out(Math.min(1, age / dur)));
+    const v = word || f.value == null ? null : Math.round(f.value);
     const tone = f.tone || (f.team === 'player' ? 'hurt' : 'hit');
     const size = v != null ? Math.min(24, 15 + Math.sqrt(Math.max(0, v)) * 1.4) : 13;
-    floater(ctx, q.x + Math.sin(f.born * 13) * 8, q.y, { value: v != null ? numStr(v) : null, word: f.text || null, tone, age, dur, size });
+    floater(ctx, q.x + (word ? 0 : Math.sin(f.born * 13) * 8), q.y, { value: v != null ? numStr(v) : null, word: f.text || null, tone, age, dur, size });
   }
 }
 // "−12" with a true minus sign, cached.
@@ -291,6 +294,10 @@ const TIPS = {
   protect: 'Keep the ships and forts ringed in blue safe. Lose one and the battle is lost.',
   hunt: 'Sink the ships ringed in red. The rest don’t matter.',
   fog: 'Fog! You only see ships near your own. Keep the fleet together.',
+  rake: 'Raked! Shot that flies the length of a ship, in through her stern or bow, does far more damage. Cross an enemy’s stern to rake her, and never show her yours.',
+  crit: 'A lucky hit! Shot can bring down a mast (slower for good), smash the rudder (sluggish helm) or start a fire. Raking shots do it more often.',
+  shoal: 'Aground! Pale water is shallow. Brigs and bigger stick fast there; sloops, schooners and xebecs sail right over.',
+  reef: 'Reef! The rocks under the surf hole any ship that crosses them. Steer round the white water.',
 };
 const TIP_SECS = 6.5;
 let tip = null;
@@ -316,7 +323,7 @@ function drawTip(bottom) {
   const y = wide ? box.T + (bossBottom ? bossBottom - box.T + K.gap : 0) - e * 10 : bottom - 12 - h + e * 14;
   tipCard(ctx, x, Math.round(y), w, tip.text, { step: 'Tip', alpha: a, lines: tip.lines });
 }
-export const resetTip = () => { tip = null; };
+export const resetTip = () => { tip = null; S.tipAsk = null; };
 
 // The big centred message (fort silenced, boss beaten): glides in, holds, fades.
 let bannerSeen = null, bannerT0 = 0;
@@ -658,6 +665,8 @@ export function drawHUD() {
     if (G.fog) offerTip('fog');
     if (S.balls.some((b) => b.kind === 'shell' && b.team === 'enemy')) offerTip('mortar');
     if (G.ships.some((s) => s.fireship && afloat(s) && !s.hidden)) offerTip('fireship');
+    // Tips the sim asks for when something first happens (a rake, a lucky hit, running aground).
+    if (S.tipAsk) for (const id of S.tipAsk) { offerTip(id); if ((save.tips || []).includes(id)) S.tipAsk.delete(id); }
   }
   for (const s of G.ships) drawShipBar(s);
   for (const f of G.forts) drawFort(f);

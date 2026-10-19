@@ -11,6 +11,8 @@ ones: [EXTENDING.md](EXTENDING.md).
 - [Event actions](#event-actions-do): `spawn`, `banner`, `wind`, `fog`, `say`, `retreat`, `reveal`, `heal`
 - [Ship types](#ship-types): `sloop`, `brig`, `frigate`, `manowar`, `galleon`, `schooner`, `xebec`, `bomb`, `fireship`, `merchant`
 - [Hats](#hats): `cabin`, `rojo`, `comodoro`, `oro`, `kate`, `morion`, `armada`
+- [Geography and openings](#geography-and-openings): `islands`, `shoals`, `reefs`, `coast`, `fleetAt`
+- [Combat rules](#combat-rules): raking fire, critical hits
 
 ## Goals
 
@@ -350,3 +352,89 @@ Won by finishing a battle that sets `hat` (bosses carry the same id in `boss.hat
 | `kate` | Calico Kate's skull hat | Calico Kate of the Black Wyvern |
 | `morion` | Iron morion | Marqués de Hierro of the San Jerónimo |
 | `armada` | Captain-General's crown hat | The Capitán General of the Real Felipe |
+
+## Geography and openings
+
+Battle fields from `TERRAIN` in `src/sim/terrain.js`. Positions are portrait fractions and radii map
+units, as for islands; landscape turns the whole layout (coasts and long axes included). Ships may not start on
+land, on a reef, or (if they are big enough to ground) on a shoal; `npm run check` says so.
+
+### `islands`
+
+Land. Ships sail round it and shot can’t pass it; a fort stands on one. A stretched island is a long ridge, collided and steered round as drawn.
+
+| field | description |
+|---|---|
+| `x` | centre across the chart (portrait fraction) |
+| `y` | centre down the chart (portrait fraction) |
+| `r` | radius in map units (half the width of a long one) |
+| `stretch` | optional: length over width, 1 = round (default 1) |
+| `angle` | optional: direction of the long axis in degrees, 0 = across the chart, 90 = down it (default 0) |
+
+### `shoals`
+
+Shallow, pale water. Ships longer than 64 (brigs and up) run aground: they crawl at 30% speed and 60% helm, lose 4 hull as they strike and 1 a second while they grind on. Sloops, schooners, xebecs, bomb ketches and fireships sail over. Captains and drawn courses steer big ships round them.
+
+| field | description |
+|---|---|
+| `x` | centre across the chart (portrait fraction) |
+| `y` | centre down the chart (portrait fraction) |
+| `r` | radius in map units (half the width of a long one) |
+| `stretch` | optional: length over width, 1 = round (default 1) |
+| `angle` | optional: direction of the long axis in degrees, 0 = across the chart, 90 = down it (default 0) |
+
+### `reefs`
+
+Rocks just under the surf. Any ship crossing one loses up to 16 hull a second and is slowed to 50%. Captains and drawn courses steer round them. Long thin ones (stretch 3-6) make reef lines.
+
+| field | description |
+|---|---|
+| `x` | centre across the chart (portrait fraction) |
+| `y` | centre down the chart (portrait fraction) |
+| `r` | radius in map units (half the width of a long one) |
+| `stretch` | optional: length over width, 1 = round (default 1) |
+| `angle` | optional: direction of the long axis in degrees, 0 = across the chart, 90 = down it (default 0) |
+
+### `coast`
+
+A land mass along one edge of the chart with a ragged shore, coves and capes. Ships collide with it like an island and steer along it. One object, or a list for several coasts (a strait).
+
+| field | description |
+|---|---|
+| `side` | which edge: 'left', 'right', 'top' or 'bottom' (of the portrait chart; landscape turns it with everything else) |
+| `depth` | how far the land reaches in, as a fraction of the chart across that edge (0.1-0.3 is typical) |
+| `rough` | optional: how ragged the shore is, 0 = smooth (default 0.3) |
+| `coves` | optional: bays cut into the land, [{ at, width, depth }] (fractions: where along the edge, how wide, how deep) |
+| `capes` | optional: headlands pushed out to sea, [{ at, width, depth }] |
+| `seed` | optional: a number that reshapes the shore (default from side and depth) |
+
+### `fleetAt`
+
+Where your campaign fleet starts: bottom (the default), top (facing down the chart), left, right, center, or explicit { slots: [[x, y], ...], h } with one slot per ship in fleet order. Pair it with enemy positions anywhere for ambushes and enemies astern.
+
+| value | description |
+|---|---|
+| `fleetAt` | 'bottom' \| 'top' \| 'left' \| 'right' \| 'center' \| { slots: [[x, y], ...] (portrait fractions, up to 5), h (heading in degrees; default -90) } |
+
+Example: a narrow channel between a coast and a long island, with shoals off the cape.
+
+```js
+coast: { side: 'left', depth: 0.2, capes: [{ at: 0.45, width: 0.3, depth: 0.1 }] },
+islands: [{ x: 0.72, y: 0.46, r: 34, stretch: 2.6, angle: 80 }],
+shoals: [{ x: 0.42, y: 0.3, r: 34, stretch: 1.6, angle: 20 }],
+reefs: [{ x: 0.55, y: 0.66, r: 12, stretch: 4, angle: -10 }], fleetAt: 'left',
+```
+
+## Combat rules
+
+From `RAKE` and `CRIT` in `src/sim/hazards.js`.
+
+- **Raking fire.** A ball that flies within 22° of the target's bow-stern line has come in
+  through her stern (×1.75 damage) or her bow (×1.5). The hit shows "Raked!" over the ship. Enemy captains
+  come in at an angle rather than bows-on to a broadside, and some (bosses more often) work round to cross your stern
+  while the broadside facing them is reloading.
+- **Critical hits.** Each round-shot ball that lands (bow chasers too; not chain or grape) has a 3% chance
+  of a lucky hit, 8% when it rakes (a stern rake finds the rudder twice as often):
+  - *Mast down*: 30% slower for the rest of the battle (at worst 55% speed); she always keeps her main mast, and the lost one lies toppled over the side (`s.mastsDown`).
+  - *Rudder shot away*: the helm answers at 50% for 8 s (`s.rudderT`).
+  - *Fire aboard*: 2.4 hull a second for 5 s (`s.fireT`).

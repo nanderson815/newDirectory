@@ -15,6 +15,9 @@
 // events: scripted moments from src/sim/events.js, e.g. { at: 40, banner: [...], spawn: [...ships] } or
 //   { shipSunk: 'San Juan', retreat: 'La Paga', say: ['La Paga', '¡Huid!'] }.
 // faction: 'pirate' gives the enemy black sails and pirate flags. fog: how far (map units) your lookouts see.
+// Geography (src/sim/terrain.js): islands may be long ({ x, y, r, stretch, angle }); shoals and reefs take the
+//   same shape; coast: { side, depth, coves?, capes? } (or a list) lays a shore along an edge; fleetAt moves
+//   your fleet's start ('top', 'left', 'right', 'center' or { slots, h }).
 // sea: optional size multiplier (linear) for the battle's sea on top of the camera's SEA_SCALE, e.g. 1.2 for a
 //   wide-open chase or 0.85 for a tight harbour. Positions are fractions, so the layout scales with it.
 
@@ -46,24 +49,30 @@ export const BATTLES = [
   {
     id: 'tortuga', region: 'windward', roman: 'I', year: 1655, name: 'The Tortuga Narrows', foe: 'Spanish patrol',
     reward: 130, wind: 0,
-    brief: 'Two Spanish brigs guard the narrows. Sink them both.',
+    brief: 'Two Spanish brigs guard the narrows between Tortuga and Ile-à-Vache. Sink them both.',
     enemy: [
-      { type: 'brig', name: 'Santa Rosa', x: 0.32, y: 0.2, h: 90 },
-      { type: 'brig', name: 'El Halcón', x: 0.68, y: 0.2, h: 90 },
+      { type: 'brig', name: 'Santa Rosa', x: 0.42, y: 0.2, h: 90 },
+      { type: 'brig', name: 'El Halcón', x: 0.68, y: 0.16, h: 90 },
     ],
-    islands: [{ x: 0.27, y: 0.48, r: 42 }, { x: 0.76, y: 0.42, r: 38 }, { x: 0.6, y: 0.64, r: 24 }],
+    // The narrows: Tortuga's shore pushes a cape out from the left; a long island lies across from it.
+    coast: { side: 'left', depth: 0.13, rough: 0.35, capes: [{ at: 0.46, width: 0.34, depth: 0.25 }] },
+    islands: [{ x: 0.8, y: 0.44, r: 30, stretch: 2.3, angle: 95 }, { x: 0.62, y: 0.7, r: 22 }],
     ai: { spread: 0.14, reloadMul: 1.25, dmgMul: 0.6, hpMul: 2.2 },
   },
   {
     id: 'cayman', region: 'windward', roman: 'II', year: 1656, name: 'Cayman Shoals', foe: 'brig squadron',
     reward: 150, wind: -30,
-    brief: 'Three brigs lurk among the shoals. Use the islands to split them up.',
+    brief: 'Three brigs lurk among the Cayman shoals. Brigs and frigates run aground in the pale water, but a sloop sails right over. Use the shoals to split them up.',
     enemy: [
       { type: 'brig', name: 'San Pablo', x: 0.2, y: 0.18, h: 90 },
       { type: 'brig', name: 'La Paloma', x: 0.5, y: 0.12, h: 90 },
       { type: 'brig', name: 'San Telmo', x: 0.8, y: 0.18, h: 90 },
     ],
-    islands: [{ x: 0.3, y: 0.4, r: 32 }, { x: 0.72, y: 0.36, r: 30 }, { x: 0.5, y: 0.55, r: 36 }, { x: 0.2, y: 0.66, r: 22 }],
+    islands: [{ x: 0.28, y: 0.4, r: 28, stretch: 1.5, angle: 35 }, { x: 0.74, y: 0.34, r: 26 }],
+    shoals: [
+      { x: 0.5, y: 0.55, r: 44, stretch: 2, angle: 8 }, { x: 0.18, y: 0.63, r: 32, stretch: 1.4, angle: 70 },
+      { x: 0.8, y: 0.58, r: 30, stretch: 1.6, angle: 110 }, { x: 0.52, y: 0.3, r: 28, stretch: 1.3, angle: -20 },
+    ],
     ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.52, hpMul: 1.7 },
   },
   {
@@ -94,13 +103,16 @@ export const BATTLES = [
   {
     id: 'silver', region: 'main', roman: 'V', year: 1657, name: 'The Silver Fleet', foe: 'treasure convoy',
     reward: 260, wind: -90,
-    brief: 'Two treasure galleons and an escort run north with the wind behind them.',
+    brief: 'Two treasure galleons and an escort run north up the coast with the wind behind them. You lie in wait off their flank: strike before they turn on you.',
+    fleetAt: 'left',
     enemy: [
-      { type: 'galleon', name: 'Nuestra Señora', x: 0.35, y: 0.15, h: 90 },
-      { type: 'galleon', name: 'San José', x: 0.65, y: 0.15, h: 90 },
-      { type: 'brig', name: 'La Golondrina', x: 0.5, y: 0.25, h: 90 },
+      { type: 'galleon', name: 'Nuestra Señora', x: 0.62, y: 0.56, h: -90 },
+      { type: 'galleon', name: 'San José', x: 0.68, y: 0.74, h: -90 },
+      { type: 'brig', name: 'La Golondrina', x: 0.56, y: 0.38, h: -90 },
     ],
-    islands: [{ x: 0.25, y: 0.42, r: 34 }, { x: 0.76, y: 0.55, r: 36 }],
+    coast: { side: 'right', depth: 0.15, rough: 0.4, coves: [{ at: 0.25, width: 0.2, depth: 0.07 }] },
+    islands: [{ x: 0.22, y: 0.2, r: 30 }, { x: 0.3, y: 0.82, r: 28, stretch: 1.8, angle: 20 }],
+    reefs: [{ x: 0.5, y: 0.14, r: 11, stretch: 3.5, angle: -15 }],
     ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.7, hpMul: 1.3 },
   },
   {
@@ -168,20 +180,23 @@ export const BATTLES = [
   {
     id: 'cove', region: 'pirate', roman: 'X', year: 1660, name: 'Smugglers’ Cove', foe: 'pirate schooners',
     faction: 'pirate', reward: 420, wind: 45,
-    brief: 'With Spain beaten, the Brethren of the Coast come out of hiding. Four fast schooners hunt in a cove of reefs, and more may lurk behind them.',
+    brief: 'With Spain beaten, the Brethren of the Coast come out of hiding. Four fast schooners hunt from a cove behind a line of reefs, and more may lurk behind them. Their shallow hulls slip over the sandbar at its mouth; yours may not.',
     enemy: [
-      { type: 'schooner', name: 'Sea Wolf', x: 0.24, y: 0.16, h: 90 },
-      { type: 'schooner', name: 'Ravenous', x: 0.42, y: 0.12, h: 90 },
-      { type: 'schooner', name: 'Jolly Meg', x: 0.6, y: 0.12, h: 90 },
-      { type: 'schooner', name: 'Gallows', x: 0.78, y: 0.16, h: 90 },
+      { type: 'schooner', name: 'Sea Wolf', x: 0.38, y: 0.25, h: 90 },
+      { type: 'schooner', name: 'Ravenous', x: 0.47, y: 0.19, h: 90 },
+      { type: 'schooner', name: 'Jolly Meg', x: 0.57, y: 0.18, h: 90 },
+      { type: 'schooner', name: 'Gallows', x: 0.65, y: 0.24, h: 90 },
     ],
+    coast: { side: 'top', depth: 0.34, rough: 0.25, coves: [{ at: 0.5, width: 0.6, depth: 0.27 }] },
+    reefs: [{ x: 0.27, y: 0.4, r: 12, stretch: 4, angle: 25 }, { x: 0.74, y: 0.41, r: 12, stretch: 4, angle: -25 }, { x: 0.5, y: 0.6, r: 16 }],
+    shoals: [{ x: 0.5, y: 0.37, r: 34, stretch: 1.6, angle: 0 }],
+    islands: [{ x: 0.24, y: 0.62, r: 24 }, { x: 0.77, y: 0.64, r: 22, stretch: 1.6, angle: 60 }],
     events: [
       { enemiesLeft: 2, banner: ['Ambush from the reefs!', 'Two more schooners slip out of the cove'],
         spawn: [{ type: 'schooner', name: 'Cutlass', x: 0.07, y: 0.5, h: 0 }, { type: 'schooner', name: 'Barracuda', x: 0.93, y: 0.46, h: 180 }] },
       { enemiesLeft: 1, banner: ['The Black Dog!', 'The smugglers’ brig joins the hunt'],
-        spawn: [{ type: 'brig', name: 'Black Dog', x: 0.5, y: 0.06, h: 90 }] },
+        spawn: [{ type: 'brig', name: 'Black Dog', x: 0.5, y: 0.18, h: 90 }] },
     ],
-    islands: [{ x: 0.3, y: 0.38, r: 30 }, { x: 0.7, y: 0.34, r: 28 }, { x: 0.5, y: 0.52, r: 34 }, { x: 0.25, y: 0.64, r: 22 }, { x: 0.77, y: 0.62, r: 22 }],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.3, hpMul: 2.35 },
   },
   {
@@ -299,22 +314,25 @@ export const BATTLES = [
   {
     id: 'fog', region: 'armada', roman: 'XVI', year: 1664, name: 'Fog off the Mosquito Coast', foe: 'xebec squadron',
     fog: 210, reward: 600, wind: 30,
-    brief: 'A thick fog hides a squadron of oared xebecs. Your lookouts see only so far; keep the fleet together and watch every side, astern too.',
+    brief: 'A thick fog hides a squadron of oared xebecs off the Mosquito Coast, and you have sailed into the middle of the bay. Your lookouts see only so far; keep the fleet together and watch every side, astern too.',
+    fleetAt: 'center',
     enemy: [
       { type: 'xebec', name: 'La Sombra', x: 0.2, y: 0.12, h: 90 },
       { type: 'xebec', name: 'El Fantasma', x: 0.5, y: 0.08, h: 90 },
-      { type: 'xebec', name: 'La Niebla', x: 0.8, y: 0.12, h: 90 },
+      { type: 'xebec', name: 'La Niebla', x: 0.72, y: 0.14, h: 90 },
       { type: 'brig', name: 'San Cristóbal', x: 0.35, y: 0.2, h: 90 },
-      { type: 'brig', name: 'San Rafael', x: 0.65, y: 0.2, h: 90 },
+      { type: 'brig', name: 'San Rafael', x: 0.6, y: 0.2, h: 90 },
     ],
+    coast: { side: 'right', depth: 0.14, rough: 0.45, coves: [{ at: 0.3, width: 0.16, depth: 0.08 }], capes: [{ at: 0.7, width: 0.22, depth: 0.1 }] },
+    islands: [{ x: 0.22, y: 0.32, r: 28 }, { x: 0.58, y: 0.3, r: 26, stretch: 1.7, angle: 15 }, { x: 0.2, y: 0.74, r: 24, stretch: 1.5, angle: 80 }],
+    reefs: [{ x: 0.45, y: 0.78, r: 12, stretch: 3, angle: 10 }],
     events: [
       { at: 20, fog: 150, banner: ['The fog thickens', 'Keep the fleet close together'] },
       { enemiesLeft: 2, banner: ['Oars astern!', 'More xebecs creep up behind you in the fog'],
-        spawn: [{ type: 'xebec', name: 'El Espectro', x: 0.12, y: 0.95, h: -90 }, { type: 'xebec', name: 'La Bruma', x: 0.88, y: 0.95, h: -90 },
+        spawn: [{ type: 'xebec', name: 'El Espectro', x: 0.12, y: 0.95, h: -90 }, { type: 'xebec', name: 'La Bruma', x: 0.76, y: 0.95, h: -90 },
           { type: 'brig', name: 'San Gabriel', x: 0.5, y: 0.06, h: 90 }] },
       { enemiesLeft: 1, fog: 0, banner: ['The fog lifts!', 'Finish them in the sunshine'] },
     ],
-    islands: [{ x: 0.25, y: 0.4, r: 30 }, { x: 0.72, y: 0.36, r: 30 }, { x: 0.48, y: 0.54, r: 28 }, { x: 0.22, y: 0.66, r: 22 }, { x: 0.78, y: 0.64, r: 22 }],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.1, hpMul: 1.85 },
   },
   {
@@ -322,18 +340,23 @@ export const BATTLES = [
     goals: [{ kind: 'breakthrough' }], reward: 640, wind: -90,
     brief: 'The Armada has strung a line across the strait. Get your flagship through and out at the top of the chart. The rest of the fleet can cover her.',
     enemy: [
-      { type: 'galleon', name: 'San Martín', x: 0.3, y: 0.24, h: 0 },
-      { type: 'galleon', name: 'San Lorenzo', x: 0.7, y: 0.24, h: 180 },
-      { type: 'xebec', name: 'La Saeta', x: 0.15, y: 0.4, h: 0 },
-      { type: 'xebec', name: 'El Venablo', x: 0.85, y: 0.4, h: 180 },
+      { type: 'galleon', name: 'San Martín', x: 0.4, y: 0.25, h: 0 },
+      { type: 'galleon', name: 'San Lorenzo', x: 0.62, y: 0.2, h: 180 },
+      { type: 'xebec', name: 'La Saeta', x: 0.27, y: 0.44, h: 0 },
+      { type: 'xebec', name: 'El Venablo', x: 0.73, y: 0.44, h: 180 },
       { type: 'bomb', name: 'El Bronce', x: 0.5, y: 0.1, h: 90 },
     ],
+    // The strait: a shore on either hand, reef lines across it with three gaps to run. The fleet comes up it in
+    // close order.
+    fleetAt: { slots: [[0.5, 0.8], [0.34, 0.86], [0.66, 0.86], [0.42, 0.93], [0.58, 0.93]], h: -90 },
+    coast: [{ side: 'left', depth: 0.16, rough: 0.4, seed: 3 }, { side: 'right', depth: 0.16, rough: 0.4, seed: 11 }],
+    reefs: [{ x: 0.33, y: 0.33, r: 11, stretch: 3.2, angle: -8 }, { x: 0.67, y: 0.31, r: 11, stretch: 3.2, angle: 12 }],
+    islands: [{ x: 0.5, y: 0.44, r: 28, stretch: 1.6, angle: 0 }],
     events: [
       { at: 18, wind: 0, banner: ['The wind veers!', 'A fresh breeze on the beam: crack on for the gap'] },
       { at: 30, banner: ['A galley from the shore!', 'La Jabalina rows out to close the gap'],
-        spawn: [{ type: 'xebec', name: 'La Jabalina', x: 0.08, y: 0.08, h: 45 }] },
+        spawn: [{ type: 'xebec', name: 'La Jabalina', x: 0.26, y: 0.08, h: 45 }] },
     ],
-    islands: [{ x: 0.12, y: 0.24, r: 28 }, { x: 0.88, y: 0.24, r: 28 }, { x: 0.5, y: 0.42, r: 30 }],
     ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 0.92, hpMul: 1.4 },
   },
   {

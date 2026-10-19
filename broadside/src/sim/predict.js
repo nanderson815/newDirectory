@@ -22,6 +22,8 @@ export function predictCourse(s, path, out) {
   const g = ghost;
   g.x = s.x; g.y = s.y; g.h = s.h; g.v = s.v; g.L = s.L; g.B = s.B; g.turn = s.turn; g.speed = s.speed;
   g.hp = s.hp; g.maxHp = s.maxHp; g.slowT = s.slowT; g.rig = s.rig; g.oars = s.oars; g.abilities = s.abilities;
+  // Masts down and a shot-away rudder (src/sim/hazards.js) slow her and her helm on the preview too.
+  g.mastsDown = s.mastsDown || 0; g.rudderT = s.rudderT || 0;
   g.path.length = 0;
   for (let i = 0; i < path.length; i++) g.path.push(path[i]);
   const xy = out.xy, max = PREDICT_POINTS;

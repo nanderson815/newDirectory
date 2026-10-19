@@ -35,8 +35,11 @@ export function checkExit(s) {
 }
 
 // The heading straight out over the nearest edge of the map.
+// Edges walled off by a coast (src/sim/terrain.js) don't count.
 export function edgeHeading(G, s) {
-  const d = [s.x, G.W - s.x, s.y, G.H - s.y], i = d.indexOf(Math.min(...d));
+  const d = [s.x, G.W - s.x, s.y, G.H - s.y];
+  for (const c of G.coasts || []) d[c.axis ? (c.low ? 0 : 1) : (c.low ? 2 : 3)] = Infinity;
+  const i = d.indexOf(Math.min(...d));
   return [Math.PI, 0, -Math.PI / 2, Math.PI / 2][i];
 }
 

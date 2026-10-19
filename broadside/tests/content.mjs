@@ -73,6 +73,26 @@ expectCaught('ship type missing a stat', () => { const T = clone(C.TYPES); delet
 expectCaught('ship type with an unknown ability', () => { const T = clone(C.TYPES); T[firstType].abilities = { teleport: true }; return { TYPES: T }; }, `TYPES.${firstType} ability 'teleport'`);
 expectCaught('bad endless wave', () => ({ waveEnemies: (n) => C.waveEnemies(n).map((d) => ({ ...d, type: n === 3 ? 'canoe' : d.type })) }), "endless wave 3 ship 0");
 
+// Geography (src/sim/terrain.js TERRAIN).
+const ship0 = (B) => B.enemy[0];
+expectCaught('ship on a coast', (B) => { B.coast = { side: 'top', depth: 0.25 }; ship0(B).y = 0.05; }, 'is on (or touching) the top coast');
+expectCaught('big ship aground on a shoal', (B) => { B.shoals = [{ x: ship0(B).x, y: ship0(B).y, r: 30 }]; ship0(B).type = 'frigate'; }, 'starts aground on shoal 0');
+expectCaught('fleet slot on a shoal', (B) => { B.shoals = [{ x: 0.5, y: 0.8, r: 30 }]; }, 'fleet slot 0: starts aground on shoal 0', find((B) => !B.player && B.enemy.length));
+expectCaught('ship on a reef', (B) => { B.reefs = [{ x: ship0(B).x, y: ship0(B).y, r: 10, stretch: 3 }]; }, 'starts on reef 0');
+expectCaught('ship on a long island', (B) => { B.islands = [{ x: ship0(B).x + 0.15, y: ship0(B).y, r: 20, stretch: 4, angle: 0 }]; }, 'is on (or touching) island 0');
+expectCaught('coast on an unknown side', (B) => { B.coast = { side: 'west', depth: 0.2 }; }, "side must be one of");
+expectCaught('island stretched too far', (B) => { B.islands[0].stretch = 20; }, 'stretch must be a number from 1 to 8');
+expectCaught('unknown shoal field', (B) => { B.shoals = [{ x: 0.5, y: 0.5, r: 20, depth: 3 }]; }, "shoals[0]: unknown field 'depth'");
+expectCaught('unknown fleetAt', (B) => { B.fleetAt = 'astern'; }, 'fleetAt must be bottom');
+expectCaught('fleetAt slot on an island', (B) => { B.fleetAt = 'center'; B.islands = [{ x: 0.5, y: 0.5, r: 30 }]; }, 'fleet slot 0: is on (or touching) island 0', find((B) => !B.player && B.enemy.length));
+{
+  // A sloop may start on a shoal; she sails over it.
+  const B = clone(plain);
+  B.shoals = [{ x: B.enemy[0].x, y: B.enemy[0].y, r: 30 }]; B.enemy[0].type = 'sloop';
+  const got = validateContent({ ...C, BATTLES: C.BATTLES.map((b) => (b.id === plain.id ? B : b)) }).filter((m) => m.includes('shoal'));
+  check(got.length === 0, `a sloop may start on a shoal (${got.join('; ') || 'no complaint'})`, failures);
+}
+
 // ---------- generated docs ----------
 console.log('docs:');
 const fresh = renderPrimitives(C);
