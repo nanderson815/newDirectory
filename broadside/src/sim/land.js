@@ -53,7 +53,7 @@ export const LEE = { len: 4, calm: 0.5 };
 // setup(o, G), update(o, G, dt), hit(o, G, x, y, dmg, team) (shot landed nearby).
 export const LANDMARKS = {
   town: {
-    about: 'Houses round a square in the region’s style: English timber and brick, Spanish whitewash and terracotta, a pirate shanty on stilts, a fishing village of palm-thatched huts or a walled city in pastel colours. Chimneys smoke and a flag flies. Given loot, an enemy town can be bombarded: shot that lands on it sets it burning, and once it is ruined its loot is yours (prize gold, paid if you win).',
+    about: 'Houses round a square in the region’s style: English timber and brick, Spanish whitewash and terracotta, a pirate shanty on stilts, a fishing village of palm-thatched huts or a pastel harbour city. Chimneys smoke and a flag flies. Given loot, an enemy town can be bombarded: shot that lands on it sets it burning, and once it is ruined its loot is yours (prize gold, paid if you win).',
     params: {
       houses: 'optional: how many buildings (default 6)',
       look: `optional: ${TOWN_LOOKS.join(', ')} (default: the region's)`,
@@ -111,7 +111,7 @@ export const LANDMARKS = {
         const cap = s.maxHp * o.upTo;
         if (!still || s.hp >= cap) continue;
         const add = Math.min(o.rate * dt, cap - s.hp, o.stock - o.used);
-        s.hp += add; o.used += add;
+        s.hp += add; o.used += add; s.yardAt = G.t;
         if (!s.yardT && s.team === 'player') callout(s, 'Carpenters at work', 'good');
         s.yardT = (s.yardT || 0) + dt;
         if (o.used >= o.stock) { callout(s, 'The yard’s timber is spent', 'sea'); break; }
@@ -128,12 +128,12 @@ export const LANDMARKS = {
   peak: {
     about: `A high hill or mountain on an island or coast. High land steals the wind: in its lee (downwind of it, about ${LEE.len} times its island's radius) ships sail slower, at worst ${Math.round(LEE.calm * 100)}% of the wind's speed right under it. Calm, glassy water shows where the lee lies, and it swings with the wind.`,
     params: {
-      height: 'optional: how high, in map units (default 60)',
-      size: 'optional: how wide its foot is, as a share of the island radius (default 0.6)',
+      height: 'optional: how high, in map units (default 55)',
+      size: 'optional: how wide its foot is, as a share of the island radius (default 0.75)',
       lee: `optional: how far its wind shadow reaches, in island radii (default ${LEE.len}; 0 = none)`,
       calm: `optional: share of the wind left right under it (default ${LEE.calm})`,
     },
-    defaults: { height: 60, size: 0.6, lee: LEE.len, calm: LEE.calm },
+    defaults: { height: 55, size: 0.75, lee: LEE.len, calm: LEE.calm },
     where: 'land',
     extent: (o, R) => o.size * R * 0.75,
   },
@@ -242,6 +242,15 @@ function placeLandmark(G, o, { place, rot }) {
 // ---------- The sim ----------
 export function updateLand(G, dt) {
   for (const o of G.landmarks || []) { const M = LANDMARKS[o.kind]; if (M && M.update) M.update(o, G, dt); }
+  // Your captains say so when they sail into the lee of high land (once a while per ship).
+  if (G.lee && G.lee.length) {
+    for (const s of G.ships) {
+      if (s.team !== 'player' || s.state !== 'afloat') continue;
+      const k = leeAt(G, s.x, s.y);
+      if (k < 0.75 && !s.inLee) { s.inLee = true; if (G.t - (s.leeSaid || -99) > 20) { s.leeSaid = G.t; callout(s, 'In the lee: the wind drops', 'sea'); } }
+      else if (k > 0.92) s.inLee = false;
+    }
+  }
 }
 
 // A ball or shell came down on land at (x, y): a scorch mark, and any town there takes the damage.
@@ -281,8 +290,10 @@ export function leeAt(G, x, y) {
 const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
 // Points your lookouts see from in fog besides your ships: lighthouses with sight. [{ x, y, r }]
+let lookG = null, lookList = [];
 export function lookouts(G) {
-  return (G.landmarks || []).filter((o) => o.kind === 'lighthouse' && o.sight > 0).map((o) => ({ x: o.x, y: o.y, r: o.sight }));
+  if (lookG !== G) { lookG = G; lookList = (G.landmarks || []).filter((o) => o.kind === 'lighthouse' && o.sight > 0).map((o) => ({ x: o.x, y: o.y, r: o.sight })); }
+  return lookList;
 }
 
 // ---------- Content checks ----------

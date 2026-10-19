@@ -107,7 +107,7 @@ export const LANDS = {
       { kind: 'town', island: 0, at: 130, d: 0.69, houses: 6, name: 'Cartagena', loot: 150 },
       { kind: 'church', island: 3, at: 200, d: 0.2 },
       { kind: 'ruin', island: 1, at: 180, d: 0.3 },
-      { kind: 'peak', island: 2, at: 0, d: 0.1, height: 60, lee: 2.5 },
+      { kind: 'peak', island: 2, at: 0, d: 0.1, height: 45, lee: 2.5 },
       { kind: 'wreck', island: 3, at: 90, d: 0.82 },
     ],
   },
@@ -118,13 +118,16 @@ export const LANDS = {
       { kind: 'town', island: 0, at: 200, d: 0.72, houses: 5, name: 'Santa Marta' },
       { kind: 'windmill', island: 1, at: 330, d: 0.73 },
       { kind: 'volcano', island: 2, at: 0, d: 0.05, height: 52, size: 0.85, lee: 3 },
+      { kind: 'mangroves', island: 2, at: 90, span: 120 },
+      { kind: 'stacks', island: 1, at: 0, count: 3 },
+      { kind: 'harbour', island: 0, at: 120, rate: 0 },
     ],
   },
   // The Almirante's golden isles: a temple of gold in the jungle and a mountain whose lee steals the wind.
   oro: {
     relief: [{ island: 0, height: 1.5 }, { island: 1, height: 1.2, cliffs: 0.3, at: -40 }, { island: 2, height: 1.1 }],
     landmarks: [
-      { kind: 'peak', island: 0, at: 200, d: 0.15, height: 70 },
+      { kind: 'peak', island: 0, at: 200, d: 0.1, height: 58, size: 0.85 },
       { kind: 'ruin', island: 1, at: 150, d: 0.35 },
       { kind: 'lighthouse', island: 1, at: -60, d: 0.6 },
       { kind: 'ruin', island: 2, at: 0, d: 0.1 },

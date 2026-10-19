@@ -453,12 +453,12 @@ Every landmark is `{ kind, ...placement, ...params }`. Placement (one of island,
 
 ### `town`
 
-Houses round a square in the region’s style: English timber and brick, Spanish whitewash and terracotta, a pirate shanty on stilts, a fishing village of palm-thatched huts or a walled city in pastel colours. Chimneys smoke and a flag flies. Given loot, an enemy town can be bombarded: shot that lands on it sets it burning, and once it is ruined its loot is yours (prize gold, paid if you win).
+Houses round a square in the region’s style: English timber and brick, Spanish whitewash and terracotta, a pirate shanty on stilts, a fishing village of palm-thatched huts or a pastel harbour city. Chimneys smoke and a flag flies. Given loot, an enemy town can be bombarded: shot that lands on it sets it burning, and once it is ruined its loot is yours (prize gold, paid if you win).
 
 | param | default | description |
 |---|---|---|
 | `houses` | `6` | optional: how many buildings (default 6) |
-| `look` | `` | optional: english, spanish, shanty, village, city (default: the region's) |
+| `look` | (the region’s) | optional: english, spanish, shanty, village, city (default: the region's) |
 | `name` | `the town` | optional: what the banner calls it (default "the town") |
 | `loot` | `0` | optional: prize gold for sacking it, 0 = scenery only (default 0) |
 | `hp` | `60` | optional: how much shot it takes to sack (default 60, about fifteen balls) |
@@ -490,8 +490,8 @@ A high hill or mountain on an island or coast. High land steals the wind: in its
 
 | param | default | description |
 |---|---|---|
-| `height` | `60` | optional: how high, in map units (default 60) |
-| `size` | `0.6` | optional: how wide its foot is, as a share of the island radius (default 0.6) |
+| `height` | `55` | optional: how high, in map units (default 55) |
+| `size` | `0.75` | optional: how wide its foot is, as a share of the island radius (default 0.75) |
 | `lee` | `4` | optional: how far its wind shadow reaches, in island radii (default 4; 0 = none) |
 | `calm` | `0.5` | optional: share of the wind left right under it (default 0.5) |
 

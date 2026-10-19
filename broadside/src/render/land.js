@@ -24,37 +24,37 @@ import { buildShoal, buildReef, rng, sharedTerrainGeos } from './terrain.js';
 const STYLES = {
   port: {
     sand: '#f2d68f', grass: ['#7cc957', '#61b047'], high: '#4f9a3c', rock: '#9b968c', pad: '#d4bf8c',
-    cliffs: 0.12, hill: 18, plateau: 5, beach: 0.17, density: 1, trees: { broad: 0.45, palm: 0.45, bush: 0.1 },
+    cliffs: 0.12, hill: 18, plateau: 5, beach: 0.17, density: 1, forest: 1, trees: { broad: 0.45, palm: 0.45, bush: 0.1 },
     canopy: ['#3f9a3c', '#4aa13a', '#358a35', '#52ad40'],
   },
   windward: {
     sand: '#e8d39c', grass: ['#9fbe5e', '#80a64e'], high: '#6b8d45', rock: '#8f8b86', pad: '#c9b98f',
-    cliffs: 0.45, hill: 26, plateau: 8, beach: 0.09, density: 0.75, trees: { pine: 0.5, palm: 0.2, bush: 0.3 },
+    cliffs: 0.45, hill: 26, plateau: 8, beach: 0.09, density: 0.75, forest: 0.8, trees: { pine: 0.5, palm: 0.2, bush: 0.3 },
     canopy: ['#3f7d45', '#46874a', '#386f3f'],
   },
   main: {
     sand: '#f1d59b', grass: ['#b4c56b', '#98b257'], high: '#7f9a4a', rock: '#c9a679', pad: '#dcc596',
-    cliffs: 0.22, hill: 15, plateau: 5, beach: 0.15, density: 0.85, trees: { palm: 0.45, cactus: 0.25, broad: 0.2, agave: 0.1 },
+    cliffs: 0.22, hill: 15, plateau: 5, beach: 0.15, density: 0.85, forest: 0.45, trees: { palm: 0.45, cactus: 0.25, broad: 0.2, agave: 0.1 },
     canopy: ['#6d9e3e', '#7aa846', '#5f9038'],
   },
   golden: {
     sand: '#f4dc98', grass: ['#56b247', '#3f9b3e'], high: '#2f8337', rock: '#7f8b70', pad: '#c9b98c',
-    cliffs: 0.18, hill: 30, plateau: 6, beach: 0.13, density: 1.6, trees: { broad: 0.68, palm: 0.32 },
+    cliffs: 0.18, hill: 30, plateau: 6, beach: 0.13, density: 1.6, forest: 1.3, trees: { broad: 0.68, palm: 0.32 },
     canopy: ['#2e8a35', '#37963a', '#2a7d31', '#43a33f'],
   },
   pirate: {
     sand: '#f6e3a9', grass: ['#73c457', '#5aad46'], high: '#4b9a3c', rock: '#7a7069', pad: '#d9c08e',
-    cliffs: 0.15, hill: 16, plateau: 4, beach: 0.2, density: 1.1, trees: { palm: 0.78, bush: 0.12, broad: 0.1 },
+    cliffs: 0.15, hill: 16, plateau: 4, beach: 0.2, density: 1.1, forest: 0.9, trees: { palm: 0.78, bush: 0.12, broad: 0.1 },
     canopy: ['#3f9a3c', '#4aa13a', '#358a35'],
   },
   campeche: {
     sand: '#eddaa8', grass: ['#8fbb5c', '#74a34c'], high: '#5f8f43', rock: '#9c917e', pad: '#d4c094',
-    cliffs: 0, hill: 4, plateau: 2.5, beach: 0.22, density: 1.1, trees: { palm: 0.55, broad: 0.25, bush: 0.2 },
+    cliffs: 0, hill: 4, plateau: 2.5, beach: 0.22, density: 1.1, forest: 0.8, trees: { palm: 0.55, broad: 0.25, bush: 0.2 },
     canopy: ['#3d7d3a', '#46883f', '#538f45'],
   },
   armada: {
     sand: '#eed8a2', grass: ['#7db758', '#63a048'], high: '#4f8c3e', rock: '#cdb88c', pad: '#d8c49a',
-    cliffs: 0.35, hill: 16, plateau: 6, beach: 0.12, density: 1, trees: { palm: 0.55, broad: 0.45 },
+    cliffs: 0.35, hill: 16, plateau: 6, beach: 0.12, density: 1, forest: 0.8, trees: { palm: 0.55, broad: 0.45 },
     canopy: ['#3f9a3c', '#4aa13a', '#358a35'],
   },
 };
@@ -123,7 +123,8 @@ function islandRelief(G, is, ii, st, pads) {
     for (const p of peaks) {
       const d = Math.hypot(dx - p.x, dy - p.y) / p.foot;
       if (d >= 1) continue;
-      const w = Math.pow(1 - d, 1.3) * (1 - 0.12 * Math.cos(Math.atan2(dy - p.y, dx - p.x) * 3 + s1));
+      // A rounded mountain (a dome that steepens, then flares out at its foot), lobed so it isn't a cone.
+      const w = Math.pow(1 - d * d, 1.8) * (1 - 0.14 * Math.cos(Math.atan2(dy - p.y, dx - p.x) * 3 + s1));
       let ph = p.H * w * smooth(0, 0.25, inland);
       if (p.crater) ph -= p.H * 0.22 * (1 - smooth(0.05, 0.2, d));
       h += ph;
@@ -233,7 +234,9 @@ function paint(geo, info, st, rl) {
     _c.copy(g0).lerp(g1, clamp(smooth(rl.plateau, top, y) * 0.75 + (nz - 0.5) * 0.6, 0, 1));
     _c.lerp(high, smooth(top * 0.9, top * 1.8, y) * 0.85);
     const inland = 1 - f.t, edge = f.s != null ? 1 - smooth(4, 14, f.s) : 1 - smooth(0.01, 0.05, inland);
-    const rocky = Math.max(f.cliff * edge * smooth(1.5, 3, y), smooth(0.8, 0.6, ny), smooth(0.55, 0.75, f.peak));
+    // Steep ground shows rock, except on a mountain's lower flanks, which stay green up to the bare top.
+    const steep = smooth(0.8, 0.6, ny) * (f.peak > 0.05 ? smooth(0.6, 0.8, f.peak) : 1);
+    const rocky = Math.max(f.cliff * edge * smooth(1.5, 3, y), steep, smooth(0.66, 0.86, f.peak));
     _c.lerp(rock, clamp(rocky * (1 - smooth(0, 0.25, f.pad)), 0, 1)); // a pad's banks stay green
     if (f.crater && f.peak > 0.8) _c.lerp(ash, smooth(0.8, 0.95, f.peak) * 0.85);
     const sandy = (1 - f.cliff) * (1 - smooth(st.beach * 0.65, st.beach * 1.1, inland));
@@ -450,7 +453,7 @@ export function buildLand(G) {
     const B = BUILD[o.kind];
     if (!B) continue;
     const g = new THREE.Group();
-    const face = o.kind === 'windmill' ? G.wind.base + PI : o.face;
+    const face = o.kind === 'windmill' ? G.wind.base + PI : o.kind === 'skull' ? Math.atan2(-cam.fy, -cam.fx) : o.face;
     let gx = o.x, gy = o.y;
     if (o.kind === 'town' && o.host && o.host.island != null && G.islands[o.host.island].fort) {
       const is = G.islands[o.host.island];
@@ -519,13 +522,14 @@ export function buildLand(G) {
       // Woods: canopies packed where the forest noise is high, a few lone trees in the meadows between.
       const conifer = !!st.trees.pine;
       for (let t = -0.12; t < 1.12; t += 0.011) {
-        for (let s0 = 52; s0 < 330; s0 += 21) {
-          const s = s0 + r(-7, 7), [mx, my] = cr.point(t + r(-0.004, 0.004), s);
-          const f = cr.forest(mx, my), p = f > 0.52 ? 0.75 * dens : 0.05;
+        for (let s0 = 52; s0 < 330; s0 += 18) {
+          const s = s0 + r(-6, 6), [mx, my] = cr.point(t + r(-0.004, 0.004), s);
+          const f = cr.forest(mx, my), p = f > 0.52 ? 0.8 * st.forest : 0.05;
           if (r() > p || !clear(mx, my, 6)) continue;
           const y = cr.h(t, s, null, mx, my), big = f > 0.6 ? 1.25 : 1;
-          if (conifer && r() < 0.55) pine(g, wx(mx), y, wz(my), r(1, 1.4) * big, r, st.canopy);
-          else canopy(g, wx(mx), y, wz(my), r(1.05, 1.45) * big, r, st.canopy, s0 < 80 || f < 0.56);
+          if (conifer && r() < 0.55) pine(g, wx(mx), y, wz(my), r(0.95, 1.3) * big, r, st.canopy);
+          else if (st.trees.cactus && f < 0.6 && r() < 0.5) plant(r() < 0.5 ? 'cactus' : 'agave', g, wx(mx), y, wz(my), r(0.9, 1.2), r, st, vegCtx);
+          else canopy(g, wx(mx), y, wz(my), r(0.8, 1.1) * big, r, st.canopy, s0 < 80 || f < 0.56);
         }
       }
     }
@@ -857,10 +861,10 @@ export function syncLand(G, clock, dt, np, ng) {
   }
   // Volcano plumes: a lazy column of grey cloud leaning downwind, always on.
   for (const [x, y, z, H] of life.plumes) {
-    for (let k = 0; k < 10 && np < 990; k++) {
-      const t = (clock * 0.06 + k / 10) % 1, sz = (2.2 + t * 12) * (t < 0.12 ? t / 0.12 : 1) * (t > 0.8 ? (1 - t) / 0.2 : 1);
+    for (let k = 0; k < 12 && np < 990; k++) {
+      const t = (clock * 0.06 + k / 12) % 1, sz = (1.8 + t * 8.5) * (t < 0.12 ? t / 0.12 : 1) * (t > 0.8 ? (1 - t) / 0.2 : 1);
       setInst(P.puff, np, x + wdx * t * t * 110 + Math.sin(k * 3.1) * 3 * t, y + 3 + t * 80, z + wdz * t * t * 110 + Math.cos(k * 2.3) * 3 * t, sz, sz * 0.8, sz, k, t, 0);
-      P.puff.setColorAt(np++, t < 0.3 ? C3.soot : k % 3 ? C3.shellSmoke : C3.soot);
+      P.puff.setColorAt(np++, t < 0.22 || k % 4 === 0 ? C3.soot : C3.shellSmoke);
     }
     if (ng < 398) { const f = 0.75 + 0.25 * Math.sin(clock * 3.1); setInst(P.glow, ng, x, y - 0.5, z, 2.6 * f, 0.8, 2.6 * f); P.glow.setColorAt(ng++, C3.ember); }
   }
@@ -897,6 +901,15 @@ export function syncLand(G, clock, dt, np, ng) {
     }
   }
 
+  // Carpenters at work on a ship in a harbour: hammers glinting on her deck.
+  for (const sh of G.ships) {
+    if (sh.yardAt == null || G.t - sh.yardAt > 0.25 || ng > 396) continue;
+    for (let k = 0; k < 2; k++) {
+      const ph = clock * 6 + k * 2.1 + sh.id, a = (k ? 0.25 : -0.2) * sh.L;
+      if (Math.sin(ph) < 0.6) continue;
+      setInst(P.glow, ng, wx(sh.x + Math.cos(sh.h) * a), 10 + Math.sin(ph) * 2, wz(sh.y + Math.sin(sh.h) * a), 1.4, 1.4, 1.4); P.glow.setColorAt(ng++, C3.glint);
+    }
+  }
   // Birds: gulls circling the lighthouses, wharves and wrecks; parrots looping over the jungle.
   const bp = L.pools.birds, flap = bp.geometry.attributes.aFlap.array;
   let nb = 0;

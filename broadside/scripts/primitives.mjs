@@ -115,7 +115,7 @@ export function renderPrimitives(C) {
   for (const [id, M] of Object.entries(LANDMARKS)) {
     out.push(`### \`${id}\``, '', M.about, '');
     const params = Object.entries(M.params || {});
-    if (params.length) out.push(table(['param', 'default', 'description'], params.map(([k, d]) => [code(k), M.defaults && k in M.defaults ? code(M.defaults[k]) : '', d])), '');
+    if (params.length) out.push(table(['param', 'default', 'description'], params.map(([k, d]) => [code(k), M.defaults && k in M.defaults ? (M.defaults[k] === '' ? '(the region’s)' : code(M.defaults[k])) : '', d])), '');
   }
   out.push('Example: Port Royal under siege, its harbour patching your ships while Spanish mortars set the town alight.', '', '```js',
     "siege: {",

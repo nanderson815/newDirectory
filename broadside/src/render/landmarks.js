@@ -440,6 +440,12 @@ export const BUILD = {
   skull(g, o, ctx) {
     const bone = '#e6e0d2';
     add(g, blob(), '#8c837a', 0, 1.5, 0, 0.06).scale.set(10, 4, 10);
+    // Turned to the camera and tipped back a little, so its hollow eyes look up at you.
+    const head = new THREE.Group();
+    head.rotation.z = 0.45;
+    head.position.y = 2;
+    g.add(head);
+    g = head;
     const head = add(g, new THREE.SphereGeometry(1, 12, 9), bone, 0, 10, 0, 0.035);
     head.scale.set(8.5, 8, 9);
     const jaw = add(g, box(9, 5, 9), '#d8d0bf', 2.5, 4.4, 0, 0.04);
