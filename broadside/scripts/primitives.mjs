@@ -26,7 +26,7 @@ const STATS = ['hp', 'guns', 'reload', 'speed', 'turn', 'range', 'marines', 'mas
 export function renderPrimitives(C) {
   // Only the registries and the type/hat tables go in, never the battles, so rebalancing battles.js never
   // makes this file stale.
-  const { TYPES, HATS, GOALS, ABILITIES, WHEN, DO, TERRAIN, RAKE, CRIT } = C;
+  const { TYPES, HATS, GOALS, ABILITIES, WHEN, DO, TERRAIN, RAKE, CRIT, LANDMARKS = {}, LAND_FIELDS = {}, LANDMARK_PLACE = {} } = C;
   const out = [
     '# Broadside primitives',
     '',
@@ -42,6 +42,7 @@ export function renderPrimitives(C) {
     `- [Ship types](#ship-types): ${Object.keys(TYPES).map(code).join(', ')}`,
     `- [Hats](#hats): ${Object.keys(HATS).map(code).join(', ')}`,
     `- [Geography and openings](#geography-and-openings): ${Object.keys(TERRAIN).map(code).join(', ')}`,
+    `- [Land and landmarks](#land-and-landmarks): ${Object.keys(LANDMARKS).map(code).join(', ')}`,
     '- [Combat rules](#combat-rules): raking fire, critical hits',
     '',
     '## Goals',
@@ -103,6 +104,28 @@ export function renderPrimitives(C) {
     'islands: [{ x: 0.72, y: 0.46, r: 34, stretch: 2.6, angle: 80 }],',
     'shoals: [{ x: 0.42, y: 0.3, r: 34, stretch: 1.6, angle: 20 }],',
     "reefs: [{ x: 0.55, y: 0.66, r: 12, stretch: 4, angle: -10 }], fleetAt: 'left',", '```', '');
+
+  out.push('## Land and landmarks', '', 'The look of a battle\'s land and what stands on it: `src/config/lands.js`, keyed by battle id (or a battle def\'s own',
+    '`land`), with landmark kinds from `LANDMARKS` in `src/sim/land.js`. Most are scenery; harbour (repairs), town (loot),',
+    'peak and volcano (a lee that steals the wind) and lighthouse (sight in fog) change the battle. `npm run check`',
+    'checks that each one fits on its land, inside the outline ships collide with.', '');
+  out.push(table(['field', 'description'], Object.entries(LAND_FIELDS).map(([k, d]) => [code(k), d])), '');
+  out.push('Every landmark is `{ kind, ...placement, ...params }`. Placement (one of island, coast, or x and y):', '');
+  out.push(table(['field', 'description'], Object.entries(LANDMARK_PLACE).map(([k, d]) => [code(k), d])), '');
+  for (const [id, M] of Object.entries(LANDMARKS)) {
+    out.push(`### \`${id}\``, '', M.about, '');
+    const params = Object.entries(M.params || {});
+    if (params.length) out.push(table(['param', 'default', 'description'], params.map(([k, d]) => [code(k), M.defaults && k in M.defaults ? code(M.defaults[k]) : '', d])), '');
+  }
+  out.push('Example: Port Royal under siege, its harbour patching your ships while Spanish mortars set the town alight.', '', '```js',
+    "siege: {",
+    "  style: 'port',",
+    "  landmarks: [",
+    "    { kind: 'town', island: 0, at: 150, d: 0.64, houses: 6, team: 'player', name: 'Port Royal' },",
+    "    { kind: 'harbour', island: 0, at: -60, r: 80 },",
+    "    { kind: 'lighthouse', island: 2, at: 0, d: 0.45 },",
+    "  ],",
+    "},", '```', '');
 
   out.push('## Combat rules', '', 'From `RAKE` and `CRIT` in `src/sim/hazards.js`.', '');
   out.push(`- **Raking fire.** A ball that flies within ${Math.round(RAKE.cone * 180 / Math.PI)}° of the target's bow-stern line has come in`,

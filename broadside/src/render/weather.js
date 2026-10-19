@@ -293,7 +293,7 @@ function setupRain(G, rain) {
 // what it costs). The fragment shader thins the fog to faint
 // wisps inside the lookouts' sight (a clear bubble around each of your ships) and thickens it into banks
 // beyond, so whatever lies out there is lost in it.
-const FOG_EYES = 6;
+const FOG_EYES = 8;
 function veilGeometry() {
   const pos = [], layer = [], idx = [];
   [22].forEach((y, l) => {
@@ -335,7 +335,8 @@ function veilMaterial() {
                 + texture2D(uNoise, (p - drift * 1.7) * 0.0036 + 0.5 + L * 0.21).r * 0.35;
         float bank = smoothstep(0.36, 0.7, n);
         float d = 1e5;
-        for (int i = 0; i < ${FOG_EYES}; i++) if (uEye[i].z > 0.5) d = min(d, distance(p, uEye[i].xy));
+        // z: an eye's sight over the battle's (1 for a ship; a lighthouse sees further).
+        for (int i = 0; i < ${FOG_EYES}; i++) if (uEye[i].z > 0.01) d = min(d, distance(p, uEye[i].xy) / uEye[i].z);
         float far = uR > 0.0 ? smoothstep(uR * 0.6, uR * 1.08, d + (n - 0.5) * uR * 0.4) : 1.0;
         float a = mix(uWisp * bank, uAlpha * (0.5 + 0.5 * bank), far) * (L > 0.5 ? 0.55 : 1.0);
         gl_FragColor = vec4(uCol * (0.94 + 0.08 * bank - L * 0.03), a);
@@ -369,6 +370,12 @@ function moveFog(G, clock) {
     if (k >= FOG_EYES) break;
     if (s.team !== 'player' || s.state === 'sunk' || s.state === 'escaped') continue;
     u.uEye.value[k++].set(s.x - G.W / 2, s.y - G.H / 2, 1);
+  }
+  // Lighthouses with sight (src/sim/land.js) clear the fog round them too.
+  const R0 = u.uR.value || 1;
+  for (const o of G.landmarks || []) {
+    if (k >= FOG_EYES) break;
+    if (o.kind === 'lighthouse' && o.sight > 0) u.uEye.value[k++].set(o.x - G.W / 2, o.y - G.H / 2, o.sight / R0);
   }
   for (; k < FOG_EYES; k++) u.uEye.value[k].z = 0;
 }

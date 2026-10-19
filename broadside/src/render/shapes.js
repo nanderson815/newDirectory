@@ -105,20 +105,3 @@ export function foamCollarGeometry() {
   g.setIndex(idx);
   return g;
 }
-
-export function islandShape(is, k) {
-  const n = is.verts.length;
-  const sh = new THREE.Shape();
-  const pt = (i) => {
-    const a = (i / n) * TAU, r = is.r * k * is.verts[i % n];
-    return [Math.cos(a) * r, -Math.sin(a) * r];
-  };
-  const p0 = pt(0);
-  sh.moveTo(p0[0], p0[1]);
-  for (let i = 1; i <= n; i++) {
-    const p = pt(i);
-    const am = ((i - 0.5) / n) * TAU, rm = is.r * k * (is.verts[i % n] + is.verts[(i - 1) % n]) / 2 * 1.05;
-    sh.quadraticCurveTo(Math.cos(am) * rm, -Math.sin(am) * rm, p[0], p[1]);
-  }
-  return sh;
-}

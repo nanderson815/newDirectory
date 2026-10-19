@@ -44,6 +44,8 @@ export function initGL() {
     stone: new THREE.Color('#a39b8d'), minePlayer: new THREE.Color('#6fc0ff'), mineEnemy: new THREE.Color('#ff4a3a'),
     gold: new THREE.Color('#ffd84a'), glint: new THREE.Color('#fff8d0'), flame: new THREE.Color('#ffb83a'),
     ember: new THREE.Color('#ff5a1e'), shellSmoke: new THREE.Color('#d9d6d0'),
+    // Land (render/land.js): dust thrown up where shot hits the ground, chimney smoke.
+    dust: new THREE.Color('#d2b98c'), chimney: new THREE.Color('#ecebe6'),
   };
   const scene = R.scene;
   // Weather (render/weather.js) recolours and re-aims these per battle.

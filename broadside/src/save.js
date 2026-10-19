@@ -2,6 +2,7 @@ import { TYPES, REFIT, REFIT_COST } from './config/ships.js';
 import { UPGRADES, HIRES, MAX_FLEET } from './config/upgrades.js';
 import { BATTLES } from './config/battles.js';
 import { AMMO_COSTS, BOARDING } from './config/ammo.js';
+import { S } from './state.js';
 
 // Campaign progress lives in this browser only (localStorage), so it's a per-player convenience:
 // losing it costs progress, never breaks the game.
@@ -138,11 +139,13 @@ export function recordWin(idx, lost, prizes = 0) {
   const prev = save.stars[B.id] || 0;
   const stars = starsFor(lost);
   const prizeGold = prizes * BOARDING.prizeGold;
-  const gold = Math.round(B.reward * (prev ? 0.4 : 1) * (stars === 3 ? 1.5 : 1)) + prizeGold;
+  // Towns sacked in the battle (src/sim/land.js) pay their plunder on a win.
+  const plunder = (S.G && S.G.battle === idx && S.G.stats.plunder) || 0;
+  const gold = Math.round(B.reward * (prev ? 0.4 : 1) * (stars === 3 ? 1.5 : 1)) + prizeGold + plunder;
   save.gold += gold;
   save.stars[B.id] = Math.max(prev, stars);
   let hat = null;
   if (B.hat && !save.hats.includes(B.hat)) { save.hats.push(B.hat); hat = B.hat; }
   writeSave();
-  return { gold, stars, hat, first: !prev, prizes, prizeGold };
+  return { gold, stars, hat, first: !prev, prizes, prizeGold, plunder };
 }

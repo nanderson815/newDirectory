@@ -3,6 +3,7 @@ import { TAU, clamp, lerp, rand } from '../../util.js';
 import { hitShip, hitFort } from '../combat.js';
 import { spawn } from '../particles.js';
 import { sfx } from '../../audio/sfx.js';
+import { onLand as landAt, landHit } from '../land.js';
 
 // A mortar lobs a shell high over islands onto a spot `range` away at most, every `reload` seconds; it bursts
 // for up to `dmg` across `radius`. The HUD rings where each shell will land. AI mortar ships (bosses aside)
@@ -74,7 +75,8 @@ function burst(b) {
     if (f.team === b.team || f.state !== 'active') continue;
     if (Math.hypot(f.x - b.x, f.y - b.y) < b.radius + FORT_SIZE) hitFort(f, { dmg: b.dmg, team: b.team });
   }
-  const onLand = G.islands.some((is) => Math.hypot(b.x - is.x, b.y - is.y) < is.r);
+  const onLand = landAt(G, b.x, b.y);
+  if (onLand) landHit(G, b.x, b.y, b.dmg, b.team);
   spawn('flash', b.x, b.y, 0, 0, 0.25, 22, 4, 0);
   if (onLand) for (let k = 0; k < 10; k++) spawn('sand', b.x, b.y, rand(-60, 60), rand(-60, 60), rand(0.5, 0.9), rand(2, 4), 8, rand(30, 70));
   else {
