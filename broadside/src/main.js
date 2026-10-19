@@ -105,6 +105,7 @@ window.__broadside = {
   // where the director wants it.
   step(n) { for (let i = 0; i < n; i++) update(1 / 60); updateCamera(n / 60); render(0); },
   settle() { settleCamera(); render(0); },
+  camTick(dt) { updateCamera(dt); },
   get cam() { return cam; },
   toWorld: (x, y) => toWorld(x, y),
   // The course preview HUD draws for a ship (points as [x, y] pairs), or null.

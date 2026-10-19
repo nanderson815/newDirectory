@@ -3,7 +3,7 @@ import { desiredHeading, helm, shorePush } from './ships.js';
 // Course preview: sails a stand-in for a ship along a course with the real helm (turning circle, wind,
 // waypoint skipping and island avoidance), so the HUD can draw the track she will actually take.
 // Run once each time a course changes, not every frame.
-export const PREDICT = { step: 1 / 30, horizon: 11, every: 3 };
+export const PREDICT = { step: 1 / 60, horizon: 11, every: 6 }; // the sim's own tick, so the track matches it
 export const PREDICT_POINTS = Math.ceil(PREDICT.horizon / PREDICT.step / PREDICT.every) + 2;
 
 const NONE = {};

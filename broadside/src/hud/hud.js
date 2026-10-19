@@ -134,16 +134,22 @@ function drawTapFx() {
 }
 
 // Enemies off screen: small red chevrons on the screen edge, pointing at them.
+const bar = { x: 0, y: 0, w: 0 };
 function drawChevrons() {
   const { cw, ch } = S.view, G = S.G;
   const m = 16, cx = cw / 2, cy = ch / 2;
+  S.hud.chevrons = 0;
   for (const s of G.ships) {
     if (s.team === 'player' || !afloat(s) || s.hidden) continue;
     const q = projTo(s.x, s.y, 8);
     if (q.x > -4 && q.x < cw + 4 && q.y > -4 && q.y < ch + 4) continue;
     const dx = q.x - cx, dy = q.y - cy;
     const k = Math.min((cw / 2 - m) / Math.max(1e-3, Math.abs(dx)), (ch / 2 - m) / Math.max(1e-3, Math.abs(dy)));
-    const x = cx + dx * k, y = cy + dy * k, a = Math.atan2(dy, dx), r = s.boss ? 9 : 7;
+    let x = cx + dx * k, y = cy + dy * k;
+    const a = Math.atan2(dy, dx), r = s.boss ? 9 : 7;
+    // Keep clear of the action bar along the bottom edge.
+    if (bar.w && y > bar.y - 10 && x > bar.x - 12 && x < bar.x + bar.w + 12) x = x < bar.x + bar.w / 2 ? bar.x - 12 : bar.x + bar.w + 12;
+    S.hud.chevrons++;
     const far = Math.hypot(dx, dy) / Math.hypot(cw, ch);
     ctx.save(); ctx.translate(x, y); ctx.rotate(a);
     ctx.globalAlpha = clamp(1.25 - far * 0.6, 0.5, 1);
@@ -404,7 +410,7 @@ export function drawHUD() {
   for (const f of G.forts) drawFort(f);
   if (G.phase === 'title') return;
   drawFloaters();
-  if (G.phase === 'play') drawChevrons();
+
 
   // Fleet cards (tap to select)
   let y = 10;
@@ -459,6 +465,9 @@ export function drawHUD() {
 
   const playing = G.phase === 'play';
   if (sel && playing) drawActionBar(sel);
+  bar.w = 0;
+  if (hud.actions.length) { const a = hud.actions[0], b = hud.actions[hud.actions.length - 1]; bar.x = a.x; bar.y = a.y; bar.w = b.x + b.w - a.x; }
+  if (playing) drawChevrons();
   // The camera is in your hands: a small button (or a double-tap on the sea) gives it back to the director.
   if (playing && cam.mode === 'manual') {
     const r = 19, x = cw - 14 - r, y = (hud.actions.length ? hud.actions[0].y : ch - 14) - 14 - r;

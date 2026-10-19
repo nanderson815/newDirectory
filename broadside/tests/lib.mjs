@@ -36,7 +36,8 @@ export async function open(browser, { width = 390, height = 844, save = null } =
   return page;
 }
 
-export const shot = (page, name) => page.screenshot({ path: path.join(OUT, name + '.png') });
+// Generous timeout: SwiftShader on a busy machine can take a long time to produce a frame.
+export const shot = (page, name) => page.screenshot({ path: path.join(OUT, name + '.png'), timeout: 120000 });
 
 // Runs the bot captain for up to `secs` of game time; returns the battle result or null.
 export async function botPlay(page, secs = 240) {
