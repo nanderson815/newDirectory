@@ -37,7 +37,8 @@ export async function open(browser, { width = 390, height = 844, save = null, fo
   return page;
 }
 
-export const shot = (page, name) => page.screenshot({ path: path.join(OUT, name + '.png') });
+// Generous timeout: on a busy machine a WebGL page can take minutes to hand over a frame.
+export const shot = (page, name) => page.screenshot({ path: path.join(OUT, name + '.png'), timeout: 240000 });
 
 // Runs the bot captain for up to `secs` of game time; returns the battle result or null.
 export async function botPlay(page, secs = 240) {

@@ -852,14 +852,14 @@ b, strong { font-weight: 700; }
   /* Shipyard: the ship on the left, its upgrades in a scrolling column on the right. */
   #yardScreen { overflow: hidden; }
   #yardScreen .panel {
-    max-height: 100%; display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    height: 100%; display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
     grid-template-rows: auto auto auto auto 1fr auto; column-gap: var(--s-6); row-gap: var(--s-3); align-items: start;
   }
   #yardScreen .ship-card { display: contents; }
   #yardScreen .panel-head, #yardScreen .ship-tabs, #yardScreen .ship-head, #yardScreen .ship-stats, #yardScreen .row { grid-column: 1; }
   #yardScreen .panel-head { grid-row: 1; } #yardScreen .ship-tabs { grid-row: 2; } #yardScreen .ship-head { grid-row: 3; }
   #yardScreen .ship-stats { grid-row: 4; } #yardScreen .row { grid-row: 6; align-self: end; }
-  #yardScreen .up-list { grid-column: 2; grid-row: 1 / span 5; align-self: stretch; overflow-y: auto; min-height: 0; max-height: calc(100vh - 80px); margin-right: -8px; padding-right: 8px; scrollbar-width: thin; scrollbar-color: var(--c-glass-line-strong) transparent; }
+  #yardScreen .up-list { grid-column: 2; grid-row: 1 / span 5; align-self: stretch; overflow-y: auto; min-height: 0; margin-right: -8px; padding-right: 8px; scrollbar-width: thin; scrollbar-color: var(--c-glass-line-strong) transparent; }
   #yardScreen .hire { grid-column: 2; grid-row: 6; }
   #yardScreen .ship-stats div { padding: 5px 6px 6px; }
   #yardScreen .ship-stats dd { font-size: 17px; }
