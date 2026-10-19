@@ -15,7 +15,7 @@ const url = `http://127.0.0.1:${server.httpServer.address().port}/tests/kit/inde
 const browser = await launch();
 const errors = [];
 for (const [name, dpr, fonts] of [['kit-dpr2', 2, true], ['kit-dpr3', 3, true], ['kit-offline', 2, false]]) {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 1180 }, deviceScaleFactor: dpr });
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 1280 }, deviceScaleFactor: dpr });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(name + ': ' + e.message));
   if (fonts) await routeFonts(page);

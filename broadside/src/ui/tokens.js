@@ -38,7 +38,7 @@ export const COLOR = {
   // (The `glass*` names are kept so existing callers keep working: "glass" now means an ink slip.)
   glass: 'rgba(33, 26, 20, 0.88)', glassStrong: 'rgba(24, 19, 15, 0.94)', glassSoft: 'rgba(33, 26, 20, 0.7)',
   glassLine: 'rgba(239, 229, 207, 0.16)', glassLineStrong: 'rgba(239, 229, 207, 0.32)',
-  onGlass: P.paper, onGlass2: 'rgba(239, 229, 207, 0.74)', onGlass3: 'rgba(239, 229, 207, 0.5)',
+  onGlass: P.paper, onGlass2: 'rgba(239, 229, 207, 0.8)', onGlass3: 'rgba(239, 229, 207, 0.55)',
   // Paper: every sheet you read (briefing, results, shipyard, hats, pause, settings, the chart).
   paper: P.paper, paper2: P.paper2, paper3: P.paper3,
   paperLine: 'rgba(33, 26, 20, 0.16)', paperRule: 'rgba(33, 26, 20, 0.4)',
@@ -66,9 +66,8 @@ export const FONT = {
   caps: '"IM Fell English SC", "IM Fell English", "Hoefler Text", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif',
   ui: '"EB Garamond", Garamond, "Hoefler Text", "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif',
 };
-// The Google Fonts request (index.html links the same URL). Lilita One is the old HUD face, kept only until
-// the HUD moves onto src/hud/style.js; drop it then.
-export const FONT_URL = 'https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..600&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Lilita+One&display=swap';
+// The Google Fonts request (index.html links the same URL).
+export const FONT_URL = 'https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..600&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap';
 
 // Type scale in CSS px: [size, line-height, weight]. hero..h2 are Fell; the rest EB Garamond.
 // Garamond is small on the body, so text runs a size larger than a sans would.
@@ -98,7 +97,7 @@ export const CANVAS_SHADOW = {
   1: { color: 'rgba(10, 8, 6, 0.32)', blur: 2, y: 1 },
   2: { color: 'rgba(10, 8, 6, 0.4)', blur: 8, y: 3 },
   3: { color: 'rgba(10, 8, 6, 0.5)', blur: 22, y: 8 },
-  text: { color: 'rgba(10, 8, 6, 0.62)', blur: 7, y: 1.5 },
+  text: { color: 'rgba(10, 8, 6, 0.72)', blur: 7, y: 1.5 },
   textTight: { color: 'rgba(10, 8, 6, 0.78)', blur: 2, y: 1 },
 };
 

@@ -1,3 +1,5 @@
+import { PALETTE, COLOR, FONT as TOKEN_FONT } from './ui/tokens.js';
+
 // Small shared helpers.
 export const TAU = Math.PI * 2;
 export const PI = Math.PI;
@@ -20,8 +22,10 @@ export const store = {
   set(k, v) { try { localStorage.setItem('broadside.' + k, v); } catch (e) { /* storage unavailable */ } },
 };
 
+// Shorthands from the design tokens (src/ui/tokens.js). The 3D scene's flags, trim and outlines keep their own
+// brighter values (toon shading darkens them); everything drawn flat uses the tokens.
 export const COL = {
-  ink: '#3a2414', gold: '#f2b632', white: '#ffffff', parchment: '#f7e6bd', hud: 'rgba(20,52,82,0.74)',
+  ink: '#3a2414', gold: PALETTE.gold, white: PALETTE.cream, parchment: PALETTE.paper, hud: COLOR.glass,
   blue: '#2f6fd6', red: '#d23c2c',
 };
-export const FONT = '"Lilita One", "Trebuchet MS", sans-serif';
+export const FONT = TOKEN_FONT.ui;

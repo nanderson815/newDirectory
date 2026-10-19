@@ -52,13 +52,12 @@ export default {
   // Chests carried by salvors still count: they can be won back.
   failed: (o, G) => (o.got + chestsLeft(G) + carried(G) < o.need ? 'treasure' : null),
   hud: (o, G) => [`Treasure: ${o.got}/${o.need}`, `Chests in the water: ${chestsLeft(G)}`],
-  // A gold ring bobs over each chest still in the water.
+  // A fine gold ring breathes over each chest still in the water.
   draw(o, G, api) {
     if (!api.once('chests')) return;
     for (const c of G.chests) {
       if (c.taken) continue;
-      api.seaCircle(c.x, c.y, 15 + Math.sin(S.clock * 4 + c.x) * 2.5, 20);
-      api.ctx.lineWidth = 2.5; api.ctx.strokeStyle = 'rgba(255,214,90,0.85)'; api.ctx.stroke();
+      api.ring(c.x, c.y, 15 + Math.sin(S.clock * 2.5 + c.x) * 2, api.tint(api.MARK.chosen, 0.9), { width: api.LINE.thin, n: 24 });
     }
   },
   brief: (o) => `Haul up ${o.need} of the ${o.chests.length} floating chests by sailing over them. Sink or board a salvor to take back what she has hauled.`,

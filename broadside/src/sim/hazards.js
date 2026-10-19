@@ -21,12 +21,13 @@ export const RAKE = { cone: 0.38, stern: 1.75, bow: 1.5 };
 export const CRIT = { chance: 0.03, rakeChance: 0.08, mastSlow: 0.3, mastMin: 0.55, rudderSecs: 8, rudderTurn: 0.5, fireSecs: 5, fireDps: 2.4 };
 
 // Words over a ship (the HUD draws them like damage numbers, a little higher and longer).
-const TONE = { good: '#ffd34d', bad: '#ff8a7a', crit: '#ffe9c2', sea: '#bff1ff' };
+// The tone names the HUD kit's floater colours (src/hud/style.js, floater()).
+const TONE = { good: 'gold', bad: 'hurt', crit: 'hit', sea: 'cold' };
 export function callout(u, text, tone = 'crit') {
   if (S.floaters.length > 40) S.floaters.shift();
   // Two at once (a mast and a fire from one broadside) stack rather than overprint.
   const stack = S.floaters.filter((f) => f.text && f.id === u.id && S.clock - f.born < 0.9).length;
-  S.floaters.push({ id: u.id, x: u.x, y: u.y, value: 0, text, color: TONE[tone] || tone, born: S.clock, life: 1.6, z0: 128 + stack * 34, team: u.team });
+  S.floaters.push({ id: u.id, x: u.x, y: u.y, value: 0, text, tone: TONE[tone] || tone, born: S.clock, life: 1.6, z0: 128 + stack * 34, team: u.team });
 }
 // Asks the HUD for a one-time tip (src/hud/hud.js TIPS); it shows once a tip slot is free.
 export function askTip(id) { (S.tipAsk || (S.tipAsk = new Set())).add(id); }

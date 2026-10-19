@@ -93,11 +93,11 @@ the ledger, and it gives the game a voice (the imprint line, "Hove to", "A Cabin
 | Night (chart ground) | `night`, `night2` | `#121a1d` `#1b2529` |
 | Sides | `blue` (English) / `redHi` (enemy) | `#2f5d9a` / `#e0573c` |
 | Hull | `hpHigh` / `hpMid` / `hpLow` | `#86b06a` / `#d9a441` / `#e0573c` |
-| Gold | `gold` | coins only |
+| Gold | `gold` | coins only (on the sea, `MARK.chosen` is a pale gilt `#f2d48c`) |
 
 **The red is spent once a screen**: the wordmark on the title page, the initial letter of the captain's log on the
 brief, "Victory!" on the results, the boss's name on the boss notice, the next battle (its roundel, name and the
-leg ahead) on the chart, the selection ring in the HUD. Everything else is ink. Gold is no longer an accent; the
+leg ahead) on the chart. In battle red means the enemy (see Battle HUD). Everything else is ink. Gold is no longer an accent; the
 `gold*`, `teal*`, `terracotta*` and `crimson*` palette keys survive only so older code keeps working.
 
 ### Type
@@ -108,14 +108,15 @@ leg ahead) on the chart, the selection ring in the HUD. Everything else is ink. 
 - **EB Garamond**: everything you read, 17 px body (Garamond is small on its body), with real small capitals
   (`font-variant-caps: all-small-caps`, +0.06em) for kickers, run-in heads, links, labels and tabs, and oldstyle
   figures throughout (tabular where figures line up: prices, stats).
-- One Google Fonts stylesheet (`FONT_URL`); offline fallbacks keep an old-style book face: Hoefler Text, Iowan Old
-  Style, Palatino, Book Antiqua, Georgia. (Lilita One is still in the request for the HUD's old text until that moves
-  onto the kit; drop it then.)
+- One Google Fonts stylesheet (`FONT_URL`), and nothing else; offline fallbacks keep an old-style book face: Hoefler
+  Text, Iowan Old Style, Palatino, Book Antiqua, Georgia.
 - Scale (px / line-height): hero 76/0.9 (wordmark, fluid 56–86), display 44/1 (sheet titles, fluid from 34), h1 36,
   h2 26, h3 20, body-lg 19/1.42 (the log), body 17/1.42, small 15/1.35, caption 14. Buttons 20 (17 small).
 - Rules of craft: headings `text-wrap: balance`, paragraphs `pretty`; hanging punctuation where supported; the log
   opens with a three-line drop initial in Fell red; numbers in words up to twelve in prose ("two schooners"); no
   uppercase-tracked eyebrow labels: at most one small-caps kicker a sheet ("The twelfth engagement").
+- No outlined text anywhere. On the sea, paper-coloured type gets a two-pass soft ink halo (`text()` in the kit,
+  halo `soft`/`strong`).
 
 ### Composition
 - **Title page**: the live sea is the picture. Under it: the wordmark in red, one italic line ("The sea-fights of an
@@ -157,12 +158,16 @@ leg ahead) on the chart, the selection ring in the HUD. Everything else is ink. 
   sheet has one.
 
 ### HUD kit (`src/hud/style.js`)
-Same functions and signatures as before; the tones keep their names but now mean: `glass` an ink slip (90% ink,
-paper hairline), `solid` opaque ink, `paper` a paper slip, `gold` the *ready/chosen* state inverted to paper (a
-loaded gun, the active button), `crimson` a boss slip in deep red, `danger` red. Button labels in Fell small caps;
-subs in italic Garamond; bars flat with square-cut ends; reload progress a fine paper rule; selection rings red;
-banners a Fell title between two fine rules with an italic line under it; tips are paper slips; the wind compass an
-ink disc with a paper needle tipped red. Text on the sea keeps the two-pass soft shadow (`text()`), never an outline.
+The canvas half of the language; the Battle HUD below is built only from it. Tones keep their historical names:
+`glass` is an ink slip (90% ink, paper hairline), `solid` opaque ink, `paper` a paper slip, `gold` the *ready/chosen*
+state inverted to paper (a loaded gun, a toggled control, the one main action), `crimson` a boss slip in deep red,
+`danger` red. `MARK` gives the colour roles on the sea (paper for line, pale gilt for chosen, vermilion for enemy,
+blue friend, green exit). Faces: `display` (Fell, always weight 400: no synthetic bold), `caps` (Fell small caps, button labels),
+`ui` (Garamond). Button labels in Fell small caps, subs in italic Garamond; `caption()` is Garamond 600 in real small
+capitals with a strong ink halo; bars flat with square-cut ends; reloads a fine paper rule; `hairline()` and active
+rings in gilt; banners a Fell title between fine rules; toasts ink slips in italic; tips paper slips; the wind
+compass an ink disc with a paper needle tipped red. Text on the sea keeps the two-pass soft ink halo (`text()`),
+never an outline. Demo: `tests/kit/`, `node tests/kit-shot.mjs`.
 
 ### Motion
 - Curves: `out` (0.22, 1, 0.36, 1) for arrivals, `inOut` for moves, `in` for exits, `spring` only for small pops (the
@@ -174,10 +179,49 @@ ink disc with a paper needle tipped red. Text on the sea keeps the two-pass soft
 - Transform and opacity only. `prefers-reduced-motion` turns every animation into an instant change.
 
 ### Icons
-- 24×24 grid, ~2 px clear space, 2 px round strokes, solid fills only for small masses, one colour (`currentColor` in
-  the DOM, any fill on canvas), no text inside. One set of path data for the DOM (`iconSVG`) and the canvas
-  (`drawIcon`, `iconImage`). In the menus icons are nearly gone: words do the work; only the chart's back arrow and
-  toasts keep one. The HUD uses them where a word won't fit.
+- 24×24 grid, ~2 px clear space, 2 px round strokes, solid fills only for small masses (shot, hulls, flags), one
+  colour (`currentColor` in the DOM, any fill on canvas), no text inside. One set of path data for the DOM
+  (`iconSVG`) and the canvas (`drawIcon`, or `iconImage` to blit).
+- Set: anchor, mine, board, land, firePort, fireStarboard, round, chain, grape, fleet, pause, play, wind, gold,
+  star, lock, hat, back, next, close, check, restart, helm (settings), recentre, map, ship, music, sound, mute, skull.
+- In the menus icons are nearly gone: words do the work; only the chart's back arrow and toasts keep one. In the HUD
+  an icon goes with a short label on the action tiles; an icon alone only for universal actions (pause, back, close,
+  recentre).
+
+### Battle HUD
+Drawn every frame on the HUD canvas, only through the kit (`src/hud/hud.js`; screenshots: `node tests/hud-shots.mjs`).
+It is the menus' printed matter carried onto the sea: slips of ink for what you press, paper for what is lit, Fell
+for names and numbers, small capitals for labels, one red, which on the sea means the enemy. Every
+colour, stroke and shadow comes from the kit: `MARK` names what a colour means (line, chosen, enemy, friend, exit,
+warn, hurt, track) and `tint()` fades it; nothing in the HUD or the goal markers spells out a colour. Boxes only where
+a touch target or a paragraph needs one (buttons, tips, toasts).
+- **On the sea, paper draws and gilt chooses.** `MARK.line` is paper: your courses, arcs, dials. `MARK.chosen` is a
+  pale gilt, as on a book's edges: the chosen ship's ring and dock name, the tutorial buoy, the rings to sail for
+  (reach, chests; the game's copy calls them gold rings). `MARK.enemy` is the vermilion: enemy hull bars, engage
+  rings, targets, their shells. Blue is a friend (forts and ships in your care, allies, prizes), green the way out.
+  Type on the water is paper-coloured with an ink halo, never bare ink on blue.
+- **Layout** (12 px edge plus safe-area insets): fleet dock top left; pause, wind rose and the objective (a quiet
+  right-aligned block, first line brighter) top right; the boss's name in Fell over a long red bar between them; the
+  action bar bottom centre; the recentre button above its right end. Tips sit above the action bar (top centre in
+  landscape). Off-screen enemies are red edge chevrons that slide clear of all of these.
+- **Fleet dock:** no box: a 44 px row per ship you command (her name in Garamond, haloed, over a 3 px flat hull bar);
+  the chosen one's name is gilt with a short gilt rule beside it (with Whole fleet on, every name turns gilt and the
+  rule marks that row). Words appear only when they say something (Sunk, Captured, Through,
+  Prize), in small capitals. Merchantmen or allies share one compact row of short bars.
+- **Action bar:** 52 px stacked tiles, ink slips with the icon over a Fell small-capital label. A reload is a fine
+  paper rule filling along the bottom; a loaded gun inverts its tile to paper with ink type and a faint glow, so what
+  you can fire now is the brightest thing on the bar. Toggled (anchored) also inverts. The one main action (Board or
+  Land when it will work) is a paper slip. Shot shows every shot she carries with the loaded one ringed.
+- **On the water:** thin lines with a soft ink underlay (`seaStroke`), never wedges or fills: the gun-range rim with
+  end ticks and a reload sweep, the course ribbon, a fine gilt ring for the chosen ship, red rings for engage
+  targets, goal rings (gilt reach and chests, blue protect, red target, green exit). Labels on the sea are Garamond
+  600 in its own small capitals with the strong halo (`caption()`, and `api.label`, `api.ring`, `api.stroke` for
+  goals and abilities). Hull bars over ships are 3 px, flat and square-cut: yours by how sound they are, the enemy's
+  in red; lost hull flashes pale and drains away. Nothing is drawn for a ship hidden in fog or gone.
+- **Moments:** damage figures in Fell with a small spring pop (paper when you hit, pale red when you're hit), a word
+  such as "Raked!" in Fell italic; toasts are small ink slips in italic; banners are a Fell title between two fine
+  paper rules (red rules for bad news) with an italic line under it, over a soft ink wash; tips are paper slips with
+  a hairline inside the edge, like the DOM coach. One at a time where they'd compete.
 
 ### Sea chart
 - A printed plate: flat paper, ink linework, a grey-green wash for the shallows, Fell italic for regions and seas,
