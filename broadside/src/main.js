@@ -2,9 +2,11 @@ import './styles.css';
 import { S } from './state.js';
 import { $ } from './util.js';
 import { save, replaceSave, writeSave, isUnlocked } from './save.js';
-import { BATTLES, battleIndex } from './config/battles.js';
-import { battleDef } from './config/endless.js';
+import { BATTLES, REGIONS, FLEET_SLOTS, battleIndex } from './config/battles.js';
+import { battleDef, ENDLESS, ENDLESS_ID, waveEnemies } from './config/endless.js';
 import { LAB_ID, setLab } from './config/lab.js';
+import { TYPES } from './config/ships.js';
+import { HATS, HAT_ORDER } from './config/hats.js';
 import { R, initGL } from './render/gl.js';
 import { renderScene } from './render/scene.js';
 import { WX } from './render/weather.js';
@@ -72,13 +74,34 @@ function start(data) {
     } catch (e) { restored = false; }
   }
   if (!restored) {
-    loadBattle(backdropBattle());
-    openMenu();
+    const wanted = battleParam();
+    if (wanted != null) { openBrief(wanted); startPlay(); } else { loadBattle(backdropBattle()); openMenu(); }
   }
   syncSettings();
   window.addEventListener('resize', resize);
   document.addEventListener('visibilitychange', () => { if (document.hidden) { pauseGame(); writeSave(); } });
   requestAnimationFrame((t) => { lastT = t; frame(t); });
+}
+
+// ?battle=<id> (or a campaign index, or 'endless') skips the menu and starts that battle: handy while making
+// content. Unknown ids just warn and boot to the menu.
+function battleParam() {
+  let v = null;
+  try { v = new URLSearchParams(location.search).get('battle'); } catch (e) { return null; }
+  if (v == null || v === '') return null;
+  if (v === ENDLESS_ID) return v;
+  const i = /^\d+$/.test(v) ? +v : battleIndex(v);
+  if (BATTLES[i]) return i;
+  console.warn(`?battle=${v}: no such battle (ids: ${BATTLES.map((b) => b.id).join(', ')}, ${ENDLESS_ID})`);
+  return null;
+}
+
+// Dev builds check the content tables against the primitive registries at boot (npm run check does the same).
+if (import.meta.env.DEV) {
+  import('./config/validate.js').then(({ validateContent }) => {
+    const problems = validateContent({ BATTLES, REGIONS, FLEET_SLOTS, TYPES, HATS, HAT_ORDER, GOALS, ABILITIES, WHEN, DO, ENDLESS, waveEnemies });
+    if (problems.length) console.warn(`Broadside content: ${problems.length} problem(s)\n  ${problems.join('\n  ')}`);
+  });
 }
 
 // Hot reloads inside the Claude artifact viewer keep the current battle and screen.
