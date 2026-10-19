@@ -78,7 +78,7 @@ function buildReef(c, r) {
   const g = new THREE.Group();
   g.position.set(wx(c.x), 0, wz(c.y));
   const wob = [r(0.05, 0.1), r(0, TAU), r(0.03, 0.06), r(0, TAU)];
-  flat(g, capsulePath(c, 1.55, wob), 0x86dcd6, 0.36, 0.1);    // pale water over the coral round it
+  flat(g, capsulePath(c, 1.6, wob), 0x8fe3dc, 0.5, 0.1);     // pale water over the coral round it
   flat(g, capsulePath(c, 1.0, wob), 0x2e6f72, 0.55, 0.13);    // dark rock just under the surface
   // Breakers: a broken white ring of surf along the edge, and a second fainter one outside it.
   flat(g, ring(c, 1.0, 1.16, [wob[0] * 2, wob[1], wob[2] * 2, wob[3]]), 0xffffff, 0.8, 0.3);

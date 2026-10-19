@@ -295,14 +295,16 @@ export const BATTLES = [
     goals: [{ kind: 'breakthrough' }], reward: 640, wind: -90,
     brief: 'The Armada has strung a line across the strait. Get your flagship through and out at the top of the chart. The rest of the fleet can cover her.',
     enemy: [
-      { type: 'galleon', name: 'San Martín', x: 0.33, y: 0.22, h: 0 },
-      { type: 'galleon', name: 'San Lorenzo', x: 0.67, y: 0.22, h: 180 },
+      { type: 'galleon', name: 'San Martín', x: 0.4, y: 0.25, h: 0 },
+      { type: 'galleon', name: 'San Lorenzo', x: 0.62, y: 0.2, h: 180 },
       { type: 'xebec', name: 'La Saeta', x: 0.27, y: 0.44, h: 0 },
       { type: 'xebec', name: 'El Venablo', x: 0.73, y: 0.44, h: 180 },
       { type: 'bomb', name: 'El Bronce', x: 0.5, y: 0.1, h: 90 },
     ],
-    // The strait: a shore on either hand, reef lines across it with three gaps to run.
-    coast: [{ side: 'left', depth: 0.14, rough: 0.4, seed: 3 }, { side: 'right', depth: 0.14, rough: 0.4, seed: 11 }],
+    // The strait: a shore on either hand, reef lines across it with three gaps to run. The fleet comes up it in
+    // close order.
+    fleetAt: { slots: [[0.5, 0.8], [0.34, 0.86], [0.66, 0.86], [0.42, 0.93], [0.58, 0.93]], h: -90 },
+    coast: [{ side: 'left', depth: 0.16, rough: 0.4, seed: 3 }, { side: 'right', depth: 0.16, rough: 0.4, seed: 11 }],
     reefs: [{ x: 0.33, y: 0.33, r: 11, stretch: 3.2, angle: -8 }, { x: 0.67, y: 0.31, r: 11, stretch: 3.2, angle: 12 }],
     islands: [{ x: 0.5, y: 0.44, r: 28, stretch: 1.6, angle: 0 }],
     ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 0.85, hpMul: 1.4 },
