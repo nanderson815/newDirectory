@@ -15,6 +15,7 @@ const res = await page.evaluate(() => {
     for (let ii = 0; ii < n; ii++) for (let k = 0; k < 8; k++) {
       B.startBattle(id);
       const G = B.G; G.endAt = 1e9; G.goal = 'none';
+      G.events.forEach((e) => { e.fired = true; }); // no reinforcements sailing in mid-test
       for (const s of G.ships) if (s.team === 'enemy') s.state = 'sunk';
       G.forts.forEach((f) => { f.state = 'silenced'; });
       const s = G.ships[0];
