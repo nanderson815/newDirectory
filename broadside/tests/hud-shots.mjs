@@ -17,7 +17,7 @@ fs.mkdirSync(dir, { recursive: true });
 const ids = ['tutorial', 'tortuga', 'cayman', 'rojo', 'sanlucas', 'silver', 'comodoro', 'cartagena', 'santamarta', 'oro',
   'cove', 'wreck', 'kate', 'convoy', 'siege', 'hierro', 'fog', 'blockade', 'armada'];
 const all = save({ gold: 5120, stars: Object.fromEntries(ids.map((id) => [id, 3])), hats: ['cabin'], best: 12,
-  tips: ['fleet', 'ammo', 'mine', 'land', 'board', 'fireship', 'mortar', 'exit', 'chest', 'reach', 'protect', 'hunt', 'fog'] });
+  tips: ['fleet', 'ammo', 'mine', 'land', 'board', 'fireship', 'mortar', 'exit', 'chest', 'reach', 'protect', 'hunt', 'fog', 'rake', 'crit', 'shoal', 'reef'] });
 
 // [name, battle, seconds of bot play, options]
 const SCENES = [

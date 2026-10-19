@@ -431,7 +431,7 @@ function drawDock(G, sel) {
     if (s.flag) { drawIcon(ctx, 'star', nx + 4.5, cy, 10, alive ? MARK.chosen : C.onGlass3, { shadow: CANVAS_SHADOW.textTight }); nx += 14; }
     const status = safe ? 'Through' : !alive ? (afloat(s) ? 'Captured' : 'Sunk') : s.prize ? 'Prize' : s.escort ? 'Escort' : s.ally ? 'Ally' : null;
     const sw = status ? caption(ctx, status, ix + iw, cy + 0.5, { size: 9, align: 'right', color: safe ? MARK.exit : !alive ? MARK.warn : C.onGlass2, halo: 'soft' }) + 8 : 0;
-    text(ctx, s.name, nx, cy, { size: big ? 14 : 12.5, weight: 600, color: !alive && !safe ? C.onGlass3 : chosen ? MARK.chosen : C.onGlass, halo: 'soft', maxWidth: ix + iw - sw - nx });
+    text(ctx, s.name, nx, cy, { size: big ? 14 : 12.5, weight: 600, color: !alive && !safe ? C.onGlass3 : chosen ? MARK.chosen : C.onGlass, halo: 'strong', maxWidth: ix + iw - sw - nx });
     if (alive) {
       const k = s.hp / s.maxHp;
       bar(ctx, ix, cy + (big ? 12 : 9), iw, big ? 3 : 2, k, { color: hpColor(k), ghost: ghostOf(s, k), track: MARK.track, shine: false });
@@ -444,9 +444,9 @@ function drawDock(G, sel) {
   if (fleetRow) {
     const on = S.selectAll, cy = y + ROW / 2;
     if (on) chosenRule(ix, cy);
-    const col = on ? MARK.chosen : C.onGlass2;
+    const col = on ? MARK.chosen : C.onGlass;
     drawIcon(ctx, 'fleet', ix + 8, cy, 17, col, { shadow: CANVAS_SHADOW.textTight });
-    text(ctx, 'Whole fleet', ix + 22, cy + 0.5, { size: 12.5, weight: 600, color: col, halo: 'soft' });
+    text(ctx, 'Whole fleet', ix + 22, cy + 0.5, { size: 12.5, weight: 600, color: col, halo: 'strong' });
     const c = card(n++); c.x = x - 4; c.y = y; c.w = w + 4; c.h = ROW; c.ship = null; c.fleet = true; hud.cards.push(c);
     y += ROW;
   }
@@ -691,7 +691,7 @@ export function drawHUD() {
   }
 
   drawBanner();
-  if (playing) drawTip(barTop);
+  if (playing) drawTip(hud.recentre ? hud.recentre.y - K.button / 2 - 4 : barTop); // clear of the recentre button too
 
   // First-time hint (the tutorial has its own coach)
   if (playing && !G.tut && !G.dragged && G.t < 14 && !tip) {
