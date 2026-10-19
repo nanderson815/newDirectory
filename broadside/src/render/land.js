@@ -735,13 +735,13 @@ function lifePools() {
   birds.geometry.setAttribute('aFlap', new THREE.InstancedBufferAttribute(new Float32Array(BIRDS), 1).setUsage(THREE.DynamicDrawUsage));
   birds.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   birds.setColorAt(0, new THREE.Color(1, 1, 1));
-  birds.frustumCulled = false; birds.count = 0; birds.renderOrder = 3;
+  birds.frustumCulled = false; birds.count = 0; birds.renderOrder = 3; birds.visible = false;
   const people = new THREE.InstancedMesh(personGeometry(), personMaterial(), PEOPLE);
   people.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   people.setColorAt(0, new THREE.Color(1, 1, 1));
-  people.frustumCulled = false; people.count = 0;
+  people.frustumCulled = false; people.count = 0; people.visible = false;
   const scorch = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), toon('#2c231c', {}), SCORCH);
-  scorch.frustumCulled = false; scorch.count = 0;
+  scorch.frustumCulled = false; scorch.count = 0; scorch.visible = false;
   return { birds, people, scorch };
 }
 
@@ -927,7 +927,8 @@ export function syncLand(G, clock, dt, np, ng) {
       flap[nb++] = Math.sin(clock * (q.parrot ? 16 : 10) + q.ph * 7) * beat + (1 - beat) * 0.1;
     }
   }
-  bp.count = nb;
+  // Hidden while empty: nothing to draw, and their shaders needn't compile until they're wanted.
+  bp.count = nb; bp.visible = nb > 0;
   if (nb) { bp.instanceMatrix.needsUpdate = true; bp.geometry.attributes.aFlap.needsUpdate = true; bp.instanceColor.needsUpdate = true; }
 
   // People: walk to and fro along their paths, pausing at each end; only when you're close enough to see them.
@@ -949,7 +950,7 @@ export function syncLand(G, clock, dt, np, ng) {
       pp.setColorAt(nq++, SHIRTS[q.shirt]);
     }
   }
-  pp.count = nq;
+  pp.count = nq; pp.visible = nq > 0;
   if (nq) { pp.instanceMatrix.needsUpdate = true; pp.instanceColor.needsUpdate = true; }
 
   // Scorch marks where shot has come down on the land.
@@ -963,7 +964,7 @@ export function syncLand(G, clock, dt, np, ng) {
     if (gy == null) { gy = L.groundAt(mx, my); scorchY.set(sc[i], gy); }
     sp.setMatrixAt(ns++, _M.compose(_P.set(wx(mx), gy + 0.1, wz(my)), _Q, _S.set(r, 0.35, r * 0.8)));
   }
-  sp.count = ns;
+  sp.count = ns; sp.visible = ns > 0;
   if (ns) sp.instanceMatrix.needsUpdate = true;
   OUT.np = np; OUT.ng = ng;
   return OUT;
