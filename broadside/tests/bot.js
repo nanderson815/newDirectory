@@ -48,7 +48,13 @@
   }
 
   const GOAL_ORDERS = {
-    capture: (s, o, c) => (c.hostileForts.length ? { target: nearest(s, c.hostileForts) } : null),
+    // Beat off any ship that closes in before pounding the fort, rather than let her rake you from astern.
+    capture(s, o, c) {
+      if (!c.hostileForts.length) return null;
+      const near = nearest(s, c.enemies);
+      if (near && Math.hypot(near.x - s.x, near.y - s.y) < s.range * 1.3) return { target: near };
+      return { target: nearest(s, c.hostileForts) };
+    },
     boss: (s, o, c) => (c.boss ? { target: c.boss } : null),
     // Haul up a chest no other ship is going for; hunt salvors carrying chests.
     treasure(s, o, c) {

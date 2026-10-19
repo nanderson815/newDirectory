@@ -162,7 +162,7 @@ for (let bi = 0; bi < BATTLES.length; bi++) {
   const botGold = Math.round(B.reward * (1 + 0.5 * flawless));
   const gold = Math.round(B.reward * (1 + 0.5 * (B.tutorial ? 1 : FLAWLESS)));
   const row = {
-    id: B.id, roman: B.roman, goal: B.goal || 'sink', fleet: label, measured: measure,
+    id: B.id, roman: B.roman, goal: B.goal || 'sink', fleet: label, fleetDef: fleet, measured: measure,
     win: wins.length / n, runs: runs.length,
     tWin: avg(wins.map((r) => r.t)), tAll: avg(runs.map((r) => r.t)),
     lost: avg(runs.map((r) => r.lost)), lostWin: avg(wins.map((r) => r.lost)), ships: runs[0] ? runs[0].fleet : fleet.length,
