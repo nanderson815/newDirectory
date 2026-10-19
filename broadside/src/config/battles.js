@@ -73,14 +73,14 @@ export const BATTLES = [
       { x: 0.5, y: 0.55, r: 44, stretch: 2, angle: 8 }, { x: 0.18, y: 0.63, r: 32, stretch: 1.4, angle: 70 },
       { x: 0.8, y: 0.58, r: 30, stretch: 1.6, angle: 110 }, { x: 0.52, y: 0.3, r: 28, stretch: 1.3, angle: -20 },
     ],
-    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.6, hpMul: 1.7 },
+    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.72, hpMul: 1.9 },
   },
   {
     id: 'rojo', region: 'windward', roman: 'III', year: 1656, name: 'La Bruja', foe: 'Capitán Rojo',
     goal: 'boss', hat: 'rojo', reward: 220, wind: 20,
     brief: 'Capitán Rojo’s galleon La Bruja carries bow chasers, so don’t linger in front of her. Sink her and his red tricorne is yours.',
     enemy: [
-      { type: 'galleon', name: 'La Bruja', x: 0.5, y: 0.16, h: 90, hp: 420, chasers: 2, reloadMul: 0.9,
+      { type: 'galleon', name: 'La Bruja', x: 0.5, y: 0.16, h: 90, hp: 400, chasers: 2, reloadMul: 0.9,
         boss: { captain: 'Capitán Rojo', title: 'La Bruja', hat: 'rojo' } },
       { type: 'brig', name: 'El Lobo', x: 0.25, y: 0.22, h: 90 },
     ],
@@ -120,7 +120,7 @@ export const BATTLES = [
     goal: 'boss', hat: 'comodoro', reward: 320, wind: 0,
     brief: 'El Comodoro keeps his flagship between two forts. Take the forts first, or dash in and sink him.',
     enemy: [
-      { type: 'galleon', name: 'San Cristóbal', x: 0.5, y: 0.12, h: 90, hp: 460, chasers: 1,
+      { type: 'galleon', name: 'San Cristóbal', x: 0.5, y: 0.12, h: 90, hp: 455, chasers: 1,
         boss: { captain: 'El Comodoro', title: 'San Cristóbal', hat: 'comodoro' } },
       { type: 'brig', name: 'El Alcón', x: 0.3, y: 0.24, h: 90 },
       { type: 'brig', name: 'La Garza', x: 0.7, y: 0.24, h: 90 },
@@ -157,8 +157,8 @@ export const BATTLES = [
     ],
     islands: [{ x: 0.31, y: 0.32, r: 46 }, { x: 0.69, y: 0.44, r: 46 }, { x: 0.5, y: 0.63, r: 24 }],
     forts: [
-      { island: 0, name: 'North Tower', hp: 200, guns: 3, need: 10 },
-      { island: 1, name: 'South Tower', hp: 200, guns: 3, need: 10 },
+      { island: 0, name: 'North Tower', hp: 180, guns: 3, need: 10 },
+      { island: 1, name: 'South Tower', hp: 180, guns: 3, need: 10 },
     ],
     ai: { spread: 0.09, reloadMul: 1, dmgMul: 1.0, hpMul: 1.5 },
   },
@@ -288,7 +288,7 @@ export const BATTLES = [
         spawn: [{ type: 'brig', name: 'Gloucester', team: 'player', x: 0.92, y: 0.95, h: -90 }] },
     ],
     islands: [{ x: 0.5, y: 0.66, r: 50 }, { x: 0.22, y: 0.42, r: 26 }, { x: 0.78, y: 0.4, r: 26 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.45, hpMul: 1.7 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.44, hpMul: 1.7 },
   },
   {
     id: 'hierro', region: 'campeche', roman: 'XV', year: 1663, name: 'The Iron Marquis', foe: 'Marqués de Hierro',
@@ -334,7 +334,7 @@ export const BATTLES = [
           { type: 'brig', name: 'San Gabriel', x: 0.5, y: 0.06, h: 90 }] },
       { enemiesLeft: 1, fog: 0, banner: ['The fog lifts!', 'Finish them in the sunshine'] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.16, hpMul: 1.95 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.25, hpMul: 1.95 },
   },
   {
     id: 'blockade', region: 'armada', roman: 'XVII', year: 1664, name: 'Run the Blockade', foe: 'blockade line',
@@ -358,7 +358,7 @@ export const BATTLES = [
       { at: 30, banner: ['A galley from the shore!', 'La Jabalina rows out to close the gap'],
         spawn: [{ type: 'xebec', name: 'La Jabalina', x: 0.26, y: 0.08, h: 45 }] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.15, hpMul: 1.6 },
+    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.24, hpMul: 1.6 },
   },
   {
     id: 'armada', region: 'armada', roman: 'XVIII', year: 1665, name: 'La Gran Armada', foe: 'Capitán General',
