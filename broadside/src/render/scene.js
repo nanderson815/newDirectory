@@ -8,7 +8,7 @@ import { wx, wz, fitCamera } from './camera.js';
 import { buildShipMesh, buildFortMesh, chestGeometries, setShipFading, setShipTorn, FORT_BASE_Y, FORT_SCALE } from './models.js';
 import { WX, applyWeather, syncWeather } from './weather.js';
 import { lostMasts } from './terrain.js';
-import { buildLand, syncLand, landStats, fortLook } from './land.js';
+import { buildLand, syncLand, landStats, landLife, fortLook } from './land.js';
 
 let worldObjs = [];
 export let shipMeshes = new Map();
@@ -468,4 +468,4 @@ export function renderScene() {
 export const fortTopZ = FORT_BASE_Y + 30 * FORT_SCALE;
 
 // For tests and screenshots: rebuild the scene after editing G by hand.
-R.debug = { buildScene, addShipMesh, get shipMeshes() { return shipMeshes; }, land: landStats };
+R.debug = { buildScene, addShipMesh, get shipMeshes() { return shipMeshes; }, land: landStats, landLife };

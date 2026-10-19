@@ -1,7 +1,8 @@
 // Weather and time of day. Each campaign region has a preset; BATTLE_WEATHER can override one battle by id.
 // render/weather.js applies the preset when a battle's scene is built. Colours are sRGB hex.
 //
-// water   sea colours (deep, mid, light tier, crest lines, shore foam, glints); clouds = cloud-shadow strength
+// water   sea colours (deep, mid, light tier, ripple crests, shore foam, glints, shallow = the turquoise of the
+//         water over sand at the shore, rim = the dark wet edge where it meets the land); clouds = cloud-shadow strength
 //         (0 = none) and scale; caps = whitecaps 0..1; flow = how fast the sea moves; glow + glowA = a warm
 //         wash on the sun's side of the map.
 // light   hemisphere sky/ground and intensity; sun (the key light) colour, intensity and direction.
@@ -18,7 +19,7 @@ export const PRESETS = {
   sunny: {
     clear: '#2a8cc4',
     water: {
-      deep: '#1c78bf', mid: '#2b91d6', light: '#3da6e3', crest: '#8cd6f7', foam: '#edfaff', glint: '#f4fcff',
+      deep: '#1c78bf', mid: '#2b91d6', light: '#3da6e3', crest: '#8cd6f7', foam: '#edfaff', glint: '#f4fcff', shallow: '#6fd9d6', rim: '#2f6a73',
       clouds: 0.12, cloudScale: 1, caps: 0, flow: 1,
     },
     light: { sky: '#ffffff', ground: '#6a9cc0', hemi: 1.6, sun: '#fff4e0', sunI: 2.4, dir: [-0.55, 1, 0.45] },
@@ -33,7 +34,7 @@ export const PRESETS = {
   sunset: {
     clear: '#e08a5a',
     water: {
-      deep: '#1f569e', mid: '#3172bc', light: '#5c93d6', crest: '#ffc38f', foam: '#fff0dc', glint: '#ffd36a',
+      deep: '#1f569e', mid: '#3172bc', light: '#5c93d6', crest: '#ffc38f', foam: '#fff0dc', glint: '#ffd36a', shallow: '#7cc6cf', rim: '#4a4660',
       clouds: 0.07, cloudScale: 0.8, caps: 0, flow: 0.8, glow: '#ffa452', glowA: 0.5,
     },
     light: { sky: '#fff0e0', ground: '#6a5a96', hemi: 1.5, sun: '#ffcf96', sunI: 2.6, dir: [-0.6, 0.42, -0.8] },
@@ -47,7 +48,7 @@ export const PRESETS = {
   storm: {
     clear: '#24525e',
     water: {
-      deep: '#195563', mid: '#226b78', light: '#3a8a90', crest: '#a6dcd8', foam: '#f2fbfa', glint: '#ffffff',
+      deep: '#195563', mid: '#226b78', light: '#3a8a90', crest: '#a6dcd8', foam: '#f2fbfa', glint: '#ffffff', shallow: '#5fb0a8', rim: '#1d4a4c',
       clouds: 0.2, cloudScale: 1.3, caps: 1, flow: 1.9,
     },
     light: { sky: '#cfe4ee', ground: '#3d6470', hemi: 1.5, sun: '#e2f0ff', sunI: 1.7, dir: [-0.4, 1, 0.3] },
@@ -63,7 +64,7 @@ export const PRESETS = {
   fog: {
     clear: '#c3cdcf',
     water: {
-      deep: '#4f6f7a', mid: '#5f808b', light: '#7495a0', crest: '#b4c9cd', foam: '#eef3f2', glint: '#f2f6f6',
+      deep: '#4f6f7a', mid: '#5f808b', light: '#7495a0', crest: '#b4c9cd', foam: '#eef3f2', glint: '#f2f6f6', shallow: '#9cbcbc', rim: '#4d6266',
       clouds: 0, cloudScale: 1, caps: 0, flow: 0.55,
     },
     light: { sky: '#f3f5f3', ground: '#7d8f96', hemi: 2.0, sun: '#f2eee6', sunI: 1.15, dir: [-0.3, 1, 0.25] },

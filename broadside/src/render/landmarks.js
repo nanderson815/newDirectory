@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { TAU, PI } from '../util.js';
 import { toon, withOutline } from './gl.js';
 import { hullShape, liftedExtrude } from './shapes.js';
+import { bush, palm, broadleaf } from './flora.js';
 
 // Landmark and plant models for render/land.js. Every builder works in the landmark's own frame: the group sits
 // on the ground at its spot with +x facing out to sea (or into the wind, for a windmill). Builders register
@@ -15,8 +16,8 @@ import { hullShape, liftedExtrude } from './shapes.js';
 // ---------- Small helpers ----------
 const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 const cyl = (r0, r1, h, n = 7, open = false) => new THREE.CylinderGeometry(r0, r1, h, n, 1, open);
-let blobGeo = null, leafGeo = null, coneGeo = null;
-export const sharedGeos = () => [blobGeo, leafGeo, coneGeo].filter(Boolean);
+let blobGeo = null;
+export const sharedGeos = () => [blobGeo].filter(Boolean);
 const blob = () => (blobGeo = blobGeo || new THREE.IcosahedronGeometry(1, 0));
 function add(parent, geo, color, x, y, z, ink) {
   const m = new THREE.Mesh(geo, toon(color));
@@ -63,117 +64,6 @@ export function twoSided(geo) {
 // A foundation that runs down into the slope so a building never floats.
 const footing = (g, w, d, color) => add(g, box(w + 0.8, 6, d + 0.8), color, 0, -2.6, 0);
 
-// ---------- Plants ----------
-// Each takes the parent group and a local spot on the ground (x, y, z); s scales it.
-export function palm(parent, x, y, z, s, rnd, ctx) {
-  // A frond is a stretched octahedron: a diamond with a ridge, eight faces.
-  leafGeo = leafGeo || new THREE.OctahedronGeometry(1, 0);
-  const g = new THREE.Group();
-  g.position.set(x, y - 0.5, z);
-  g.rotation.y = rnd(0, TAU);
-  s *= 0.8;
-  const h = 23 * s;
-  const tilt = new THREE.Group();
-  tilt.rotation.z = rnd(0.06, 0.3);
-  g.add(tilt);
-  const trunk = add(tilt, cyl(1.1 * s, 1.9 * s, h, 5, true), '#9a6a3a', 0, h / 2, 0, 0.22);
-  for (let i = 0; i < 6; i++) {
-    const arm = new THREE.Group();
-    arm.rotation.y = (i / 6) * TAU + rnd(-0.2, 0.2);
-    arm.position.y = h;
-    const leaf = add(arm, leafGeo, i % 2 ? '#5cbf4c' : '#49a83d', 7.4 * s, -1.8, 0, 0.1);
-    leaf.scale.set(8.5 * s, 1.1, 2.8 * s);
-    leaf.rotation.z = -0.38;
-    tilt.add(arm);
-  }
-  add(tilt, blob(), '#6b4220', 0, h - 1.4, 0).scale.setScalar(1.7 * s);
-  parent.add(g);
-  ctx.sway(g, rnd(0, 0.999));
-  return g;
-}
-export function broadleaf(parent, x, y, z, s, rnd, colors, ink = true) {
-  const g = new THREE.Group();
-  g.position.set(x, y, z);
-  add(g, cyl(0.9 * s, 1.4 * s, 7 * s, 5, true), '#7a5232', 0, 3.2 * s, 0);
-  const n = rnd() < 0.5 ? 2 : 3;
-  for (let i = 0; i < n; i++) {
-    const k = s * rnd(0.75, 1.05), a = rnd(0, TAU), d = i ? 4.5 * s : 0;
-    const b = add(g, blob(), colors[Math.floor(rnd(0, colors.length))], Math.cos(a) * d, (i ? 9.5 : 11.5) * s, Math.sin(a) * d, i || !ink ? 0 : 0.07);
-    b.scale.set(8 * k, 6.6 * k, 8 * k);
-    b.rotation.set(rnd(0, TAU), rnd(0, TAU), 0);
-  }
-  parent.add(g);
-  return g;
-}
-export function pine(parent, x, y, z, s, rnd, colors) {
-  coneGeo = coneGeo || new THREE.ConeGeometry(1, 1, 6, 1);
-  const g = new THREE.Group();
-  g.position.set(x, y, z);
-  add(g, cyl(0.7 * s, 1 * s, 6 * s, 5, true), '#6e4a2c', 0, 3 * s, 0);
-  const c = colors[Math.floor(rnd(0, colors.length))];
-  for (let i = 0; i < 3; i++) {
-    const m = add(g, coneGeo, c, 0, (6 + i * 4.6) * s, 0, i === 0 ? 0.08 : 0);
-    m.scale.set((6.4 - i * 1.7) * s, 8 * s, (6.4 - i * 1.7) * s);
-  }
-  parent.add(g);
-  return g;
-}
-export function cactus(parent, x, y, z, s, rnd) {
-  const g = new THREE.Group();
-  g.position.set(x, y, z);
-  g.rotation.y = rnd(0, TAU);
-  const c = '#5f9a63';
-  add(g, cyl(1.5 * s, 1.7 * s, 11 * s, 6), c, 0, 5.5 * s, 0, 0.1);
-  for (const sd of [-1, 1]) {
-    if (rnd() < 0.25) continue;
-    const hy = rnd(4, 7) * s;
-    add(g, cyl(0.9 * s, 0.9 * s, 3 * s, 6), c, sd * 2.4 * s, hy, 0).rotation.z = PI / 2;
-    add(g, cyl(0.9 * s, 0.9 * s, 5 * s, 6), c, sd * 3.6 * s, hy + 2.2 * s, 0);
-  }
-  parent.add(g);
-  return g;
-}
-export function agave(parent, x, y, z, s, rnd) {
-  coneGeo = coneGeo || new THREE.ConeGeometry(1, 1, 6, 1);
-  const g = new THREE.Group();
-  g.position.set(x, y, z);
-  for (let i = 0; i < 5; i++) {
-    const m = add(g, coneGeo, i % 2 ? '#7fae84' : '#6c9c72', 0, 2.2 * s, 0);
-    m.scale.set(0.9 * s, 6 * s, 0.9 * s);
-    m.rotation.set(0.7, (i / 5) * TAU, 0, 'YXZ');
-  }
-  parent.add(g);
-  return g;
-}
-// A grove canopy seen from above: one blob, no trunk (it's hidden under its neighbours anyway).
-export function canopy(parent, x, y, z, s, rnd, colors, ink) {
-  const b = add(parent, blob(), colors[Math.floor(rnd(0, colors.length))], x, y + 8 * s, z, ink ? 0.06 : 0);
-  b.scale.set(9 * s, 6.5 * s, 9 * s);
-  b.rotation.set(rnd(0, TAU), rnd(0, TAU), 0);
-  return b;
-}
-export function bush(parent, x, y, z, s, rnd, colors) {
-  const b = add(parent, blob(), colors[Math.floor(rnd(0, colors.length))], x, y + 2.2 * s, z, 0.08);
-  b.scale.set(5 * s, 3.8 * s, 5 * s);
-  b.rotation.y = rnd(0, TAU);
-  return b;
-}
-// A mangrove: a dark round crown on a cage of arching stilt roots that reach down into the water.
-export function mangrove(parent, x, y, z, s, rnd) {
-  const g = new THREE.Group();
-  g.position.set(x, y, z);
-  const crown = add(g, blob(), rnd() < 0.5 ? '#3c7d3b' : '#326f36', 0, 8.5 * s, 0, 0.07);
-  crown.scale.set(7.5 * s, 4.2 * s, 7.5 * s);
-  crown.rotation.y = rnd(0, TAU);
-  for (let i = 0; i < 5; i++) {
-    const a = (i / 5) * TAU + rnd(-0.3, 0.3), out = 4.2 * s;
-    const root = add(g, cyl(0.35 * s, 0.5 * s, 8.5 * s, 4, true), '#5b4330', Math.cos(a) * out * 0.5, 3.6 * s - y * 0.5, Math.sin(a) * out * 0.5);
-    root.rotation.set(Math.sin(a) * 0.55, 0, -Math.cos(a) * 0.55);
-  }
-  parent.add(g);
-  return g;
-}
-
 // ---------- Flags ----------
 // The cloth hangs from the hoist (the group's origin) and flies along +x; land.js turns it downwind and the
 // sway shader makes it ripple. pattern: english (St George), spanish (the cross of Burgundy), pirate (skull).
@@ -207,66 +97,168 @@ function pole(g, x, z, h, ctx, pattern) {
 }
 
 // ---------- Buildings ----------
+// Each region builds in one manner, so a town reads as a place rather than a pile of boxes: English cottages
+// under steep slate gables, Spanish whitewash under low terracotta roofs, Havana's pastel fronts two and three
+// storeys tall, pirate plank shacks on stilts under patched sailcloth, palm-thatched fishing huts.
 const LOOK = {
-  english: { walls: ['#f1e6cc', '#e9dcc0', '#b5563f', '#c9a27a'], roofs: ['#5d5a63', '#6a5048', '#9c4a35', '#c9a25a'], foot: '#a39783' },
-  spanish: { walls: ['#f6f1e6', '#f2ead8', '#efe2c8'], roofs: ['#c8643c', '#b85a36', '#d27448'], foot: '#c9b48c' },
-  city: { walls: ['#f2c6c2', '#f4e1a1', '#a9d6e5', '#f7f1e3', '#c9e4b4', '#f0b98d'], roofs: ['#c8643c', '#b85a36', '#d27448'], foot: '#c9b48c' },
-  shanty: { walls: ['#8b6a4a', '#a08060', '#7a5d40'], roofs: ['#c9b48a', '#9a8466', '#7f3b2e', '#5f6b5a'], foot: '#6b4f36' },
-  village: { walls: ['#e2cfa8', '#d8c29a'], roofs: ['#c9a254', '#b8914a', '#d1ad62'], foot: '#b8996a' },
+  english: { walls: ['#f1e7d0', '#e8dcc2', '#dccbab'], roofs: ['#5c5e69', '#656370', '#596069'], accent: '#9a5038', foot: '#a39783', trim: '#5a3d26', glass: '#3b4a5a' },
+  spanish: { walls: ['#f7f2e8', '#f2eadb', '#ece1cb'], roofs: ['#c4613a', '#bb5a39', '#cc6c44'], foot: '#c9b48c', trim: '#7a5232', glass: '#2f5e7a' },
+  city: { walls: ['#f2c6c2', '#f4e1a1', '#a9d6e5', '#f7f1e3', '#c9e4b4', '#f0b98d'], roofs: ['#c4613a', '#bb5a39', '#cc6c44'], foot: '#c9b48c', trim: '#7a5232', glass: '#2f5e7a' },
+  shanty: { walls: ['#8b6a4a', '#9a7b58', '#7d5f42'], roofs: ['#d8caa2', '#cbbb93', '#bfae86'], accent: '#8d4a36', foot: '#6b4f36', trim: '#3a2a1c', glass: '#2a2018' },
+  village: { walls: ['#e2cfa8', '#d8c29a'], roofs: ['#caa458', '#bf9a4e', '#d0ac62'], foot: '#b8996a', trim: '#5a3d26', glass: '#3a2a1c' },
 };
-const pick = (list, rnd) => list[Math.floor(rnd(0, list.length))];
+const pick = (list, rnd) => list[Math.floor(rnd(0, list.length)) % list.length];
+// How big a house is, by look: w along the street (the ridge), d deep, h to the eaves.
+function plan(look, rnd) {
+  if (look === 'city') return { w: rnd(8.4, 10.6), d: rnd(7.8, 9), h: rnd(9.5, 13) };
+  if (look === 'shanty') return { w: rnd(8.4, 10.6), d: rnd(6.7, 7.8), h: rnd(5.4, 6.5) };
+  if (look === 'village') return { w: 9, d: 9, h: 5 };
+  return { w: rnd(8.4, 10.6), d: rnd(7.3, 8.4), h: look === 'english' ? rnd(6.2, 7.3) : rnd(5.8, 7.2) };
+}
 
-// One building at (x, z) in g's frame, facing yaw; registers its chimney and fire spot.
-function building(g, look, x, z, yaw, rnd, ctx, big) {
-  const L = LOOK[look] || LOOK.english, y = ctx.ground(g, x, z);
+// One house at (x, z) in g's frame, turned yaw: its ridge runs along local x and its front (door, windows)
+// faces local +z. Registers its chimney, its fire spot and its soft shadow.
+function house(g, look, x, z, yaw, rnd, ctx, p) {
+  const L = LOOK[look] || LOOK.english, y = ctx.ground(g, x, z), { w, d, h } = p;
   const b = new THREE.Group();
   b.position.set(x, y, z); b.rotation.y = yaw;
   g.add(b);
-  const wall = pick(L.walls, rnd), roof = pick(L.roofs, rnd);
+  const wall = pick(L.walls, rnd);
+  let top = h;
   if (look === 'village') {
-    const r = rnd(4, 5.2);
-    add(b, cyl(r, r, 5, 8), wall, 0, 2.5, 0, 0.05);
-    const thatch = add(b, new THREE.ConeGeometry(r + 1.6, 6, 9), roof, 0, 7.6, 0, 0.05);
-    thatch.rotation.y = rnd(0, 1);
-    add(b, new THREE.ConeGeometry(1.2, 2.2, 5), '#8a6a3a', 0, 11.2, 0);
-    add(b, box(0.6, 3.2, 1.8), '#5a3d26', r - 0.1, 1.6, 0);
-    ctx.house(b, 0, 6, 0);
-    return b;
-  }
-  if (look === 'shanty') {
+    // A round hut of wattle under a tall palm-thatch cone.
+    const r = 4.4;
+    add(b, cyl(r, r, h, 9), wall, 0, h / 2, 0, 0.05);
+    add(b, new THREE.ConeGeometry(r + 1.7, 6.2, 10), pick(L.roofs, rnd), 0, h + 2.8, 0, 0.05).rotation.y = rnd(0, 1);
+    add(b, new THREE.ConeGeometry(1.1, 2, 5), '#8a6a3a', 0, h + 6.4, 0);
+    add(b, box(1.8, 3, 0.6), L.trim, 0, 1.5, r - 0.1);
+    top = h + 7;
+  } else if (look === 'shanty') {
     // On stilts, the deck a little above the ground, with a lean-to roof of old sailcloth.
-    const w = rnd(8, 11), d = rnd(6.5, 8), h = rnd(5, 6.5);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) add(b, cyl(0.45, 0.45, 7, 4, true), '#5b4330', sx * (w / 2 - 0.5), 0.5, sz * (d / 2 - 0.5));
-    add(b, box(w + 1.4, 0.8, d + 1.2), '#7a5d40', 0, 3.6, 0.6);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) add(b, cyl(0.45, 0.45, 7, 4, true), L.foot, sx * (w / 2 - 0.5), 0.5, sz * (d / 2 - 0.5));
+    add(b, box(w + 1.2, 0.8, d + 2.2), '#7a5d40', 0, 3.6, 0.6, 0.03);
     add(b, box(w, h, d), wall, 0, 4 + h / 2, 0, 0.04);
-    const r = add(b, box(w + 1.6, 0.7, d + 2.2), roof, 0, 4 + h + 0.5, 0);
-    r.rotation.x = rnd(-0.22, 0.22);
-    add(b, box(0.4, 3, 1.8), '#3a2a1c', w / 2 + 0.05, 5.7, 0);
-    ctx.house(b, 0, 6 + h, 0);
-    return b;
-  }
-  // A city's houses stand two and three storeys tall.
-  const tall = look === 'city' ? rnd(1.4, 2.1) : 1;
-  const w = (big ? 1.4 : 1) * rnd(8.5, 11.5), d = rnd(6.5, 8.5), h = (big ? 1.5 : 1) * rnd(5.5, 7.5) * tall;
-  footing(b, w, d, L.foot);
-  add(b, box(w, h, d), wall, 0, h / 2, 0, 0.035);
-  if (look === 'english') {
-    add(b, gable(w, d, rnd(4.5, 6), 0.9), roof, 0, h, 0, 0.03);
-    // Timber framing on the pale ones: dark beams across the front.
-    if (wall === '#f1e6cc' || wall === '#e9dcc0') for (const yy of [0.4, h - 0.4]) add(b, box(w + 0.1, 0.5, d + 0.1), '#5a3d26', 0, yy, 0);
-    const cx = rnd(-w / 3, w / 3);
-    add(b, box(1.6, 5, 1.6), '#8a5a44', cx, h + 3, -d * 0.2);
-    ctx.chimney(b, cx, h + 5.8, -d * 0.2);
+    const roof = add(b, box(w + 1.6, 0.7, d + 2.2), rnd() < 0.2 ? L.accent : pick(L.roofs, rnd), 0, 4 + h + 0.6, 0, 0.03);
+    roof.rotation.x = 0.2;
+    add(b, box(1.8, 3, 0.4), L.trim, rnd(-1.5, 1.5), 5.5, d / 2 + 0.05);
+    add(b, box(1.4, 1.2, 0.4), L.glass, w * 0.28, 4 + h * 0.6, d / 2 + 0.05);
+    top = 5 + h;
   } else {
-    if (rnd() < 0.7) add(b, hip(w, d, rnd(2.6, 3.6)), roof, 0, h, 0, 0.03);
-    else { add(b, box(w + 0.6, 0.9, d + 0.6), L.walls[0], 0, h + 0.4, 0); add(b, box(w * 0.4, 2.2, d * 0.5), wall, w * 0.2, h + 1.5, 0); }
-    if (rnd() < 0.45) { const cx = rnd(-w / 4, w / 4); add(b, box(1.3, 3.5, 1.3), L.walls[0], cx, h + 2.2, d * 0.2); ctx.chimney(b, cx, h + 4.3, d * 0.2); }
+    footing(b, w, d, L.foot);
+    add(b, box(w, h, d), wall, 0, h / 2, 0, 0.035);
+    if (look === 'english') {
+      const rh = d * 0.62;
+      add(b, gable(w, d, rh, 0.8), rnd() < 0.15 ? L.accent : pick(L.roofs, rnd), 0, h, 0, 0.03);
+      // Timber framing on the pale ones: dark beams at sill and eaves.
+      if (wall !== L.walls[2]) for (const yy of [0.35, h - 0.35]) add(b, box(w + 0.1, 0.45, d + 0.1), L.trim, 0, yy, 0);
+      const cx = (rnd() < 0.5 ? -1 : 1) * (w / 2 - 1.2);
+      add(b, box(1.5, 4.6, 1.5), '#8a5a44', cx, h + rh * 0.55, -0.6);
+      ctx.chimney(b, cx, h + rh * 0.55 + 2.6, -0.6);
+      top = h + rh;
+    } else if (look === 'city' && rnd() < 0.4) {
+      // A flat roof behind a parapet (an azotea).
+      add(b, box(w + 0.5, 1.1, d + 0.5), wall, 0, h + 0.5, 0, 0.03);
+      add(b, box(w - 0.6, 0.3, d - 0.6), '#cbbd9f', 0, h + 0.95, 0);
+      top = h + 1.1;
+    } else if (rnd() < 0.5) {
+      // A tiled gable along the street: from above, a clean ridge between a sunlit slope and a shaded one.
+      const rh = d * 0.42;
+      add(b, gable(w, d, rh, 0.7), pick(L.roofs, rnd), 0, h, 0, 0.03);
+      top = h + rh;
+    } else {
+      const rh = Math.min(w, d) * 0.5;
+      add(b, hip(w, d, rh), pick(L.roofs, rnd), 0, h, 0, 0.03);
+      top = h + rh;
+      if (rnd() < 0.35) { const cx = rnd(-w / 4, w / 4); add(b, box(1.2, 3, 1.2), L.walls[0], cx, h + rh * 0.6, -d * 0.2); ctx.chimney(b, cx, h + rh * 0.6 + 1.6, -d * 0.2); }
+    }
+    // The front: a door, windows (shuttered in Spanish towns), a balcony on the tall city houses.
+    const dx = rnd(-0.2, 0.2) * w;
+    add(b, box(1.8, 3.1, 0.4), '#4a3020', dx, 1.55, d / 2);
+    const floors = h > 8 ? 2 : 1;
+    for (let f = 0; f < floors; f++) {
+      const wy = floors > 1 ? h * (f ? 0.74 : 0.36) : h * 0.6;
+      for (const s of [-1, 1]) if (!(f === 0 && Math.abs(s * w * 0.3 - dx) < 1.8)) add(b, box(1.3, 1.5, 0.4), L.glass, s * w * 0.3, wy, d / 2);
+    }
+    if (look === 'city' && floors > 1) add(b, box(w * 0.55, 0.35, 1.2), L.trim, 0, h * 0.58, d / 2 + 0.5);
   }
-  // Door and windows on the front (+x after yaw: the face toward the square or the sea).
-  add(b, box(0.4, 3.2, 1.8), '#4a3020', w / 2, 1.6, 0);
-  for (const s of [-1, 1]) add(b, box(0.4, 1.4, 1.3), look === 'english' ? '#3b4a5a' : '#2f5e7a', w / 2, h * 0.62, s * d * 0.3);
-  ctx.house(b, 0, h, 0);
+  ctx.house(b, 0, top * 0.8, 0);
+  ctx.shadow(b, 0, 0, Math.max(w, d) * 0.62, top, 0.3);
   return b;
+}
+
+// The focal building a town gathers round, its front to local +x: a Spanish chapel with a bell tower, an
+// English church with a slate spire, a pirate tavern with its lantern and flag.
+function focal(g, look, x, z, rnd, ctx, o) {
+  const y = ctx.ground(g, x, z), b = new THREE.Group();
+  b.position.set(x, y, z);
+  g.add(b);
+  if (look === 'shanty') {
+    house(b, 'shanty', 0, 0, PI / 2, rnd, ctx, { w: 12, d: 9, h: 8.5 });
+    ctx.lamp(b, 5.6, 9.5, 0);
+    pole(b, 3.5, 6.5, 16, ctx, 'pirate');
+    return;
+  }
+  if (look === 'english') {
+    footing(b, 12, 7, '#a39783');
+    add(b, box(12, 7, 7), '#d8cfba', 0, 3.5, 0, 0.035);
+    add(b, gable(12, 7, 4.6, 0.6), '#5c5e69', 0, 7, 0, 0.03);
+    add(b, box(5, 13, 5), '#cfc5ae', -6.5, 6.5, 0, 0.04);
+    add(b, hip(3.4, 3.4, 10), '#4f4c58', -6.5, 13, 0, 0.04);
+    add(b, box(0.4, 3.2, 2), '#4a3020', 6.05, 1.6, 0);
+    for (const zz of [-2.2, 2.2]) add(b, box(1.2, 2.4, 0.4), '#3b4a5a', 0, 4.4, zz * 1.6);
+    ctx.shadow(b, -2, 0, 9, 16, 0.32);
+    return;
+  }
+  // A mission chapel: whitewashed nave, curved gable front, a bell tower with arched openings and a cross.
+  const white = look === 'city' ? '#f0dfb4' : '#f7f2e8', roof = '#c4613a';
+  footing(b, 12, 7.5, '#c9b48c');
+  add(b, box(12, 8, 7.5), white, -1, 4, 0, 0.035);
+  add(b, hip(12, 7.5, 2.6), roof, -1, 8, 0, 0.03);
+  const front = new THREE.Shape();
+  front.moveTo(-4.2, 0); front.lineTo(4.2, 0); front.lineTo(4.2, 9); front.quadraticCurveTo(3, 12.4, 0, 13); front.quadraticCurveTo(-3, 12.4, -4.2, 9); front.lineTo(-4.2, 0);
+  add(b, new THREE.ExtrudeGeometry(front, { depth: 1.1, bevelEnabled: false }).rotateY(PI / 2), white, 5, 0, 0, 0.04);
+  add(b, box(0.5, 3.8, 2.4), '#4a3020', 6.15, 1.9, 0);
+  add(b, box(0.5, 1.6, 1.6), '#2f5e7a', 6.15, 7.4, 0);
+  add(b, box(0.5, 3.2, 0.5), '#5a3d26', 5.6, 14.4, 0);
+  add(b, box(0.5, 0.5, 2), '#5a3d26', 5.6, 15.1, 0);
+  // The tower: tall enough to read from a distance.
+  const tz = -3.6;
+  add(b, box(4.6, 21, 4.6), white, -5.2, 10.5, tz, 0.04);
+  for (const [dx, dz] of [[2.35, 0], [0, 2.35], [-2.35, 0], [0, -2.35]]) add(b, box(dx ? 0.3 : 1.8, 3, dz ? 0.3 : 1.8), '#3a2c22', -5.2 + dx, 18.2, tz + dz);
+  add(b, hip(4.6, 4.6, 3.8), roof, -5.2, 21, tz, 0.04);
+  add(b, blob(), '#d9a53a', -5.2, 17.8, tz).scale.setScalar(1);
+  ctx.shadow(b, -2, -1, 9, 18, 0.32);
+  void o;
+}
+
+// Barrels and a crate or two, stacked by a door or at the end of a quay.
+function goods(g, x, z, rnd, ctx) {
+  const y = ctx.ground(g, x, z);
+  for (let i = 0; i < 3; i++) {
+    const a = rnd(0, TAU), r = i ? 1.9 : 0;
+    if (i === 2) add(g, box(2, 1.8, 2), '#b08250', x + Math.cos(a) * 2.2, y + 0.9, z + Math.sin(a) * 2.2, 0.06).rotation.y = rnd(0, 1);
+    else add(g, cyl(0.9, 0.9, 2.1, 7), '#7a4f2c', x + Math.cos(a) * r, y + 1.05, z + Math.sin(a) * r, 0.07);
+  }
+}
+
+// Where a street town's houses go, in its own frame (+x out to sea): the street runs along local z, following
+// the island's curve on an island (o.bend: the town's distance from the island's centre, set by land.js) and
+// straight on a coast, reaching a little past the sim's extent along the shore (never out toward the sea).
+// at(off, along) -> [x, z, yaw]: a spot `off` map units seaward of the street, `along` it; yaw turns the
+// street's direction (local z, at yaw 0) to its direction there.
+// A bigger town (and any city) has a back lane with a third row of houses behind the landward one, if there's
+// room inland; a city fills out its rows with more houses than its sim count.
+export function townLayout(o) {
+  const ext = 6 + 4.5 * Math.sqrt(o.houses), bend = o.bend || 0;
+  const half = bend ? Math.min(ext * 1.3, bend * 0.9) : ext * 1.3;
+  const at = (off, along) => {
+    if (!bend) return [off, along, 0];
+    const a = along / bend, R = bend + off;
+    return [-bend + Math.cos(a) * R, Math.sin(a) * R, -a];
+  };
+  const back = o.look !== 'village' && o.look !== 'shanty' && (o.houses >= 6 || o.look === 'city') && (!bend || bend >= 48);
+  const count = o.houses + Math.round(o.houses * (o.look === 'city' ? 0.7 : back ? 0.35 : 0));
+  return { half, ext, at, back, count };
 }
 
 // ---------- Landmarks ----------
@@ -274,32 +266,87 @@ export const BUILD = {
   town(g, o, ctx) {
     const { rnd } = ctx, look = o.look, n = o.houses;
     if (o.ring) {
-      // Strung round a fort: one row of houses along an arc of the island, backs to the fort.
-      const r0 = o.ringR, span = Math.min(PI * 0.9, (n * 13) / r0);
+      // Strung round a fort: one row of houses along an arc of the island, backs to the fort, ridges along the arc.
+      const r0 = o.ringR, span = Math.min(PI * 0.9, (n * 11) / r0);
       for (let i = 0; i < n; i++) {
         const a = (i / Math.max(1, n - 1) - 0.5) * span, x = Math.cos(a) * r0 - r0, z = Math.sin(a) * r0;
-        building(g, look, x + rnd(-1, 1), z, -a + rnd(-0.15, 0.15), rnd, ctx, i === Math.floor(n / 2) && look !== 'shanty' && look !== 'village');
+        const p = plan(look, rnd);
+        p.d = Math.min(p.d, 7);
+        house(g, look, x, z, PI / 2 - a, rnd, ctx, p);
       }
-      pole(g, -r0 + Math.cos(span / 2 + 0.2) * r0, Math.sin(span / 2 + 0.2) * r0, 13, ctx, flagFor(o, ctx.st));
+      pole(g, -r0 + Math.cos(span / 2 + 0.22) * r0, Math.sin(span / 2 + 0.22) * r0, 13, ctx, flagFor(o, ctx.st));
       ctx.people(g, [[0, -r0 * Math.sin(span * 0.3)], [0, r0 * Math.sin(span * 0.3)]], 2);
       return;
     }
-    // A cluster round a little square, the biggest house (a church, an inn, a counting-house) facing the sea.
-    const ext = 6 + 4.5 * Math.sqrt(n), slots = [];
-    for (let i = 0; i < n; i++) {
-      const a = i * 2.39996 + rnd(-0.2, 0.2), d = 7.5 + (ext - 9) * Math.sqrt((i + 0.5) / n);
-      slots.push([Math.cos(a) * d, Math.sin(a) * d, a]);
+    const ext = 6 + 4.5 * Math.sqrt(n);
+    if (look === 'village') {
+      // A fishing village: round huts in an arc open to the sea, a net drying in the middle, canoes on the sand.
+      const rr = ext * 0.62;
+      for (let i = 0; i < n; i++) {
+        const a = PI + (n > 1 ? (i / (n - 1) - 0.5) * PI * 1.2 : 0), x = Math.cos(a) * rr, z = Math.sin(a) * rr;
+        house(g, 'village', x, z, 0, rnd, ctx, plan('village', rnd));
+      }
+      const y = ctx.ground(g, 1, 0);
+      for (const s of [-1, 1]) add(g, cyl(0.3, 0.3, 6, 4), '#6b4a2a', 1, y + 3, s * 4);
+      add(g, box(0.2, 3.4, 8), '#7b6a55', 1, y + 4, 0);
+      for (let i = 0; i < 2; i++) canoe(g, ext * 0.7, (i - 0.5) * 7, rnd, ctx);
+      ctx.flat(g, [[-rr * 0.3, 0]], 6.5, '#b49a6c', 0.4);
+      ctx.people(g, [[-3, -4], [ext * 0.55, 3]], 2);
+      return;
     }
-    slots.forEach(([x, z, a], i) => building(g, look, x, z, PI - a + rnd(-0.25, 0.25) + (look === 'english' && rnd() < 0.5 ? PI / 2 : 0), rnd, ctx, i === 0 && (look === 'city' || look === 'spanish')));
-    if (look !== 'village') pole(g, 0, 0, 14, ctx, flagFor(o, ctx.st));
-    else {
-      // Fishing village: canoes drawn up, a net drying on poles.
-      for (let i = 0; i < 2; i++) canoe(g, ext * 0.75 + i * 2, rnd(-6, 6), rnd, ctx);
-      const nx = -ext * 0.3, y = ctx.ground(g, nx, ext * 0.5);
-      for (const s of [-1, 1]) add(g, cyl(0.3, 0.3, 6, 4), '#6b4a2a', nx + s * 4, y + 3, ext * 0.5);
-      add(g, box(8, 3.6, 0.2), '#7b6a55', nx, y + 4, ext * 0.5);
+    // A street along the shore, a row of houses either side with their ridges along it, following the island's
+    // curve; the focal building faces the sea across a little square left open in the front row.
+    const L = townLayout(o), half = L.half;
+    const hasFocal = n >= 5;
+    // Rows: off = where the fronts are (seaward of the street); dir = which way they face (+1 out to sea).
+    const rows = [{ off: 4, dir: -1, used: hasFocal ? [[-5.5, 5.5]] : [] }, { off: -4, dir: 1, used: hasFocal ? [[-5.4, 5.4]] : [] }];
+    if (L.back) rows.push({ off: -19.5, dir: 1, used: [], end: 0.82 });
+    let left = (hasFocal ? L.count - 1 : L.count), k = 0, stuck = 0;
+    const tryPut = (row, sgn) => {
+      const p = plan(look, rnd), gap = rnd(0.5, 1.3);
+      const edgeZ = row.used.length ? (sgn > 0 ? Math.max(...row.used.map((u) => u[1])) : Math.min(...row.used.map((u) => u[0]))) : -sgn * (p.w / 2 + gap / 2);
+      const z0 = edgeZ + sgn * gap, zc = z0 + sgn * p.w / 2;
+      if (Math.abs(zc) + p.w / 2 > half * (row.end || 1)) return false;
+      row.used.push(sgn > 0 ? [z0, z0 + p.w] : [z0 - p.w, z0]);
+      // The fronts line the street (a deeper house stands further back).
+      const [x, z, yaw] = L.at(row.off - row.dir * (p.d / 2 + rnd(-0.25, 0.25)), zc);
+      house(g, look, x, z, yaw + (row.dir < 0 ? -PI / 2 : PI / 2) + rnd(-0.03, 0.03), rnd, ctx, p);
+      return true;
+    };
+    while (left > 0 && stuck < rows.length * 4) {
+      const row = rows[k % rows.length], sgn = Math.floor(k / rows.length) % 2 ? -1 : 1;
+      k++;
+      if (tryPut(row, sgn)) { left--; stuck = 0; } else stuck++;
     }
-    ctx.people(g, [[-4, -3], [5, 2]], look === 'city' ? 3 : 2);
+    if (L.back) { const pts = []; for (let i = 0; i <= 8; i++) { const [x, z] = L.at(-17.5, -half * 0.8 + (1.6 * half * i) / 8); pts.push([x, z]); } ctx.flat(g, pts, 3.2, '#b49a6c', 0.35); }
+    if (hasFocal) {
+      const [x, z] = L.at(-10.5, 0);
+      focal(g, look, x, z, rnd, ctx, o);
+      // The square: a fountain (a well in an English town) under a pair of palms or a shade tree.
+      const [fx, fz] = L.at(1, 0), fy = ctx.ground(g, fx, fz), stone = look === 'english' ? '#b9b2a2' : '#d8ccae';
+      add(g, cyl(2.1, 2.3, 1, 10), stone, fx, fy + 0.5, fz, 0.06);
+      add(g, cyl(0.45, 0.6, look === 'english' ? 3.4 : 2.4, 6), stone, fx, fy + 1.4, fz);
+      for (const sd of [-1, 1]) {
+        const [px, pz] = L.at(2.2, sd * 4.3), py = ctx.ground(g, px, pz);
+        if (look === 'english') { if (sd > 0) broadleaf(g, px, py, pz, 0.72, rnd, ctx.st.F); } else palm(g, px, py, pz, 0.78, rnd, ctx.st.F, ctx);
+      }
+    }
+    // Gardens: a tree at the end of a row now and then, so the town settles into the land round it.
+    for (const row of rows) for (const sgn of [-1, 1]) {
+      if (!row.used.length || rnd() < 0.4) continue;
+      const zEnd = sgn > 0 ? Math.max(...row.used.map((u) => u[1])) + 4.6 : Math.min(...row.used.map((u) => u[0])) - 4.6;
+      if (Math.abs(zEnd) > half * 1.12) continue;
+      const [x, z] = L.at(row.off - row.dir * 4, zEnd);
+      broadleaf(g, x, ctx.ground(g, x, z), z, 0.7, rnd, ctx.st.F);
+    }
+    // The street and the square, packed earth.
+    const pts = [];
+    for (let i = 0; i <= 10; i++) { const [x, z] = L.at(0, -half + (2 * half * i) / 10); pts.push([x, z]); }
+    ctx.flat(g, pts, 4.6, '#b49a6c', 0.5);
+    if (hasFocal) ctx.flat(g, [L.at(1.5, 0)], 6, '#b49a6c', 0.45);
+    if (look !== 'shanty') { const [x, z] = hasFocal ? L.at(4.5, 0) : L.at(1.2, half * 0.55); pole(g, x, z, 14, ctx, flagFor(o, ctx.st)); }
+    { const [x, z] = L.at(1.5, half * 0.86); goods(g, x, z, rnd, ctx); }
+    ctx.people(g, [L.at(0, -half * 0.7), L.at(0, half * 0.7)], look === 'city' ? 3 : 2);
   },
   harbour(g, o, ctx) {
     // A wharf from the beach out over the shallows, with crates, barrels and boats alongside.
@@ -331,8 +378,11 @@ export const BUILD = {
     ctx.people(g, [[x0 + 2, 0], [x0 + len - 2, 0]], 2, y + 0.5);
     ctx.gulls(g, x0 + len, 0, 0, 2, 16, 26);
   },
+  // The landmarks stand a little larger than life, so each reads as a silhouette at the comfort zoom.
   lighthouse(g, o, ctx) {
     const y = 0;
+    g.scale.setScalar(1.4);
+    ctx.shadow(g, 0, 0, 6.5, 30, 0.32);
     add(g, cyl(6, 6.8, 3, 8), '#b9b2a2', 0, y + 1.2, 0, 0.05);
     add(g, cyl(3.1, 4.3, 24, 10), '#f4f0e6', 0, y + 14, 0, 0.05);
     for (const by of [8, 17]) add(g, cyl(3.92 - (by - 2) * 0.05, 4.05 - (by - 2) * 0.05, 3.4, 10), '#c8302a', 0, y + by, 0);
@@ -344,6 +394,8 @@ export const BUILD = {
     ctx.gulls(g, 0, y + 30, 0, o.sight > 0 ? 2 : 3, 22, 18);
   },
   windmill(g, o, ctx) {
+    g.scale.setScalar(1.3);
+    ctx.shadow(g, 0, 0, 6, 18, 0.3);
     add(g, cyl(3.6, 5, 16, 8), '#e2d6bb', 0, 8, 0, 0.05);
     add(g, new THREE.ConeGeometry(4.4, 5, 8), '#7a4a2e', 0, 18.4, 0, 0.06);
     add(g, box(0.4, 3.2, 1.8), '#4a3020', 4.9, 1.6, 0);
@@ -363,12 +415,14 @@ export const BUILD = {
   },
   church(g, o, ctx) {
     const spanish = ctx.st.id !== 'port' && o.look !== 'english';
+    g.scale.setScalar(1.2);
+    ctx.shadow(g, 0, 0, 10, 20, 0.32);
     if (!spanish) {
       footing(g, 15, 8, '#a39783');
       add(g, box(15, 8, 8), '#cfc6b3', -1, 4, 0, 0.035);
       add(g, gable(15, 8, 5.5, 0.6), '#5d5a63', -1, 8, 0, 0.03);
-      add(g, box(6, 15, 6), '#c4bba6', 7.5, 7.5, 0, 0.04);
-      add(g, hip(4.6, 4.6, 11), '#4f4c55', 7.5, 15, 0, 0.04);
+      add(g, box(6, 17, 6), '#c4bba6', 7.5, 8.5, 0, 0.04);
+      add(g, hip(4.6, 4.6, 13), '#4f4c55', 7.5, 17, 0, 0.04);
       add(g, box(0.4, 3.4, 2), '#4a3020', 10.6, 1.7, 0);
       for (const z of [-2.5, 2.5]) add(g, box(0.4, 2.6, 1), '#3b4a5a', -1, 5, z * 1.6).rotation.y = PI / 2;
       return;
@@ -382,15 +436,17 @@ export const BUILD = {
     const fg = new THREE.ExtrudeGeometry(front, { depth: 1.2, bevelEnabled: false }).rotateY(PI / 2);
     add(g, fg, '#f2ead8', 6.8, 0, 0, 0.04);
     add(g, box(0.5, 4, 2.6), '#4a3020', 8.1, 2, 0);
-    add(g, box(5, 18, 5), '#f6f1e6', -7, 9, 4, 0.04);
-    for (const [dx, dz] of [[2.55, 0], [0, 2.55], [-2.55, 0], [0, -2.55]]) add(g, box(dx ? 0.3 : 2, 3, dz ? 0.3 : 2), '#3a2c22', -7 + dx, 14.5, 4 + dz);
-    add(g, hip(5, 5, 3.4), '#c8643c', -7, 18, 4, 0.04);
-    add(g, blob(), '#d9a53a', -7, 14, 4).scale.setScalar(1.1);
+    add(g, box(5, 22, 5), '#f6f1e6', -7, 11, 4, 0.04);
+    for (const [dx, dz] of [[2.55, 0], [0, 2.55], [-2.55, 0], [0, -2.55]]) add(g, box(dx ? 0.3 : 2, 3.2, dz ? 0.3 : 2), '#3a2c22', -7 + dx, 18.4, 4 + dz);
+    add(g, hip(5, 5, 4), '#c8643c', -7, 22, 4, 0.04);
+    add(g, blob(), '#d9a53a', -7, 18, 4).scale.setScalar(1.1);
     add(g, box(0.5, 3.4, 0.5), '#5a3d26', 6.8, 16, 0);
     add(g, box(0.5, 0.5, 2.2), '#5a3d26', 6.8, 16.8, 0);
   },
   ruin(g, o, ctx) {
     const { rnd } = ctx, stone = '#b4ad97', moss = '#7f9a5a';
+    g.scale.setScalar(1.15);
+    ctx.shadow(g, 0, 0, 13, 12, 0.28);
     footing(g, 22, 22, '#9e977f');
     add(g, box(22, 3, 22), stone, 0, 1.5, 0, 0.03);
     add(g, box(16, 3, 16), moss, 0, 4.5, 0, 0.03);
@@ -406,8 +462,8 @@ export const BUILD = {
       add(g, cyl(1.2, 1.2, rnd(4, 7), 7), '#cbc4ad', x, ctx.ground(g, x, z) + 1.2, z).rotation.set(PI / 2, 0, rnd(0, TAU));
     }
     for (let i = 0; i < 4; i++) {
-      const a = (i / 4) * TAU + PI / 4, v = add(g, blob(), '#4a9a3f', Math.cos(a) * 10, 3.5, Math.sin(a) * 10);
-      v.scale.set(3.5, 3, 3.5);
+      const a = (i / 4) * TAU + PI / 4;
+      bush(g, Math.cos(a) * 10.5, 1.5, Math.sin(a) * 10.5, 0.85, rnd, ctx.st.F, ['#4a8f3d', '#3f8238']);
     }
     // The golden idol on top: it catches the light now and then (land.js adds the glint).
     add(g, cyl(0.9, 1.3, 2.6, 6), '#e2b13a', 0, 10.3, 0, 0.1);
@@ -417,6 +473,8 @@ export const BUILD = {
   castle(g, o, ctx) {
     // A bastioned trace: the walls angle out into arrow-head bastions toward the sea.
     const stone = '#d8c08a', top = '#c2a86f';
+    g.scale.setScalar(1.12);
+    ctx.shadow(g, 0, 0, 15, 14, 0.3);
     const sh = new THREE.Shape(), pts = [[12, 0], [6, 7], [8, 13], [-2, 11], [-10, 14], [-12, 4], [-12, -4], [-10, -14], [-2, -11], [8, -13], [6, -7]];
     pts.forEach(([x, z], i) => (i ? sh.lineTo(x, -z) : sh.moveTo(x, -z)));
     footing(g, 22, 22, '#b9a070');

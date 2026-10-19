@@ -6,58 +6,81 @@ import { bakeStatic, FORT_BASE_Y } from './models.js';
 import { coastDepth, coastPoint, coreDist, coastGap } from '../sim/terrain.js';
 import { placer } from '../sim/battle.js';
 import { LANDMARKS, RING } from '../sim/land.js';
-import { BUILD, palm, broadleaf, pine, cactus, agave, bush, canopy, mangrove, flagCloth, buoys, sharedGeos } from './landmarks.js';
+import { battleDef } from '../config/endless.js';
+import { weatherFor } from '../config/weather.js';
+import { BUILD, flagCloth, buoys, sharedGeos, townLayout } from './landmarks.js';
+import { broadleaf, crown, palm, pine, bush, scrub, cactus, agave, mangrove, floraGeos } from './flora.js';
 import { buildShoal, buildReef, rng, sharedTerrainGeos } from './terrain.js';
 
 // The land of a battle: islands and coasts with hills, cliffs, beaches and coves in the region's style
 // (src/sim/land.js has the styles' ids and the landmarks), the plants and landmarks on them, and the shoals and
-// reefs from render/terrain.js. Built once per battle and baked into five meshes: toon land, its ink, the
-// translucent shallows, and the swaying things (palms, flags, windmill sails) with their ink, which move in
-// the vertex shader. The living details are cheap extras, revealed as you zoom in: chimney smoke (into the
-// shared puff pool), lamps (the glow pool), gulls and parrots, people on the wharves and in the squares, scorch
-// marks where shot has landed, and calm water in the lee of high land (one draw call each).
+// reefs from render/terrain.js. Built once per battle and baked into a few meshes: toon land, its ink, the
+// translucent flats (shallows, surf, the soft shadows under trees and houses), and the swaying things (palms,
+// flags, windmill sails) with their ink, which move in the vertex shader. The living details are cheap extras,
+// revealed as you zoom in: chimney smoke (into the shared puff pool), lamps (the glow pool), gulls and parrots,
+// people on the wharves and in the squares, scorch marks where shot has landed, and calm water in the lee of
+// high land (one draw call each).
+//
+// Art direction: a toy diorama in warm, soft colour. The ground steps gently from wet sand to dry sand, lush
+// low grass, drier slopes and rock with strata on the cliffs; woods grow in groves with clearings, thickest
+// inland and thinning to palms behind the beach; the shore is a soft band of turquoise shallows with a broken
+// line of surf. The land stays a step quieter than the ships, which are the brightest things on the water.
 
 // ---------- Styles ----------
 // Colours are sRGB hex. hill/plateau in map units; beach is the share of an island's radius that is sand;
-// cliffs the share of shore that is cliff on an average island; trees the mix of plants; density per area.
+// cliffs the share of shore that is cliff on an average island; density per area; veg: the plant mix: grove
+// (broad, pine: what the woods are made of), palms (share of the strip behind the beach), forest (how much of
+// the land is wooded, about 1), dry (cactus, agave and scrub in the meadows). Ground colours run wet sand ->
+// sand -> grass (low, then higher) with meadow patches, a darker floor under the woods, then high ground and rock
+// banded with strata. F is the plants' palette (render/flora.js).
+const FLORA = {
+  canopy: ['#4f8e41', '#5a9946', '#46833d'], bush: ['#5b9747', '#4e8a41'], scrub: ['#8c9b54', '#7b8d4c'],
+  trunk: '#6f5034', palmTrunk: '#a07e58', frond: ['#64a94b', '#4f9541'], nut: '#6b4a2a',
+  pine: ['#3f6f4b', '#477a51', '#3a6646'], cactus: '#6b9a62', agave: ['#82a98b', '#6c977b'],
+  mangrove: ['#3f7236', '#36683a'], root: '#5e4632',
+};
 const STYLES = {
   port: {
-    sand: '#f2d68f', grass: ['#7cc957', '#61b047'], high: '#4f9a3c', rock: '#9b968c', pad: '#d4bf8c',
-    cliffs: 0.12, hill: 18, plateau: 5, beach: 0.17, density: 1, forest: 1, trees: { broad: 0.45, palm: 0.45, bush: 0.1 },
-    canopy: ['#3f9a3c', '#4aa13a', '#358a35', '#52ad40'],
+    sand: '#efdcab', wet: '#cdb37f', grass: ['#98c262', '#84b058'], meadow: '#b3cc74', high: '#6c994c', forest: '#4c733a',
+    rock: '#a39b8c', strata: '#847a6b', pad: '#d9c79c',
+    cliffs: 0.12, hill: 19, plateau: 5, beach: 0.17, density: 1, veg: { grove: 'broad', palms: 0.45, forest: 1 },
   },
   windward: {
-    sand: '#e8d39c', grass: ['#9fbe5e', '#80a64e'], high: '#6b8d45', rock: '#8f8b86', pad: '#c9b98f',
-    cliffs: 0.45, hill: 26, plateau: 8, beach: 0.09, density: 0.75, forest: 0.8, trees: { pine: 0.5, palm: 0.2, bush: 0.3 },
-    canopy: ['#3f7d45', '#46874a', '#386f3f'],
+    sand: '#e5d6aa', wet: '#c4b384', grass: ['#a3b96c', '#8ba65e'], meadow: '#b8c27e', high: '#728d51', forest: '#4a673f',
+    rock: '#948e86', strata: '#6e6962', pad: '#cbbd95',
+    cliffs: 0.45, hill: 28, plateau: 8, beach: 0.09, density: 0.75, veg: { grove: 'pine', palms: 0.2, forest: 0.85 },
+    F: { canopy: ['#4c7f45', '#56894b'], bush: ['#5b8a4c', '#64924f'] },
   },
   main: {
-    sand: '#f1d59b', grass: ['#b4c56b', '#98b257'], high: '#7f9a4a', rock: '#c9a679', pad: '#dcc596',
-    cliffs: 0.22, hill: 15, plateau: 5, beach: 0.15, density: 0.85, forest: 0.45, trees: { palm: 0.45, cactus: 0.25, broad: 0.2, agave: 0.1 },
-    canopy: ['#6d9e3e', '#7aa846', '#5f9038'],
+    sand: '#ecd9ae', wet: '#cbb07e', grass: ['#8db866', '#7aa75c'], meadow: '#bcbd78', high: '#7d9156', forest: '#5a7340',
+    rock: '#c6a378', strata: '#a2805c', pad: '#dec8a0',
+    cliffs: 0.22, hill: 16, plateau: 5, beach: 0.15, density: 0.85, veg: { grove: 'broad', palms: 0.42, forest: 0.5, dry: true },
+    F: { canopy: ['#6b9045', '#77994b', '#61853f'], bush: ['#7c9548', '#6f8a44'] },
   },
   golden: {
-    sand: '#f4dc98', grass: ['#56b247', '#3f9b3e'], high: '#2f8337', rock: '#7f8b70', pad: '#c9b98c',
-    cliffs: 0.18, hill: 30, plateau: 6, beach: 0.13, density: 1.6, forest: 1.3, trees: { broad: 0.68, palm: 0.32 },
-    canopy: ['#2e8a35', '#37963a', '#2a7d31', '#43a33f'],
+    sand: '#e8d7a3', wet: '#c4ad78', grass: ['#62a34d', '#519546'], meadow: '#7db357', high: '#448541', forest: '#2c6133',
+    rock: '#7e8a72', strata: '#606c58', pad: '#c9bb90',
+    cliffs: 0.18, hill: 32, plateau: 6, beach: 0.13, density: 1.6, veg: { grove: 'broad', palms: 0.3, forest: 1.35 },
+    F: { canopy: ['#2f7d3a', '#378a3f', '#2b7035', '#3f9243'], broadScale: 1.12 },
   },
   pirate: {
-    sand: '#f6e3a9', grass: ['#73c457', '#5aad46'], high: '#4b9a3c', rock: '#7a7069', pad: '#d9c08e',
-    cliffs: 0.15, hill: 16, plateau: 4, beach: 0.2, density: 1.1, forest: 0.9, trees: { palm: 0.78, bush: 0.12, broad: 0.1 },
-    canopy: ['#3f9a3c', '#4aa13a', '#358a35'],
+    sand: '#f2e2b2', wet: '#d2bd88', grass: ['#8ebf5c', '#79ad52'], meadow: '#a8c86c', high: '#5e9645', forest: '#45793a',
+    rock: '#7d736b', strata: '#625951', pad: '#d9c393',
+    cliffs: 0.15, hill: 17, plateau: 4, beach: 0.2, density: 1.1, veg: { grove: 'broad', palms: 0.75, forest: 0.85 },
   },
   campeche: {
-    sand: '#eddaa8', grass: ['#8fbb5c', '#74a34c'], high: '#5f8f43', rock: '#9c917e', pad: '#d4c094',
-    cliffs: 0, hill: 4, plateau: 2.5, beach: 0.22, density: 1.1, forest: 0.8, trees: { palm: 0.55, broad: 0.25, bush: 0.2 },
-    canopy: ['#3d7d3a', '#46883f', '#538f45'],
+    sand: '#ead9ad', wet: '#c9b583', grass: ['#9cba66', '#86a95a'], meadow: '#b1c473', high: '#6e9450', forest: '#4d773f',
+    rock: '#9c917e', strata: '#7e745f', pad: '#d6c399',
+    cliffs: 0, hill: 4, plateau: 2.5, beach: 0.22, density: 1.1, veg: { grove: 'broad', palms: 0.55, forest: 0.75 },
+    F: { canopy: ['#3f7c3a', '#488640', '#538f45'] },
   },
   armada: {
-    sand: '#eed8a2', grass: ['#7db758', '#63a048'], high: '#4f8c3e', rock: '#cdb88c', pad: '#d8c49a',
-    cliffs: 0.35, hill: 16, plateau: 6, beach: 0.12, density: 1, forest: 0.8, trees: { palm: 0.55, broad: 0.45 },
-    canopy: ['#3f9a3c', '#4aa13a', '#358a35'],
+    sand: '#ecd8a8', wet: '#c9b27f', grass: ['#8cb35e', '#77a253'], meadow: '#a3be6c', high: '#5f8c47', forest: '#446e39',
+    rock: '#cbb68c', strata: '#a8936a', pad: '#d9c69d',
+    cliffs: 0.35, hill: 17, plateau: 6, beach: 0.12, density: 1, veg: { grove: 'broad', palms: 0.5, forest: 0.85 },
   },
 };
-for (const [id, s] of Object.entries(STYLES)) s.id = id;
+for (const [id, s] of Object.entries(STYLES)) { s.id = id; s.F = { ...FLORA, ...(s.F || {}) }; }
 export const styleOf = (G) => STYLES[G.style] || STYLES.port;
 // Fort stone by region: grey English ragstone, honey-coloured Spanish limestone, mossy jungle stone.
 const FORT_LOOK = {
@@ -76,6 +99,8 @@ function noise2(x, y) {
 }
 const fbm = (x, y) => noise2(x, y) * 0.65 + noise2(x * 2.13 + 5.2, y * 2.13 + 1.3) * 0.35;
 const bumpA = (a, at, w) => 1 - smooth(w * 0.5, w, Math.abs(angDiff(a, at)));
+// Where the woods are (0-1, a grove above 0.5): big patches from the forest noise, more of them inland.
+const groveOf = (f, inland, V) => clamp(f * 1.2 + inland * 0.75 - 0.86 + 0.16 * (V.forest - 1), 0, 1);
 
 // ---------- Island relief ----------
 // The height of the island's ground at a map offset (dx, dy) from its centre. The shore follows the outline
@@ -96,12 +121,12 @@ function islandRelief(G, is, ii, st, pads) {
     return is.r * v;
   };
   const cl = clamp(rel.cliffs != null ? rel.cliffs : st.cliffs * r(0.3, 1.6), 0, 0.85), cAt = rel.at != null ? rel.at : r(0, TAU);
-  const cliffW = (a) => (cl <= 0.02 ? 0 : 1 - smooth(cl * PI - 0.12, cl * PI + 0.3, Math.abs(angDiff(a, cAt))) * (cove ? 1 : 1));
+  const cliffW = (a) => (cl <= 0.02 ? 0 : 1 - smooth(cl * PI - 0.12, cl * PI + 0.3, Math.abs(angDiff(a, cAt))));
   // Rolling hills along the island (a long one gets them strung down its ridge).
   const bumps = [], nb = Math.round(r(1, 2.6) * (1 + (is.hl / is.r) * 0.6));
   for (let k = 0; k < nb; k++) {
     const along = is.hl ? r(-0.8, 0.8) * is.hl : 0, a = r(0, TAU), d = r(0, 0.32) * is.r;
-    bumps.push([Math.cos(is.ang) * along + Math.cos(a) * d, Math.sin(is.ang) * along + Math.sin(a) * d, is.r * r(0.28, 0.42), st.hill * hk * r(0.45, 1)]);
+    bumps.push([Math.cos(is.ang) * along + Math.cos(a) * d, Math.sin(is.ang) * along + Math.sin(a) * d, is.r * r(0.28, 0.42), st.hill * hk * r(0.5, 1)]);
   }
   const peaks = (G.landmarks || []).filter((o) => (o.kind === 'peak' || o.kind === 'volcano') && o.host && o.host.island === ii)
     .map((o) => ({ x: o.x - is.x, y: o.y - is.y, H: o.height, foot: o.size * is.r * 1.2, crater: o.kind === 'volcano' }));
@@ -147,22 +172,27 @@ function islandRelief(G, is, ii, st, pads) {
     if (info) { info.pad = pw; info.padColor = pc; }
     return y;
   }
-  return { is, h, raw, shoreR, cliffW, out, rnd: r, s1, s2, plateau, cove };
+  // The woods: a grove value (0-1) at a local spot t of the way out to the shore.
+  const fo1 = r(0, 50), fo2 = r(0, 50);
+  // An island is small: wooded wherever there is room, with a clearing or two, thinning to the beach.
+  const grove = (dx, dy, t) => clamp(fbm((is.x + dx) / 50 + fo1, (is.y + dy) / 50 + fo2) * 1.2 + 0.05 + (1 - t) * 0.5 + 0.12 * (st.veg.forest - 1), 0, 1) * (1 - smooth(0.8, 0.9, t));
+  return { is, h, raw, shoreR, cliffW, out, rnd: r, s1, s2, plateau, cove, grove };
 }
 
-// Builds an island's ground mesh (polar grid) with vertex colours, its waterline ink and its shallows.
-function islandMesh(rl, st, root, glass) {
+// Builds an island's ground mesh (polar grid) with vertex colours, and its shore: shallows, surf, wet edge.
+function islandMesh(rl, st, root, glass, sea, cover) {
   const { is, h, shoreR, out } = rl;
-  const TS = [0, 0.12, 0.24, 0.36, 0.47, 0.57, 0.66, 0.74, 0.81, 0.87, 0.92, 0.955, 0.978, 0.992, 1.0, 1.035];
-  const nSeg = clamp(Math.round((TAU * is.r + 4 * is.hl) / 5.5), 40, 110);
+  const TS = [0, 0.12, 0.24, 0.36, 0.47, 0.57, 0.66, 0.74, 0.8, 0.85, 0.89, 0.92, 0.945, 0.963, 0.978, 0.989, 0.996, 1.0, 1.035];
+  const nSeg = clamp(Math.round((TAU * is.r + 4 * is.hl) / 4.6), 48, 128);
   const nR = TS.length, pos = new Float32Array((1 + nR * nSeg) * 3), info = [];
   const put = (i, dx, y, dy) => { pos[i * 3] = dx; pos[i * 3 + 1] = y; pos[i * 3 + 2] = dy; };
-  put(0, 0, h(0, 0, out), 0); info.push({ ...out, dx: 0, dy: 0 });
+  const note = (dx, dy) => info.push({ ...out, dx, dy, grove: cover(is.x + dx, is.y + dy), fx: is.x + dx, fy: is.y + dy });
+  put(0, 0, h(0, 0, out), 0); note(0, 0);
   for (let k = 0; k < nR; k++) {
     for (let j = 0; j < nSeg; j++) {
       const a = (j / nSeg) * TAU, Rr = shoreR(a) * TS[k], dx = Math.cos(a) * Rr, dy = Math.sin(a) * Rr;
       put(1 + k * nSeg + j, dx, h(dx, dy, out), dy);
-      info.push({ ...out, dx, dy });
+      note(dx, dy);
     }
   }
   const idx = [];
@@ -181,67 +211,114 @@ function islandMesh(rl, st, root, glass) {
   const m = new THREE.Mesh(geo, R.vcToon);
   m.position.set(wx(is.x), 0, wz(is.y));
   root.add(m);
-  // Waterline ink: a thin dark band just outside the beach, the island's outline.
-  const ink = [], inkIdx = [];
-  for (let j = 0; j <= nSeg; j++) {
-    const a = (j / nSeg) * TAU, Rr = shoreR(a);
-    ink.push(Math.cos(a) * (Rr - 0.4), 0.66, Math.sin(a) * (Rr - 0.4), Math.cos(a) * (Rr + 1.9), 0.66, Math.sin(a) * (Rr + 1.9));
-    if (j < nSeg) { const b = j * 2; inkIdx.push(b, b + 2, b + 1, b + 1, b + 2, b + 3); }
-  }
-  const ig = new THREE.BufferGeometry();
-  ig.setAttribute('position', new THREE.Float32BufferAttribute(ink, 3));
-  ig.setIndex(inkIdx);
-  ig.computeVertexNormals();
-  const im = new THREE.Mesh(ig, toon('#3a2414'));
-  im.position.copy(m.position);
-  root.add(im);
-  // Shallows and surf round the shore.
-  for (const [k, add, color, op, y] of [[1.55, 0, 0x9fe6f0, 0.45, 0.2], [1.25, 0, 0xcdf5f7, 0.6, 0.3], [1.06, 2.5, 0xffffff, 0.88, 0.42]]) {
-    const ring = shoreRing(shoreR, nSeg, 0.97, k, add, y);
-    const gm = new THREE.Mesh(ring, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false }));
-    gm.position.copy(m.position);
-    glass.add(gm);
-  }
-}
-// A flat band from k0 to k1 times the shore radius (plus `add` units), at height y.
-function shoreRing(shoreR, n, k0, k1, add, y) {
-  const p = [], idx = [];
-  for (let j = 0; j <= n; j++) {
-    const a = (j / n) * TAU, Rr = shoreR(a);
-    p.push(Math.cos(a) * Rr * k0, y, Math.sin(a) * Rr * k0, Math.cos(a) * (Rr * k1 + add), y, Math.sin(a) * (Rr * k1 + add));
-    if (j < n) { const b = j * 2; idx.push(b, b + 2, b + 1, b + 1, b + 2, b + 3); }
-  }
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  return g;
+  const g = new THREE.Group();
+  g.position.copy(m.position);
+  glass.add(g);
+  const edge = (u, off) => { const a = u * TAU, Rr = shoreR(a) + off; return [Math.cos(a) * Rr, Math.sin(a) * Rr]; };
+  shoreline(g, edge, Math.max(96, nSeg * 2), (u) => rl.cliffW(u * TAU), sea, is.seed || is.r);
 }
 
-// Vertex colours from height, slope and what the ground is: sand, grass, high ground, rock (cliffs, steep
-// slopes, mountain tops), packed earth under towns, dark ash in a crater.
+// The shore, seaward of the waterline, as soft translucent bands that follow it (edge(u, off): the point u of
+// the way along the shore, off map units out to sea): turquoise shallows fading to the sea, a darker wet edge
+// (heavier under cliffs, where it reads as the rock's foot), a broken line of surf and a fainter swell beyond.
+function shoreline(parent, edge, n, cliffAt, sea, seed) {
+  const pos = [], col = [], idx = [];
+  const ph = (seed * 0.137) % 7;
+  const wave = (u, k, o) => 0.5 + 0.5 * Math.sin(u * k + o + ph) * Math.cos(u * k * 0.53 + o * 1.7 + ph * 2.1);
+  const band = (rows, y, color) => {
+    // rows: [[off(u, cliff), alpha(u, cliff)], ...] from inside out.
+    const base = pos.length / 3, nr = rows.length;
+    for (let j = 0; j <= n; j++) {
+      const u = j / n, cl = cliffAt(u);
+      for (const [off, al] of rows) {
+        const [x, z] = edge(u, off(u, cl));
+        pos.push(x, y, z); col.push(color.r, color.g, color.b, clamp(al(u, cl), 0, 1));
+      }
+    }
+    for (let j = 0; j < n; j++) for (let k = 0; k < nr - 1; k++) {
+      const a = base + j * nr + k, b = a + nr;
+      idx.push(a, a + 1, b, a + 1, b + 1, b);
+    }
+  };
+  const S = sea.shallow, W = sea.surf, K = sea.rim;
+  // Shallows: narrow under cliffs (deep water close in), wide off a beach.
+  const wide = (cl) => 1 - 0.55 * cl;
+  band([
+    [() => -0.4, () => 0.6], [(u, c) => 5 * wide(c), () => 0.46], [(u, c) => 13 * wide(c), () => 0.24],
+    [(u, c) => (24 + 6 * wave(u, 9, 1)) * wide(c), () => 0.08], [(u, c) => (36 + 8 * wave(u, 5, 2)) * wide(c), () => 0],
+  ], 0.2, S);
+  // The wet edge where the water laps the land: barely there on a beach, the dark foot of a cliff.
+  band([[() => -0.9, () => 0], [() => -0.2, (u, c) => 0.16 + 0.42 * c], [() => 0.9, (u, c) => 0.1 + 0.3 * c], [() => 1.8, () => 0]], 0.64, K);
+  // Surf: a bright line just off the sand, its width and strength wandering, with gaps here and there.
+  band([
+    [() => 0.4, () => 0],
+    [() => 0.8, (u, c) => (0.95 - 0.35 * c) * smooth(0.12, 0.4, wave(u, 23, 0.4))],
+    [(u) => 1.5 + 1.4 * wave(u, 31, 3), (u, c) => (0.8 - 0.3 * c) * smooth(0.12, 0.4, wave(u, 23, 0.4))],
+    [(u) => 2.6 + 2 * wave(u, 31, 3), () => 0],
+  ], 0.4, W);
+  // A fainter swell line further out, broken into long dashes.
+  band([
+    [(u) => 6 + 2 * wave(u, 7, 5), () => 0],
+    [(u) => 6.8 + 2 * wave(u, 7, 5), (u, c) => 0.34 * smooth(0.45, 0.7, wave(u, 17, 1.2)) * (1 - 0.5 * c)],
+    [(u) => 7.8 + 2.3 * wave(u, 7, 5), () => 0],
+  ], 0.36, W);
+  // Face up whichever way round the shore runs (the sum of the triangles' upward areas).
+  let up = 0;
+  for (let q = 0; q < idx.length; q += 3) {
+    const a = idx[q] * 3, b = idx[q + 1] * 3, c = idx[q + 2] * 3;
+    up += (pos[b + 2] - pos[a + 2]) * (pos[c] - pos[a]) - (pos[b] - pos[a]) * (pos[c + 2] - pos[a + 2]);
+  }
+  if (up < 0) for (let q = 0; q < idx.length; q += 3) { const tmp = idx[q + 1]; idx[q + 1] = idx[q + 2]; idx[q + 2] = tmp; }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  parent.add(new THREE.Mesh(geo, flatMat()));
+}
+// White, fully opaque: the bake takes colour and alpha from the vertices.
+let flatM = null;
+const flatMat = () => (flatM = flatM || Object.assign(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false }), { userData: { shared: true } }));
+
+// Vertex colours from height, slope and what the ground is: wet and dry sand, grass (lush low, drier high, with
+// meadow patches), the darker floor of the woods, rock (cliffs, steep slopes, mountain tops) banded with strata,
+// packed earth under towns, dark ash in a crater.
 const _c = new THREE.Color(), _d = new THREE.Color();
 function paint(geo, info, st, rl) {
   const nor = geo.attributes.normal, pos = geo.attributes.position, n = pos.count;
   const col = new Float32Array(n * 3);
-  const sand = C(st.sand), wet = C(st.sand).multiplyScalar(0.82), g0 = C(st.grass[0]), g1 = C(st.grass[1]), high = C(st.high), rock = C(st.rock), ash = C('#57493f');
+  const sand = C(st.sand), wet = C(st.wet), g0 = C(st.grass[0]), g1 = C(st.grass[1]), meadow = C(st.meadow), high = C(st.high);
+  const floor = C(st.forest), rock = C(st.rock), strata = C(st.strata), ash = C('#57493f');
   const top = rl.plateau + st.hill * 0.55;
   for (let i = 0; i < n; i++) {
     const f = info[i], y = pos.getY(i), ny = nor.getY(i);
     // Lush low ground, drier slopes, darker high ground: the height reads even where the light is flat.
-    const nz = noise2(f.dx * 0.04 + rl.s1, f.dy * 0.04 + rl.s2);
-    _c.copy(g0).lerp(g1, clamp(smooth(rl.plateau, top, y) * 0.75 + (nz - 0.5) * 0.6, 0, 1));
-    _c.lerp(high, smooth(top * 0.9, top * 1.8, y) * 0.85);
+    const nz = noise2(f.fx * 0.035 + rl.s1, f.fy * 0.035 + rl.s2);
+    _c.copy(g0).lerp(g1, clamp(smooth(rl.plateau, top, y) * 0.8 + (nz - 0.5) * 0.7, 0, 1));
+    // Meadows: sunlit patches of paler, drier grass in the open, away from the woods.
+    _c.lerp(meadow, smooth(0.54, 0.7, noise2(f.fx * 0.016 + 7.7, f.fy * 0.016 + rl.s1)) * 0.7 * (1 - smooth(0.25, 0.55, f.grove)));
+    _c.lerp(high, smooth(top * 0.95, top * 1.9, y) * 0.75);
+    // Broad, soft swells of light and shade across the land, so a wide stretch of grass is never one flat colour.
+    _c.multiplyScalar(0.9 + 0.2 * noise2(f.fx * 0.0085 + rl.s2, f.fy * 0.0085 + 3.3));
+    // The floor of the woods, darker where the crowns are thickest, and a little shade round their edges.
+    _c.lerp(floor, smooth(0.3, 0.6, f.grove) * 0.8);
     const inland = 1 - f.t, edge = f.s != null ? 1 - smooth(4, 14, f.s) : 1 - smooth(0.01, 0.05, inland);
     // Steep ground shows rock, except on a mountain's lower flanks, which stay green up to the bare top.
-    const steep = smooth(0.8, 0.6, ny) * (f.peak > 0.05 ? smooth(0.6, 0.8, f.peak) : 1);
-    const rocky = Math.max(f.cliff * edge * smooth(1.5, 3, y), steep, smooth(0.66, 0.86, f.peak));
-    _c.lerp(rock, clamp(rocky * (1 - smooth(0, 0.25, f.pad)), 0, 1)); // a pad's banks stay green
+    const steep = smooth(0.82, 0.58, ny) * (f.peak > 0.05 ? smooth(0.6, 0.8, f.peak) : 1);
+    const rocky = clamp(Math.max(f.cliff * edge * smooth(1.2, 2.6, y), steep, smooth(0.66, 0.86, f.peak)) * (1 - smooth(0, 0.25, f.pad)), 0, 1); // a pad's banks stay green
+    if (rocky > 0) {
+      // Strata: soft bands of lighter and darker stone, darkest at the foot where the sea has worn it.
+      const band = smooth(-0.2, 0.6, Math.sin(y * 1.15 + nz * 2.4));
+      _d.copy(rock).lerp(strata, band * 0.75).lerp(strata, smooth(2.5, 0.6, y) * 0.6);
+      _c.lerp(_d, rocky);
+    }
     if (f.crater && f.peak > 0.8) _c.lerp(ash, smooth(0.8, 0.95, f.peak) * 0.85);
-    const sandy = (1 - f.cliff) * (1 - smooth(st.beach * 0.65, st.beach * 1.1, inland));
+    // Sand: a soft, uneven edge to the grass, then wet sand where the water reaches.
+    const sandy = (1 - f.cliff) * (1 - smooth(st.beach * 0.55, st.beach * 1.15, inland + (nz - 0.5) * 0.05));
     _c.lerp(sand, sandy);
-    if (f.t > 1) _c.copy(f.cliff > 0.5 ? rock : wet);
-    if (f.pad > 0.5 && f.padColor) _c.lerp(_d.set(f.padColor), smooth(0.5, 0.95, f.pad) * 0.5);
+    _c.lerp(wet, (1 - f.cliff) * smooth(1.25, 0.5, y));
+    if (f.t > 1) _c.copy(f.cliff > 0.5 ? strata : wet);
+    if (f.pad > 0.5 && f.padColor) _c.lerp(_d.set(f.padColor), smooth(0.5, 0.95, f.pad) * 0.3);
     col[i * 3] = _c.r; col[i * 3 + 1] = _c.g; col[i * 3 + 2] = _c.b;
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
@@ -258,7 +335,7 @@ function coastRelief(G, co, ci, st, place) {
   const ex = e1[0] - e0[0], ey = e1[1] - e0[1], eL2 = ex * ex + ey * ey;
   const depthAt = (t) => coastDepth(def, clamp(t, -0.08, 1.08));
   const point = (t, s) => place(...coastPoint(def, t, depthAt(t) - s / across));
-  const s1 = r(0, TAU), s2 = r(0, TAU), s3 = r(0, TAU);
+  const s1 = r(0, TAU), s2 = r(0, TAU);
   const capes = def.capes || [], coves = def.coves || [];
   const cliffT = (t) => {
     let c = st.cliffs * clamp(0.5 + 0.9 * Math.sin(t * 9 + s1) * Math.sin(t * 4.3 + s2), 0, 1);
@@ -297,21 +374,23 @@ function coastRelief(G, co, ci, st, place) {
   // Map point -> (t, s): t from the edge's direction, s straight in from the shore.
   const tsOf = (x, y) => [((x - e0[0]) * ex + (y - e0[1]) * ey) / eL2, -coastGap(co, x, y)];
   // Where forests grow (0-1): big patches of woodland with meadows between.
-  const forest = (mx, my) => fbm(mx / 220 + oy * 1.3, my / 220 + ox * 0.7);
-  return { co, def, h, raw, point, tsOf, pads, cliffT, out, rnd: r, s1, s2, plateau: st.plateau, across, forest };
+  const forest = (mx, my) => noise2(mx / 210 + oy * 1.3, my / 210 + ox * 0.7) * 0.8 + noise2(mx / 90 + 5.1, my / 90 + oy) * 0.2;
+  const grove = (mx, my, s) => groveOf(forest(mx, my), smooth(10, 130, s), st.veg) * smooth(14, 30, s);
+  return { co, def, h, raw, point, tsOf, pads, cliffT, out, rnd: r, s1, s2, plateau: st.plateau, across, forest, grove, len: Math.sqrt(eL2) };
 }
 const bumpT = (t, at, w) => { const k = clamp((w / 2 - Math.abs(t - at)) / (w / 4), 0, 1); return k * k * (3 - 2 * k); };
 
-function coastMesh(cr, st, root, glass) {
-  const SS = [-2.5, 0, 2.5, 6, 10.5, 16, 23, 32, 43, 57, 75, 98, 128, 168, 220, 290, 380, 520, 700];
-  const T0 = -0.25, T1 = 1.25, NT = 160;
+const COAST_T0 = -0.25, COAST_T1 = 1.25;
+function coastMesh(cr, st, root, glass, sea, cover) {
+  const SS = [-2.5, -0.8, 0, 1.2, 2.5, 4, 6, 8, 10.5, 13, 16, 19.5, 23, 27, 32, 37, 43, 50, 57, 66, 75, 86, 98, 112, 128, 147, 168, 192, 220, 252, 290, 335, 380, 450, 520, 610, 700];
+  const T0 = COAST_T0, T1 = COAST_T1, NT = 176;
   const nS = SS.length, pos = new Float32Array((NT + 1) * nS * 3), info = [];
   for (let i = 0; i <= NT; i++) {
     const t = T0 + ((T1 - T0) * i) / NT;
     for (let k = 0; k < nS; k++) {
       const [mx, my] = cr.point(t, SS[k]), j = (i * nS + k) * 3;
       pos[j] = wx(mx); pos[j + 1] = cr.h(t, SS[k], cr.out, mx, my); pos[j + 2] = wz(my);
-      info.push({ ...cr.out, dx: mx, dy: my });
+      info.push({ ...cr.out, dx: mx, dy: my, fx: mx, fy: my, grove: cover(mx, my) });
     }
   }
   const idx = [];
@@ -331,76 +410,286 @@ function coastMesh(cr, st, root, glass) {
   }
   paint(geo, info, st, cr);
   root.add(new THREE.Mesh(geo, R.vcToon));
-  // Waterline ink and the shallows: bands seaward of the shore.
-  const band = (s0, s1, y) => {
-    const p = [], ix = [];
-    for (let i = 0; i <= NT; i++) {
-      const t = T0 + ((T1 - T0) * i) / NT, [ax, ay] = cr.point(t, s0), [bx, by] = cr.point(t, s1);
-      p.push(wx(ax), y, wz(ay), wx(bx), y, wz(by));
-      if (i < NT) { const b = i * 2; ix.push(b, b + 2, b + 1, b + 1, b + 2, b + 3); }
-    }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
-    g.setIndex(ix);
-    g.computeVertexNormals();
-    if (g.attributes.normal.getY(0) < 0) { for (let q = 0; q < ix.length; q += 3) { const tmp = ix[q + 1]; ix[q + 1] = ix[q + 2]; ix[q + 2] = tmp; } g.setIndex(ix); g.computeVertexNormals(); }
-    return g;
-  };
-  root.add(new THREE.Mesh(band(0.4, -1.9, 0.66), toon('#3a2414')));
-  for (const [s, color, op, y] of [[-34, 0x9fe6f0, 0.45, 0.2], [-17, 0xcdf5f7, 0.6, 0.3], [-7, 0xffffff, 0.88, 0.42]]) {
-    glass.add(new THREE.Mesh(band(2, s, y), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false })));
-  }
+  const edge = (u, off) => { const [mx, my] = cr.point(T0 + (T1 - T0) * u, -off); return [wx(mx), wz(my)]; };
+  shoreline(glass, edge, 330, (u) => cr.cliffT(T0 + (T1 - T0) * u), sea, cr.len);
 }
 
 // ---------- Vegetation ----------
-function pickTree(st, rnd) {
-  let u = rnd(), last = 'bush';
-  for (const [k, w] of Object.entries(st.trees)) { last = k; if ((u -= w) < 0) return k; }
-  return last;
+// Plants go where they would grow: groves with clearings, thickest inland, the trees inside a grove close
+// packed and the ones round its edge outlined so the wood reads as one mass; palms in little clumps behind the
+// beach, leaning out over the sand; a few lone trees, bushes (or, on the dry Main, cactus, agave and scrub) in
+// the meadows. Each region has its own mix (STYLES veg). shade(x, z, r, h) asks for a soft shadow under a
+// plant, in world units.
+// How many of each plant the last build made (tests and the perf report).
+const PLANTS = { grove: 0, edge: 0, palm: 0, lone: 0, small: 0 };
+function planter(st, ctx, shade, crownAt) {
+  const F = st.F, V = st.veg, n = PLANTS;
+  for (const k of Object.keys(n)) n[k] = 0;
+  return {
+    grove(g, x, y, z, s, r, edge, wpos) {
+      n[edge ? 'edge' : 'grove']++;
+      if (V.grove === 'pine') pine(g, x, y, z, s * (edge ? 0.92 : 1.02), r, F, { ink: edge });
+      else crown(g, x, y, z, s * (edge ? 0.94 : 1.04), r, F, { lo: !edge, ink: edge, two: edge && r() < 0.25 });
+      if (edge) shade(wpos[0], wpos[1], 6.2 * s, 9 * s, 0.3);
+      crownAt(wpos[0], wpos[1], 7.5 * s);
+    },
+    palm(g, x, y, z, s, r, lean, wpos) { n.palm++; palm(g, x, y, z, s, r, F, ctx, lean); shade(wpos[0], wpos[1], 5 * s, 16 * s, 0.22); crownAt(wpos[0], wpos[1], 3.5 * s); },
+    lone(g, x, y, z, s, r, wpos) {
+      n.lone++;
+      crownAt(wpos[0], wpos[1], 6 * s);
+      if (V.grove === 'pine' && r() < 0.7) { pine(g, x, y, z, s, r, F); shade(wpos[0], wpos[1], 5.4 * s, 10 * s, 0.26); return; }
+      broadleaf(g, x, y, z, s, r, F);
+      shade(wpos[0], wpos[1], 6.8 * s, 10 * s, 0.32);
+    },
+    small(g, x, y, z, s, r, wpos) {
+      n.small++;
+      const u = r();
+      if (V.dry) {
+        if (u < 0.18) cactus(g, x, y, z, s, r, F); else if (u < 0.55) agave(g, x, y, z, s, r, F); else scrub(g, x, y, z, s, r, F);
+      } else bush(g, x, y, z, s, r, F);
+      shade(wpos[0], wpos[1], 3.6 * s, 3 * s, 0.22);
+    },
+  };
 }
-function plant(kind, parent, x, y, z, s, rnd, st, ctx) {
-  switch (kind) {
-    case 'palm': return palm(parent, x, y, z, s, rnd, ctx);
-    case 'broad': return broadleaf(parent, x, y, z, s, rnd, st.canopy);
-    case 'pine': return pine(parent, x, y, z, s, rnd, st.canopy);
-    case 'cactus': return cactus(parent, x, y, z, s, rnd);
-    case 'agave': return agave(parent, x, y, z, s, rnd);
-    default: return bush(parent, x, y, z, s, rnd, st.canopy);
+
+// How thickly the crowns stand over a map point (0 open ground, 1 under the woods), from where they were
+// planted: a spatial hash of soft discs.
+function coverMap(list) {
+  const CELL = 24, hash = new Map(), key = (i, j) => i * 73856 + j;
+  for (const c of list) { const k = key(Math.floor(c[0] / CELL), Math.floor(c[1] / CELL)); if (!hash.has(k)) hash.set(k, []); hash.get(k).push(c); }
+  return (mx, my) => {
+    const i0 = Math.floor(mx / CELL), j0 = Math.floor(my / CELL);
+    let v = 0;
+    for (let i = i0 - 1; i <= i0 + 1; i++) for (let j = j0 - 1; j <= j0 + 1; j++) {
+      const b = hash.get(key(i, j));
+      if (!b) continue;
+      for (const [x, y, r] of b) { const q = ((mx - x) ** 2 + (my - y) ** 2) / (r * r * 2.2); if (q < 1) v += (1 - q) * (1 - q); }
+    }
+    return Math.min(1, v * 0.8);
+  };
+}
+
+// A jittered grid of candidate spots: one per cell, so plants never pile up or leave holes by chance.
+function grid(nx, ny, cell, r) {
+  const out = [];
+  for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) out.push([i, j, (i + 0.5 + r(-0.36, 0.36)) * cell, (j + 0.5 + r(-0.36, 0.36)) * cell]);
+  return out;
+}
+
+function plantIsland(G, q, ii, st, pads, root, P, r) {
+  const { is, rl } = q, V = st.veg;
+  const g = new THREE.Group();
+  g.position.set(wx(is.x), 0, wz(is.y));
+  root.add(g);
+  const cell = 8.2, ext = is.r + is.hl + 4, n = Math.ceil((2 * ext) / cell);
+  const cells = grid(n, n, cell, r).map(([i, j, u, v]) => {
+    const dx = u - ext, dy = v - ext, a = Math.atan2(dy, dx), t = Math.hypot(dx, dy) / rl.shoreR(a);
+    const c = { i, j, dx, dy, a, t, ok: false, y: 0, gv: 0 };
+    if (t > 0.94 || pads.some((p) => Math.hypot(dx - p.x, dy - p.y) < p.r + 2.5) || landmarkNear(G, is.x + dx, is.y + dy, 3)) return c;
+    c.y = rl.h(dx, dy, rl.out);
+    if (rl.out.peak > 0.55 || (rl.out.cliff > 0.5 && t > 0.84) || rl.out.pad > 0.8) return c;
+    c.ok = true; c.gv = rl.grove(dx, dy, t);
+    return c;
+  });
+  const at = (i, j) => (i < 0 || j < 0 || i >= n || j >= n ? null : cells[i * n + j]);
+  const inGrove = (c) => c && c.ok && c.gv > 0.5 && c.t < 0.9;
+  const want = st.density * (is.fort ? 0.6 : 1);
+  for (const c of cells) {
+    if (!c.ok) continue;
+    const wp = [wx(is.x) + c.dx, wz(is.y) + c.dy], s = r(0.92, 1.08);
+    if (inGrove(c)) {
+      if (r() > Math.min(1, 0.55 + want * 0.45)) continue; // a few gaps, so light gets in
+      const edge = ![at(c.i - 1, c.j), at(c.i + 1, c.j), at(c.i, c.j - 1), at(c.i, c.j + 1)].every(inGrove);
+      P.grove(g, c.dx, c.y, c.dy, s, r, edge, wp);
+      continue;
+    }
+    if (c.t > 0.88 - st.beach * 0.9) {
+      // Behind the beach: palms in clumps, leaning out to sea.
+      const clump = noise2((is.x + c.dx) / 24 + 3.1, (is.y + c.dy) / 24 + ii);
+      if (V.palms && clump > 0.52 - V.palms * 0.2 && r() < 0.5 + V.palms * 0.4) P.palm(g, c.dx, c.y, c.dy, s, r, -c.a, wp);
+      else if (r() < 0.07 * want) P.small(g, c.dx, c.y, c.dy, s, r, wp);
+      continue;
+    }
+    // The meadows: a lone tree now and then; bushes (or scrub and cactus) gathered in patches.
+    const u = r(), patch = noise2((is.x + c.dx) / 34 + 9.3, (is.y + c.dy) / 34 + ii * 2);
+    if (u < 0.05 * want) P.lone(g, c.dx, c.y, c.dy, s, r, wp);
+    else if (patch > 0.58 && u < (V.dry ? 0.36 : 0.24)) P.small(g, c.dx, c.y, c.dy, s, r, wp);
+    else if (V.palms && u < 0.08 * want) P.palm(g, c.dx, c.y, c.dy, s, r, null, wp);
   }
+  // Boulders at the water's edge.
+  for (let k = 0; k < 2 + Math.round(is.r / 18); k++) {
+    const a = r(0, TAU), Rr = rl.shoreR(a) * r(0.9, 0.96), dx = Math.cos(a) * Rr, dy = Math.sin(a) * Rr;
+    if (landmarkNear(G, is.x + dx, is.y + dy, 4)) continue;
+    bush(g, dx, rl.h(dx, dy, null) - 1.8, dy, r(0.55, 1), r, st.F, [st.rock, st.strata]);
+  }
+}
+
+function plantCoast(G, q, st, root, P, r) {
+  const { cr } = q, V = st.veg, g = new THREE.Group();
+  root.add(g);
+  const pads = cr.pads, clear = (mx, my, pad) => !pads.some((p) => Math.hypot(mx - p.x, my - p.y) < p.r + pad) && !landmarkNear(G, mx, my, pad + 3);
+  // Only what the camera can reach (the map plus its margin) is planted; far inland the trees grow bigger
+  // and sparser (nobody looks closely there).
+  for (const [s0, s1, cell, k] of [[12, 150, 13, 1.28], [150, 330, 19, 1.75]]) {
+    const dt = cell / cr.len, nt = Math.ceil(1.24 / dt), ns = Math.ceil((s1 - s0) / cell), near = s0 < 150;
+    const cells = grid(nt, ns, cell, r).map(([i, j, u, v]) => {
+      const t = -0.12 + u / cr.len, s = s0 + v, c = { i, j, t, s, ok: false };
+      const sMax = Math.min(330, coastDepth(cr.def, clamp(t, -0.08, 1.08)) * cr.across + 110);
+      if (s > sMax) return c;
+      const [mx, my] = cr.point(t, s);
+      c.mx = mx; c.my = my;
+      const cl = cr.cliffT(t);
+      if ((cl > 0.5 && s < 16) || !clear(mx, my, 6)) return c;
+      c.y = cr.h(t, s, cr.out, mx, my);
+      if (cr.out.pad > 0.8) return c;
+      c.ok = true; c.gv = cr.grove(mx, my, s); c.cl = cl;
+      return c;
+    });
+    const at = (i, j) => (i < 0 || j < 0 || i >= nt || j >= ns ? null : cells[i * ns + j]);
+    const inGrove = (c) => c && c.ok && c.gv > 0.5;
+    for (const c of cells) {
+      if (!c.ok) continue;
+      const x = wx(c.mx), z = wz(c.my), wp = [x, z], s = r(0.92, 1.08) * k;
+      if (inGrove(c)) {
+        if (r() > Math.min(1, 0.55 + st.density * 0.45)) continue;
+        // Past the near band's far side counts as more wood, so no seam of outlines runs along it.
+        const nb = [at(c.i - 1, c.j), at(c.i + 1, c.j), at(c.i, c.j - 1), at(c.i, c.j + 1)].map((q2, w) => (!q2 && ((w === 3 && near) || (w === 2 && !near)) ? { ok: true, gv: 1 } : q2));
+        // Far inland (past the first band) every crown is the plain kind: nobody looks closely at the edge of the chart.
+        P.grove(g, x, c.y, z, s, r, near && !nb.every(inGrove), wp);
+        continue;
+      }
+      if (c.s < 36 && c.cl < 0.5) {
+        // Behind the beach: palms in clumps, leaning out over the sand.
+        const clump = noise2(c.mx / 44 + 1.7, c.my / 44 + 4.2);
+        if (V.palms && clump > 0.6 - V.palms * 0.16 && r() < 0.5 + V.palms * 0.25) {
+          const [sx, sy] = cr.point(c.t, c.s - 10);
+          P.palm(g, x, c.y, z, s, r, Math.atan2(-(sy - c.my), sx - c.mx), wp);
+          continue;
+        }
+        if (r() < 0.05) P.small(g, x, c.y, z, s, r, wp);
+        continue;
+      }
+      // The meadows stay open: a copse of lone trees here and there, bushes (or scrub) gathered in patches.
+      const u = r(), patch = noise2(c.mx / 40 + 9.3, c.my / 40 + 2.1), copse = noise2(c.mx / 70 - 3.3, c.my / 70 + 6.1);
+      if (copse > 0.68 && u < 0.2) { if (c.s < 70) P.lone(g, x, c.y, z, s, r, wp); else P.grove(g, x, c.y, z, s, r, true, wp); }
+      else if (patch > 0.66 && u < (V.dry ? 0.28 : 0.16)) P.small(g, x, c.y, z, s, r, wp);
+    }
+  }
+}
+
+// ---------- Ground flats: streets and soft shadows ----------
+// Packed-earth streets and squares (ctx.flat), then a soft dark pool under each tree, house and landmark,
+// shifted the way the sun throws shadows (the weather's lift, as for the ships' shadows). Both follow the
+// ground just above it, with soft edges, and all of them are one translucent bake.
+function groundFlats(shadows, flats, groundAt, G, sea) {
+  if (!shadows.length && !flats.length) return null;
+  const pos = [], col = [], idx = [], N = 10;
+  const at = (x, z, c, a) => { pos.push(x, groundAt(x + G.W / 2, z + G.H / 2) + 0.5, z); col.push(c.r, c.g, c.b, a); return pos.length / 3 - 1; };
+  for (const { pts, w, c, a } of flats) {
+    if (pts.length === 1) {
+      // A square: a disc with a soft rim.
+      const [cx, cz] = pts[0], o = at(cx, cz, c, a);
+      for (let j = 0; j < N; j++) {
+        const th = (j / N) * TAU;
+        at(cx + Math.cos(th) * w * 0.8, cz + Math.sin(th) * w * 0.8, c, a);
+        at(cx + Math.cos(th) * w * 1.15, cz + Math.sin(th) * w * 1.15, c, 0);
+      }
+      for (let j = 0; j < N; j++) {
+        const i0 = o + 1 + j * 2, i1 = o + 1 + ((j + 1) % N) * 2;
+        idx.push(o, i1, i0, i0, i1, i1 + 1, i0, i1 + 1, i0 + 1);
+      }
+      continue;
+    }
+    // A street: four rows (soft edge, full, full, soft edge) along the points.
+    const base = pos.length / 3;
+    pts.forEach(([x, z], i) => {
+      const [ax, az] = pts[Math.max(0, i - 1)], [bx, bz] = pts[Math.min(pts.length - 1, i + 1)];
+      const L = Math.hypot(bx - ax, bz - az) || 1, nx = -(bz - az) / L, nz = (bx - ax) / L;
+      for (const [d, k] of [[-w / 2 - 1.2, 0], [-w / 2 + 0.6, a], [w / 2 - 0.6, a], [w / 2 + 1.2, 0]]) at(x + nx * d, z + nz * d, c, k);
+    });
+    for (let i = 0; i < pts.length - 1; i++) for (let k = 0; k < 3; k++) {
+      const p = base + i * 4 + k, q = p + 4;
+      idx.push(p, q, p + 1, p + 1, q, q + 1);
+    }
+  }
+  const s = sea.shadow, [lx, lz] = sea.lift;
+  for (const [x, z, rad, h, a] of shadows) {
+    const cx = x + lx * h * 0.8, cz = z + lz * h * 0.8, o = at(cx, cz, s, a);
+    for (let j = 0; j < N; j++) {
+      const th = (j / N) * TAU;
+      at(cx + Math.cos(th) * rad * 1.25, cz + Math.sin(th) * rad * 1.25, s, 0);
+      idx.push(o, o + 1 + ((j + 1) % N), o + 1 + j);
+    }
+  }
+  // Face every triangle up (the streets' run either way).
+  for (let q = 0; q < idx.length; q += 3) {
+    const a = idx[q] * 3, b = idx[q + 1] * 3, c = idx[q + 2] * 3;
+    if ((pos[b + 2] - pos[a + 2]) * (pos[c] - pos[a]) - (pos[b] - pos[a]) * (pos[c + 2] - pos[a + 2]) < 0) { const t = idx[q + 1]; idx[q + 1] = idx[q + 2]; idx[q + 2] = t; }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
+  const nor = new Float32Array(pos.length);
+  for (let i = 1; i < nor.length; i += 3) nor[i] = 1;
+  geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  geo.setIndex(idx);
+  return new THREE.Mesh(geo, flatMat());
+}
+
+// The sea's colours at the shore, from the battle's weather.
+function seaLook(G) {
+  const w = weatherFor(battleDef(G.battle)), wa = w.water;
+  return {
+    shallow: C(wa.shallow || wa.light), surf: C(wa.foam), rim: C(wa.rim || wa.deep),
+    shadow: C(w.shadow.color), lift: w.shadow.lift,
+  };
 }
 
 // ---------- The build ----------
 let lastBuild = null;
+// The land's own ink: a softer, warmer dark than the ships' outlines, so the ships stay the boldest things.
+const LAND_INK = '#2f2a1d';
+// The land's toon light in four steps rather than the ships' three: full sun only on ground that faces it, so
+// roof slopes and hillsides turned from the sun read as their own shade.
+let ramp = null;
+function landRamp() {
+  if (ramp) return ramp;
+  ramp = new THREE.DataTexture(new Uint8Array([112, 112, 112, 255, 158, 158, 158, 255, 206, 206, 206, 255, 255, 255, 255, 255]), 4, 1);
+  ramp.minFilter = ramp.magFilter = THREE.NearestFilter;
+  ramp.needsUpdate = true;
+  return ramp;
+}
 
 // Builds the land for battle G: returns the group to add to the scene (and remembers what syncLand animates).
 export function buildLand(G) {
-  const st = styleOf(G), place = placer(G);
-  const root = new THREE.Group(), glass = new THREE.Group(), sway = [];
+  const st = styleOf(G), place = placer(G), sea = seaLook(G);
+  const root = new THREE.Group(), glass = new THREE.Group();
   const life = { chimneys: [], lamps: [], flags: [], birds: [], people: [], houses: [], plumes: [], glints: [], spin: [] };
   const swayCode = new Map();
-  const reliefs = [];
+  const reliefs = [], shadows = [], flats = [];
+  const shade = (x, z, rad, h, a) => shadows.push([x, z, rad, h, a]);
 
   // Pads under landmarks, by host.
   const islandPads = G.islands.map((is) => (is.fort ? [{ x: 0, y: 0, r: 25, h: FORT_BASE_Y, color: null }] : []));
   const coastPads = (G.coasts || []).map(() => []);
   for (const o of G.landmarks || []) {
     const M = LANDMARKS[o.kind];
+    // A town on an island bends its street round the island's curve (radius: the town's distance from the centre).
+    if (o.kind === 'town') { const is = o.host && o.host.island != null ? G.islands[o.host.island] : null; o.bend = is ? Math.max(20, Math.hypot(o.x - is.x, o.y - is.y)) : 0; }
     if (!M || M.where !== 'land' || o.kind === 'peak' || o.kind === 'volcano' || !o.host) continue;
     if (o.kind === 'town' && o.host.island != null && G.islands[o.host.island].fort) continue; // a ring of houses, no pad
     const ext = M.extent(o, o.hostR), color = o.kind === 'town' || o.kind === 'church' ? st.pad : o.kind === 'ruin' || o.kind === 'castle' ? '#b5ab8e' : null;
-    if (o.host.island != null) { const is = G.islands[o.host.island]; islandPads[o.host.island].push({ x: o.x - is.x, y: o.y - is.y, r: ext + 3, color }); }
-    else if (o.host.coast != null) coastPads[o.host.coast].push({ x: o.x, y: o.y, r: ext + 3, color, t: o.host.t, s: o.host.inland });
+    const spots = o.kind === 'town' ? townCircles(o) : [{ x: o.x, y: o.y, r: ext + 3 }];
+    for (const p of spots) {
+      if (o.host.island != null) { const is = G.islands[o.host.island]; islandPads[o.host.island].push({ x: p.x - is.x, y: p.y - is.y, r: p.r, color }); }
+      else if (o.host.coast != null) coastPads[o.host.coast].push({ x: p.x, y: p.y, r: p.r, color });
+    }
   }
-  G.islands.forEach((is, ii) => {
-    const rl = islandRelief(G, is, ii, st, islandPads[ii]);
-    reliefs.push({ kind: 'island', rl, is });
-    islandMesh(rl, st, root, glass);
-  });
+  G.islands.forEach((is, ii) => reliefs.push({ kind: 'island', rl: islandRelief(G, is, ii, st, islandPads[ii]), is }));
   (G.coasts || []).forEach((co, ci) => {
     const cr = coastRelief(G, co, ci, st, place);
-    for (const p of coastPads[ci]) cr.pads.push({ ...p, h: Math.max(3.4, cr.raw(p.t, p.s, null)) });
+    for (const p of coastPads[ci]) { const [t, s] = cr.tsOf(p.x, p.y); cr.pads.push({ ...p, h: Math.max(3.4, cr.raw(t, s, null, p.x, p.y)) }); }
     reliefs.push({ kind: 'coast', cr });
-    coastMesh(cr, st, root, glass);
   });
 
   // Ground height at a map point, for anything that stands on the land (0 at sea).
@@ -420,6 +709,10 @@ export function buildLand(G) {
     lamp(g, x, y, z) { g.updateMatrixWorld(true); const p = toWorld(g, x, y, z); life.lamps.push([p.x, p.y, p.z, Math.random() * 6]); },
     glint(g, x, y, z) { g.updateMatrixWorld(true); const p = toWorld(g, x, y, z); life.glints.push([p.x, p.y, p.z, Math.random() * 6]); },
     house(g, x, y, z) { g.updateMatrixWorld(true); const p = toWorld(g, x, y, z); if (ctx.town) ctx.town.push([p.x, p.y, p.z]); },
+    // A soft shadow under something standing at (x, z) in g's frame: r across, h tall.
+    shadow(g, x, z, r, h, a = 0.3) { g.updateMatrixWorld(true); const p = toWorld(g, x, 0, z); shade(p.x, p.z, r, h, a); },
+    // A packed-earth street through pts ([x, z] in g's frame), w wide; one point makes a round square w across.
+    flat(g, pts, w, color, a) { g.updateMatrixWorld(true); flats.push({ pts: pts.map(([x, z]) => { const p = toWorld(g, x, 0, z); return [p.x, p.z]; }), w, c: C(color), a }); },
     flag(g, x, y, z, pattern) {
       g.updateMatrixWorld(true);
       const p = toWorld(g, x, y, z), f = flagCloth(pattern);
@@ -467,74 +760,28 @@ export function buildLand(G) {
     B(g, o, ctx);
     if (o.kind === 'town') life.houses.push({ o, spots: ctx.town });
     if (o.kind === 'harbour' && o.rate > 0) buoys(root, wx(o.ax), wz(o.ay), o.r * 0.92, 6);
-    if (o.kind === 'mangroves') mangroveFringe(G, o, reliefs, root, ctx);
-    if (o.kind === 'volcano') {
-      const is = G.islands[o.host.island];
-      life.plumes.push([wx(o.x), groundAt(o.x, o.y) + 2, wz(o.y), o.height]);
-      void is;
-    }
+    if (o.kind === 'mangroves') mangroveFringe(G, o, reliefs, root, ctx, st);
+    if (o.kind === 'volcano') life.plumes.push([wx(o.x), groundAt(o.x, o.y) + 2, wz(o.y), o.height]);
   }
 
-  // Plants: scattered over each island and along each coast, clear of pads, cliffs edges and peaks.
-  const vegCtx = { ...ctx };
+  // Plants: over each island and along each coast, clear of pads, cliff edges and peaks. Where the crowns stand
+  // is remembered, so the ground can darken under them.
+  const vegCtx = { ...ctx }, crowns = [];
+  const P = planter(st, vegCtx, shade, (x, z, rad) => crowns.push([x + G.W / 2, z + G.H / 2, rad]));
   reliefs.forEach((q, qi) => {
     const r = rng(9173 + qi * 71);
     vegCtx.rnd = r;
-    if (q.kind === 'island') {
-      const { is, rl } = q, area = PI * is.r * is.r + 4 * is.hl * is.r;
-      const want = Math.round((area / 300) * st.density * (is.fort ? 0.5 : 1));
-      const g = new THREE.Group();
-      g.position.set(wx(is.x), 0, wz(is.y));
-      root.add(g);
-      const pads = islandPads[G.islands.indexOf(is)];
-      let made = 0;
-      for (let tries = 0; tries < want * 8 && made < want; tries++) {
-        const a = r(0, TAU), t = Math.sqrt(r(0.01, 0.82)), Rr = rl.shoreR(a), dx = Math.cos(a) * Rr * t, dy = Math.sin(a) * Rr * t;
-        if (pads.some((p) => Math.hypot(dx - p.x, dy - p.y) < p.r + 5)) continue;
-        if (landmarkNear(G, is.x + dx, is.y + dy, 6)) continue;
-        const y = rl.h(dx, dy, rl.out);
-        if (rl.out.peak > 0.5 || (rl.out.cliff > 0.5 && t > 0.88)) continue;
-        let kind = pickTree(st, r);
-        if (kind === 'palm' && t < 0.35 && st.trees.broad) kind = 'broad';
-        plant(kind, g, dx, y, dy, r(0.8, 1.15) * (kind === 'broad' && st.id === 'golden' ? 1.25 : 1), r, st, vegCtx);
-        made++;
-      }
-      // Boulders at the water's edge.
-      for (let k = 0; k < 2 + Math.round(is.r / 18); k++) {
-        const a = r(0, TAU), Rr = rl.shoreR(a) * r(0.9, 0.97), dx = Math.cos(a) * Rr, dy = Math.sin(a) * Rr;
-        if (landmarkNear(G, is.x + dx, is.y + dy, 4)) continue;
-        bush(g, dx, rl.h(dx, dy, null) - 2.2, dy, r(0.6, 1.1), r, [st.rock]);
-      }
-    } else {
-      const { cr } = q, g = new THREE.Group();
-      root.add(g);
-      const pads = cr.pads, clear = (mx, my, pad) => !pads.some((p) => Math.hypot(mx - p.x, my - p.y) < p.r + pad) && !landmarkNear(G, mx, my, pad + 3);
-      const dens = st.density;
-      // Behind the beach: palms and bushes. Inland: groves of round canopies, thickening away from the sea. Only
-      // what the camera can reach (the map plus its margin) is planted.
-      for (let t = -0.12; t < 1.12; t += r(0.02, 0.04) / dens) {
-        const s = r(15, 40), [mx, my] = cr.point(t, s);
-        if (cr.cliffT(t) > 0.5 || !clear(mx, my, 4)) continue;
-        const kind = st.trees.palm && r() < 0.7 ? 'palm' : st.trees.cactus && r() < 0.4 ? 'cactus' : st.trees.pine && r() < 0.5 ? 'pine' : 'bush';
-        plant(kind, g, wx(mx), cr.h(t, s, null, mx, my), wz(my), r(0.85, 1.15), r, st, vegCtx);
-      }
-      // Woods: canopies packed where the forest noise is high, a few lone trees in the meadows between.
-      const conifer = !!st.trees.pine;
-      for (let t = -0.12; t < 1.12; t += 0.014) {
-        // Past the map's edge (plus the margin the camera may show) nobody will ever see a tree.
-        const sMax = Math.min(330, coastDepth(cr.def, clamp(t, -0.08, 1.08)) * cr.across + 110);
-        for (let s0 = 52; s0 < sMax; s0 += 21) {
-          const s = s0 + r(-6, 6), [mx, my] = cr.point(t + r(-0.004, 0.004), s);
-          const f = cr.forest(mx, my), p = f > 0.52 ? 0.66 * st.forest : 0.04;
-          if (r() > p || !clear(mx, my, 6)) continue;
-          const y = cr.h(t, s, null, mx, my), big = f > 0.6 ? 1.25 : 1;
-          if (conifer && r() < 0.55) pine(g, wx(mx), y, wz(my), r(0.95, 1.3) * big, r, st.canopy);
-          else if (st.trees.cactus && f < 0.6 && r() < 0.5) plant(r() < 0.5 ? 'cactus' : 'agave', g, wx(mx), y, wz(my), r(0.9, 1.2), r, st, vegCtx);
-          else canopy(g, wx(mx), y, wz(my), r(0.9, 1.2) * big, r, st.canopy, s0 < 80 || f < 0.56);
-        }
-      }
-    }
+    if (q.kind === 'island') plantIsland(G, q, G.islands.indexOf(q.is), st, islandPads[G.islands.indexOf(q.is)], root, P, r);
+    else plantCoast(G, q, st, root, P, r);
   });
+  // The ground itself, now that it knows where the woods are.
+  const cover = coverMap(crowns);
+  for (const q of reliefs) {
+    if (q.kind === 'island') islandMesh(q.rl, st, root, glass, sea, cover);
+    else coastMesh(q.cr, st, root, glass, sea, cover);
+  }
+  const sh = groundFlats(shadows, flats, groundAt, G, sea);
+  if (sh) glass.add(sh);
 
   // Shoals and reefs (render/terrain.js) join the same bake.
   let seed = 7;
@@ -559,18 +806,20 @@ export function buildLand(G) {
     }
     return t;
   };
-  const still = bakeStatic(root, (o) => !!(o.userData.sway != null || o.userData.spin));
-  const moving = bakeStatic(root, (o) => o.isMesh && !swayOf(o), null, tagFor);
-  const keep = new Set([...sharedGeos(), ...sharedTerrainGeos()]);
+  const IDX = { indexed: true };
+  const still = bakeStatic(root, (o) => !!(o.userData.sway != null || o.userData.spin), null, null, IDX);
+  const moving = bakeStatic(root, (o) => o.isMesh && !swayOf(o), null, tagFor, IDX);
+  const keep = new Set([...sharedGeos(), ...sharedTerrainGeos(), ...floraGeos()]);
   root.traverse((o) => {
     if (!o.isMesh) return;
     if (!keep.has(o.geometry)) o.geometry.dispose();
     if (!o.material.userData.shared && o.material !== R.inkMat && o.material !== R.vcToon) o.material.dispose();
   });
+  const inkMat = new THREE.MeshBasicMaterial({ color: LAND_INK, side: THREE.BackSide });
   const out = new THREE.Group();
   out.userData.land = true;
-  if (still.solid) out.add(new THREE.Mesh(still.solid, R.vcToon));
-  if (still.ink) out.add(new THREE.Mesh(still.ink, R.inkMat));
+  if (still.solid) out.add(new THREE.Mesh(still.solid, toon('#ffffff', { vertexColors: true, gradientMap: landRamp() })));
+  if (still.ink) out.add(new THREE.Mesh(still.ink, inkMat));
   if (still.glass) {
     const m = new THREE.Mesh(still.glass, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false }));
     m.renderOrder = 0.5; // under ship shadows and foam, over the sea
@@ -593,15 +842,40 @@ export function buildLand(G) {
   return out;
 }
 
+// The ground a town covers, as circles in map units: along its street (render/landmarks.js townLayout), or
+// round the middle of a fishing village.
+const circles = new WeakMap();
+function townCircles(o) {
+  let out = circles.get(o);
+  if (out && out.x === o.x && out.y === o.y && out.bend === o.bend) return out;
+  const L = townLayout(o), c = Math.cos(o.face), s = Math.sin(o.face);
+  if (o.look === 'village') out = [{ x: o.x, y: o.y, r: L.ext + 3 }];
+  else {
+    out = [];
+    const n = Math.max(2, Math.ceil(L.half / 9));
+    for (let i = -n; i <= n; i++) {
+      for (const off of L.back ? [-1.5, -21] : [-1.5]) {
+        if (off < -2 && Math.abs(i / n) > 0.85) continue;
+        const [x, z] = L.at(off, (L.half * i) / n);
+        out.push({ x: o.x + c * x - s * z, y: o.y + s * x + c * z, r: 14.5 });
+      }
+    }
+  }
+  Object.assign(out, { x: o.x, y: o.y, bend: o.bend });
+  circles.set(o, out);
+  return out;
+}
+
 const landmarkNear = (G, x, y, pad) => (G.landmarks || []).some((o) => {
   const M = LANDMARKS[o.kind];
   if (!M || o.kind === 'peak' || o.kind === 'volcano' || o.kind === 'mangroves') return false;
+  if (o.kind === 'town' && !o.ring) return townCircles(o).some((q) => Math.hypot(x - q.x, y - q.y) < q.r + pad);
   const e = o.kind === 'town' && o.ring ? RING + 4 : o.kind === 'harbour' ? 14 : o.kind === 'stacks' ? 22 : M.extent(o, o.hostR);
   return Math.hypot(x - o.x, y - o.y) < e + pad;
 });
 
 // Mangroves along an island's shore (span degrees round `at`) or a stretch of coast.
-function mangroveFringe(G, o, reliefs, root, ctx) {
+function mangroveFringe(G, o, reliefs, root, ctx, st) {
   const r = ctx.rnd;
   if (o.host.island != null) {
     const q = reliefs.find((x) => x.kind === 'island' && x.is === G.islands[o.host.island]), { is, rl } = q;
@@ -609,19 +883,19 @@ function mangroveFringe(G, o, reliefs, root, ctx) {
     const g = new THREE.Group();
     g.position.set(wx(is.x), 0, wz(is.y));
     root.add(g);
-    const n = Math.max(3, Math.round((span * R0) / 8));
+    const n = Math.max(3, Math.round((span * R0) / 7.5));
     for (let i = 0; i < n; i++) {
-      const a = o.host.a + (i / (n - 1) - 0.5) * span + r(-0.04, 0.04), Rr = rl.shoreR(a) * r(0.86, 0.94), dx = Math.cos(a) * Rr, dy = Math.sin(a) * Rr;
+      const a = o.host.a + (i / (n - 1) - 0.5) * span + r(-0.04, 0.04), Rr = rl.shoreR(a) * r(0.87, 0.95), dx = Math.cos(a) * Rr, dy = Math.sin(a) * Rr;
       if (landmarkNear(G, is.x + dx, is.y + dy, 2) && !nearKind(G, is.x + dx, is.y + dy, 'mangroves')) continue;
-      mangrove(g, dx, Math.max(0.6, rl.h(dx, dy, null)), dy, r(0.85, 1.15), r);
+      mangrove(g, dx, Math.max(0.6, rl.h(dx, dy, null)), dy, r(0.85, 1.1), r, st.F);
     }
   } else if (o.host.coast != null) {
     const q = reliefs.filter((x) => x.kind === 'coast')[o.host.coast], cr = q.cr, span = o.span || 0.3;
     const g = new THREE.Group();
     root.add(g);
-    for (let t = o.host.t - span / 2; t < o.host.t + span / 2; t += r(0.012, 0.022)) {
+    for (let t = o.host.t - span / 2; t < o.host.t + span / 2; t += r(0.012, 0.02)) {
       const s = r(1, 7), [mx, my] = cr.point(t, s);
-      mangrove(g, wx(mx), Math.max(0.6, cr.h(t, s, null, mx, my)), wz(my), r(0.85, 1.2), r);
+      mangrove(g, wx(mx), Math.max(0.6, cr.h(t, s, null, mx, my)), wz(my), r(0.85, 1.15), r, st.F);
     }
   }
 }
@@ -666,8 +940,8 @@ function swayMaterials() {
     return m;
   };
   return {
-    solid: hook(toon('#ffffff', { vertexColors: true })),
-    ink: hook(new THREE.MeshBasicMaterial({ color: R.inkMat.color, side: THREE.BackSide })),
+    solid: hook(toon('#ffffff', { vertexColors: true, gradientMap: landRamp() })),
+    ink: hook(new THREE.MeshBasicMaterial({ color: LAND_INK, side: THREE.BackSide })),
     uniforms,
   };
 }
@@ -982,6 +1256,6 @@ function setInst(mesh, i, x, y, z, sx, sy, sz, rx, ry, rz) {
 // The ground height under a map point in the current battle's land (0 at sea), for the scene and tests.
 export const landHeight = (mx, my) => (lastBuild ? lastBuild.groundAt(mx, my) : 0);
 // For tests and the perf report: what the land has to animate.
-export const landLife = () => (lastBuild ? { birds: lastBuild.life.birds.length, people: lastBuild.life.people.length, chimneys: lastBuild.life.chimneys.length, lamps: lastBuild.life.lamps.length, plumes: lastBuild.life.plumes.length } : null);
+export const landLife = () => (lastBuild ? { birds: lastBuild.life.birds.length, people: lastBuild.life.people.length, chimneys: lastBuild.life.chimneys.length, lamps: lastBuild.life.lamps.length, plumes: lastBuild.life.plumes.length, plants: { ...PLANTS } } : null);
 // What the living details are drawing right now (tests).
 export const landStats = () => (lastBuild ? { birds: lastBuild.pools.birds.count, people: lastBuild.pools.people.count, scorch: lastBuild.pools.scorch.count, detail: +landDetail().toFixed(2) } : null);

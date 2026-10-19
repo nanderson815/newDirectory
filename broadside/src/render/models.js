@@ -13,15 +13,18 @@ const PI = Math.PI;
 // tagFor(mesh) may return [x, y, z, code] for a part: it becomes a per-vertex aTag attribute that the ship
 // shaders read to move baked parts (toppling masts, a broken topmast, oars). A part whose geometry carries a
 // `bulge` attribute (a sail) writes that, carried into the baked space, into aTag.xyz instead.
+// opts.indexed keeps each part's index (smooth shapes share their vertices), so the bake comes out indexed. A
+// geometry's own vertex colours tint the material colour; rgba ones (soft-edged flats) tint its opacity too.
 const _bi = new THREE.Matrix4(), _bn = new THREE.Matrix3(), _bm = new THREE.Matrix3(), _bv = new THREE.Vector3();
-export function bakeStatic(root, skip, uvFor, tagFor) {
+export function bakeStatic(root, skip, uvFor, tagFor, opts) {
   root.updateMatrixWorld(true);
   _bi.copy(root.matrixWorld).invert();
+  const indexed = !!(opts && opts.indexed);
   const solid = [], ink = [], glass = [], temp = [];
   const walk = (o) => {
     if (o !== root && skip && skip(o)) return;
     if (o.isMesh) {
-      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry;
+      const g = o.geometry.index && !indexed ? o.geometry.toNonIndexed() : o.geometry;
       if (g !== o.geometry) temp.push(g);
       const part = {
         g, m: new THREE.Matrix4().multiplyMatrices(_bi, o.matrixWorld), mats: Array.isArray(o.material) ? o.material : [o.material],
@@ -32,25 +35,35 @@ export function bakeStatic(root, skip, uvFor, tagFor) {
     for (const c of o.children) walk(c);
   };
   walk(root);
-  const out = { solid: solid.length ? mergeParts(solid, 3) : null, ink: ink.length ? mergeParts(ink, 0) : null, glass: glass.length ? mergeParts(glass, 4) : null };
+  const out = { solid: solid.length ? mergeParts(solid, 3, indexed) : null, ink: ink.length ? mergeParts(ink, 0, indexed) : null, glass: glass.length ? mergeParts(glass, 4, indexed) : null };
   for (const g of temp) g.dispose();
   return out;
 }
 
 // colorSize: 0 = positions only, 3 = normals/uv/rgb, 4 = normals/uv/rgba (alpha from material opacity).
-function mergeParts(parts, colorSize) {
-  let n = 0;
-  for (const p of parts) n += p.g.attributes.position.count;
+function mergeParts(parts, colorSize, indexed) {
+  let n = 0, ni = 0;
+  for (const p of parts) { n += p.g.attributes.position.count; ni += p.g.index ? p.g.index.count : p.g.attributes.position.count; }
   const full = colorSize > 0;
   const tagged = parts.some((p) => p.tag || p.g.attributes.bulge);
   const pos = new Float32Array(n * 3), nor = full ? new Float32Array(n * 3) : null;
   const uv = full ? new Float32Array(n * 2) : null, col = full ? new Float32Array(n * colorSize) : null;
   const tag = tagged ? new Float32Array(n * 4) : null;
-  let o = 0;
+  const index = indexed ? (n > 65535 ? new Uint32Array(ni) : new Uint16Array(ni)) : null;
+  let o = 0, oi = 0;
   for (const p of parts) {
-    const P = p.g.attributes.position, N = p.g.attributes.normal, U = p.g.attributes.uv, Bu = p.g.attributes.bulge, cnt = P.count;
+    const P = p.g.attributes.position, N = p.g.attributes.normal, U = p.g.attributes.uv, Bu = p.g.attributes.bulge, I = p.g.index, cnt = P.count;
     _bn.getNormalMatrix(p.m);
     _bm.setFromMatrix4(p.m);
+    if (index) {
+      // A mirrored part (negative scale) would turn inside out: wind its triangles back.
+      const m = I ? I.count : cnt, flip = p.m.determinant() < 0;
+      for (let i = 0; i < m; i += 3) {
+        const a = I ? I.getX(i) : i, b = I ? I.getX(i + 1) : i + 1, c = I ? I.getX(i + 2) : i + 2;
+        index[oi + i] = o + a; index[oi + i + 1] = o + (flip ? c : b); index[oi + i + 2] = o + (flip ? b : c);
+      }
+      oi += m;
+    }
     for (let i = 0; i < cnt; i++) {
       _bv.fromBufferAttribute(P, i).applyMatrix4(p.m).toArray(pos, (o + i) * 3);
       if (tagged) {
@@ -67,16 +80,18 @@ function mergeParts(parts, colorSize) {
     if (full) {
       // Material colours are already linear, which is what vertex colours expect.
       // A geometry's own vertex colours (terrain shaded by height, render/land.js) tint the material colour.
-      const groups = p.mats.length > 1 && p.g.groups.length ? p.g.groups : [{ start: 0, count: cnt, materialIndex: 0 }];
-      const vc = p.g.attributes.color;
+      // Groups count indices in an indexed geometry, vertices otherwise.
+      const multi = p.mats.length > 1 && p.g.groups.length;
+      const groups = multi ? p.g.groups : [{ start: 0, count: cnt, materialIndex: 0 }];
+      const vc = p.g.attributes.color, rgba = vc && vc.itemSize === 4, viaIndex = multi && I;
       for (const gr of groups) {
         const mt = p.mats[gr.materialIndex] || p.mats[0], c = mt.color;
-        const end = Math.min(cnt, gr.start + gr.count);
-        for (let i = gr.start; i < end; i++) {
-          const k = (o + i) * colorSize;
+        const end = Math.min(viaIndex ? I.count : cnt, gr.start + gr.count);
+        for (let j = gr.start; j < end; j++) {
+          const i = viaIndex ? I.getX(j) : j, k = (o + i) * colorSize;
           col[k] = c.r; col[k + 1] = c.g; col[k + 2] = c.b;
           if (vc) { col[k] *= vc.getX(i); col[k + 1] *= vc.getY(i); col[k + 2] *= vc.getZ(i); }
-          if (colorSize === 4) col[k + 3] = mt.opacity;
+          if (colorSize === 4) col[k + 3] = mt.opacity * (rgba ? vc.getW(i) : 1);
         }
       }
     }
@@ -90,6 +105,7 @@ function mergeParts(parts, colorSize) {
     g.setAttribute('color', new THREE.BufferAttribute(col, colorSize));
   }
   if (tagged) g.setAttribute('aTag', new THREE.BufferAttribute(tag, 4));
+  if (index) g.setIndex(new THREE.BufferAttribute(index, 1));
   g.computeBoundingSphere();
   return g;
 }

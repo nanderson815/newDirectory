@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { clamp, lerp } from '../util.js';
 
-// Stylised toon sea: broad swells quantised into soft bands, a calm centre-weighted gradient, sparse
-// blinking crescent glints and foam ripples off the shores. Hull foam is a separate instanced collar mesh.
+// Stylised toon sea: calm water with only very broad, soft variation (nothing with edges that could read as
+// land under the surface), faint wind ripples, sparse blinking crescent glints (more toward the sun) and a
+// gentle swell rolling in to the islands. Hull foam is a separate instanced collar mesh.
 // Weather (render/weather.js) sets the palette, cloud shadows, whitecaps and how fast the sea runs.
 const v3 = (r, g, b) => new THREE.Vector3(r, g, b);
 export function makeWater() {
@@ -30,6 +31,7 @@ export function makeWater() {
         uTint: { value: new THREE.Vector4() }, uHaze: { value: new THREE.Vector4() }, uVig: { value: new THREE.Vector4() },
         uFlash: { value: new THREE.Vector4(0.88, 0.95, 1, 0) },
       },
+      extensions: { derivatives: true },
       vertexShader: 'varying vec2 vP; void main(){ vec4 wp = modelMatrix * vec4(position,1.0); vP = wp.xz; gl_Position = projectionMatrix * viewMatrix * wp; }',
       fragmentShader: `
         precision highp float;
@@ -46,18 +48,25 @@ export function makeWater() {
           float T = uT * uFlow;
           vec2 flow = uWind * T * 5.0;
           vec2 p = vP - flow;
-          // Two drifting samples of a baked tileable noise (8 lattice cells per tile) instead of arithmetic noise.
-          float n = texture2D(uNoise, p * 0.00056 + vec2(T * 0.0025, -T * 0.0019)).r * 0.6 + texture2D(uNoise, p * 0.0014 + vec2(-T * 0.005, T * 0.0037) + 0.37).r * 0.4;
-          // Calm base gradient, one gentle lighter tier and thin soft crest lines along its edge.
-          vec3 col = mix(uDeep, uMid, smoothstep(0.25, 0.75, n));
-          col = mix(col, uLight, smoothstep(0.60, 0.64, n) * 0.45);
-          col = mix(col, uCrest, (1.0 - smoothstep(0.0, 0.01, abs(n - 0.6))) * 0.2);
           vec2 q = vP / uHalf;
-          col *= 1.0 + 0.07 * (1.0 - clamp(dot(q, q) * 0.5, 0.0, 1.0));
-          // Puffy cloud shadows: a large, soft-edged slice of the same noise drifting downwind.
+          // Calm water: a very broad, soft swell of colour (cells several islands across, so it never reads as
+          // land under the water) and a gentler medium undulation, both from a baked tileable noise, no edges.
+          float nb = texture2D(uNoise, p * 0.00021 + vec2(T * 0.0011, -T * 0.0008)).r;
+          float nm = texture2D(uNoise, p * 0.00085 + vec2(-T * 0.003, T * 0.0022) + 0.37).r;
+          vec3 col = mix(uDeep, uMid, 0.3 + 0.55 * smoothstep(0.22, 0.78, nb));
+          col = mix(col, uLight, smoothstep(0.45, 0.8, nm) * 0.16);
+          col *= 1.0 + 0.06 * (1.0 - clamp(dot(q, q) * 0.5, 0.0, 1.0));
+          // Ripples: faint broken lines across the wind, catching the light in drifting patches (the water's
+          // texture close up; at a distance they melt into a gentle sheen).
+          vec2 wn = vec2(-uWind.y, uWind.x);
+          float rw = dot(vP, uWind) * 0.085 + (nm - 0.5) * 9.0 + dot(vP, wn) * 0.004 - uT * 1.1;
+          float rip = smoothstep(0.9, 0.98, sin(rw)) * smoothstep(0.52, 0.74, texture2D(uNoise, p * 0.0042 + vec2(0.13, uT * 0.004)).r);
+          // They melt away as you zoom out (when a ripple shrinks to a couple of pixels), leaving the water calm.
+          col = mix(col, uCrest, rip * 0.12 * (1.0 - smoothstep(0.022, 0.045, fwidth(rw))));
+          // Cloud shadows: very large and soft, a slow change of light drifting downwind rather than shapes.
           if (uCloud.x > 0.0) {
-            float c = texture2D(uNoise, (vP - uWind * uT * uCloud.z) * uCloud.y + vec2(0.31, 0.77)).r;
-            col *= 1.0 - uCloud.x * smoothstep(0.56, 0.6, c);
+            float c = texture2D(uNoise, (vP - uWind * uT * uCloud.z) * uCloud.y * 0.55 + vec2(0.31, 0.77)).r;
+            col *= 1.0 - uCloud.x * 0.8 * smoothstep(0.42, 0.8, c);
           }
           col = mix(col, uGlow.rgb, uGlow.a * smoothstep(0.0, 1.4, dot(q, uSunXZ)));
           // Sparse glints: at most one small crescent per cell, blinking slowly. Whitecaps make them denser,
@@ -70,11 +79,15 @@ export function makeWater() {
           d.y += d.x * d.x * 4.0;
           d.x *= 0.36;
           float r0 = 0.03 + 0.012 * uCaps;
-          float glint = (1.0 - smoothstep(r0, r0 + 0.02, length(d))) * smoothstep(0.55, 1.0, sin(uT * (1.1 + uCaps * 0.9) + h * 50.0)) * step(0.5 - 0.25 * uCaps, h);
+          // More of them toward the sun, where the light lies on the water.
+          float sunward = smoothstep(-0.6, 1.2, dot(q, uSunXZ));
+          float glint = (1.0 - smoothstep(r0, r0 + 0.02, length(d))) * smoothstep(0.55, 1.0, sin(uT * (1.1 + uCaps * 0.9) + h * 50.0)) * step(0.62 - 0.25 * uCaps - 0.2 * sunward, h);
           if (uCaps > 0.0) {
-            float f = texture2D(uNoise, p * 0.0075 + vec2(uT * 0.02, -uT * 0.014)).r;
-            float crest = smoothstep(0.59, 0.62, n) * (1.0 - smoothstep(0.66, 0.7, n));
-            glint = max(glint, crest * smoothstep(0.69, 0.71, f) * uCaps * 0.85);
+            // Whitecaps: small flecks of foam drawn out along the wind, gathered loosely where the swell runs high.
+            vec2 wq = vec2(dot(p, uWind) * 0.45, dot(p, wn));
+            float f = texture2D(uNoise, wq * 0.028 + vec2(uT * 0.02, -uT * 0.014)).r;
+            float gather = smoothstep(0.55, 0.72, nm);
+            glint = max(glint, smoothstep(0.76, 0.775, f) * gather * uCaps * 0.7);
           }
           float foam = 0.0;
           for (int i = 0; i < 6; i++) {
@@ -84,8 +97,9 @@ export function makeWater() {
             if (dot(v, v) > I.w) continue;
             float k = length(v) / I.z - 1.0;
             k += (sin(v.x * 0.11 + uT * 0.7) * sin(v.y * 0.13 - uT * 0.5)) * 0.07;
-            float ring = smoothstep(0.78, 0.95, sin(k * 24.0 - uT * 2.2)) * (1.0 - smoothstep(0.15, 0.75, k)) * step(0.12, k);
-            foam = max(foam, ring * 0.75);
+            // Gentle swell rolling in to the beach: a couple of faint lines close in, fading as they go out.
+            float ring = smoothstep(0.86, 0.97, sin(k * 22.0 - uT * 1.7)) * (1.0 - smoothstep(0.08, 0.36, k)) * step(0.1, k);
+            foam = max(foam, ring * 0.42);
           }
           col = mix(col, uGlint, clamp(glint, 0.0, 1.0) * 0.85);
           col = mix(col, uFoam, clamp(foam, 0.0, 1.0) * 0.85);
