@@ -100,10 +100,10 @@ function ordersHTML(B) {
   else if (!B.tutorial) li.push(`<li><b>${isPirate(B) ? 'Pirates' : 'Enemy'}:</b> ${esc(rosterText(B))}.</li>`);
   if (B.fog) li.push('<li><b>Fog:</b> your lookouts only see ships close to your own. Keep the fleet together and watch the edges of the murk.</li>');
   if (ownForts(B).length) li.push('<li>Your fort’s guns fire on anything in range, but it can’t dodge. Hunt down the bomb ketches before they wear it down.</li>');
-  if (enemyForts(B).length) li.push('<li>Forts fire in every direction. Once one is silenced, stop a ship beside it and tap <b>Land troops</b>.</li>');
-  if (S.G && S.G.ships.some((s) => s.team === 'player' && s.mines > 0)) li.push('<li>Select a ship with mines and tap <b>Drop mine</b> to leave one astern.</li>');
-  if (!B.tutorial && mainGoal(B) !== 'boss' && mainGoal(B) !== 'breakthrough') li.push(`<li>Batter an enemy below ${Math.round(BOARDING.hpFrac * 100)}% hull, sail alongside and tap <b>Board!</b> to take her as a prize (+${BOARDING.prizeGold} gold).</li>`);
-  if (!B.tutorial) li.push('<li class="note">Drag from a ship to steer. Hold it to anchor and turn. Tap it to clear its course.</li>');
+  if (enemyForts(B).length) li.push('<li>Forts fire in every direction. Once one is silenced, stop a ship beside it and tap <b>Land</b>.</li>');
+  if (S.G && S.G.ships.some((s) => s.team === 'player' && s.mines > 0)) li.push('<li>Select a ship with mines and tap <b>Mine</b> to leave one astern.</li>');
+  if (!B.tutorial && mainGoal(B) !== 'boss' && mainGoal(B) !== 'breakthrough') li.push(`<li>Batter an enemy below ${Math.round(BOARDING.hpFrac * 100)}% hull, sail alongside and tap <b>Board</b> to take her as a prize (+${BOARDING.prizeGold} gold).</li>`);
+  if (!B.tutorial) li.push('<li class="note">Drag on the sea to set the selected ship’s course, or tap to sail straight there. Tap an enemy to engage. Pinch to zoom; double-tap the sea to recentre.</li>');
   return li.join('');
 }
 
@@ -415,9 +415,10 @@ function coinShower(n) {
 
 // ---------- Tutorial coach ----------
 const COACH = [
-  'Drag from Swift to the gold buoy. She sails along the line you draw.',
-  'Press and hold Swift, then drag your finger around her. She drops anchor and turns on the spot.',
-  'Tap Swift to raise the anchor.',
+  'Drag a line across the sea to the gold buoy. The pale ribbon shows the track Swift will really sail.',
+  'Now just tap the open sea. Swift sails straight there.',
+  'Tap Anchor at the bottom, then drag around Swift to turn her on the spot.',
+  'Tap the old hulk to engage. Swift weighs anchor and keeps her on the beam.',
 ];
 export function renderCoach() {
   const G = S.G;
@@ -434,9 +435,9 @@ export function renderCoach() {
   $('coachStep').textContent = `Step ${step + 1} of ${TUTORIAL_STEPS}`;
   $('coachText').textContent = step < COACH.length ? COACH[step]
     : S.fireMode === 'manual'
-      ? 'Put the old hulk off your side, then press Fire port or Fire starboard. Sink her!'
-      : 'Put the old hulk off your side. Your gun crews fire on their own once she’s in the arc. Sink her!';
-  $('coach').classList.toggle('manual', S.fireMode === 'manual');
+      ? 'Swift keeps the hulk on her beam. Press Port or Starboard when she’s in the arc. Sink her!'
+      : 'Swift keeps the hulk on her beam and her gun crews fire on their own. Sink her!';
+  $('coach').classList.add('manual'); // always sits above the action bar
 }
 
 // ---------- Settings ----------

@@ -15,6 +15,8 @@
 // events: scripted moments from src/sim/events.js, e.g. { at: 40, banner: [...], spawn: [...ships] } or
 //   { shipSunk: 'San Juan', retreat: 'La Paga', say: ['La Paga', '¡Huid!'] }.
 // faction: 'pirate' gives the enemy black sails and pirate flags. fog: how far (map units) your lookouts see.
+// sea: optional size multiplier (linear) for the battle's sea on top of the camera's SEA_SCALE, e.g. 1.2 for a
+//   wide-open chase or 0.85 for a tight harbour. Positions are fractions, so the layout scales with it.
 
 export const REGIONS = [
   { id: 'port', name: 'Port Royal' },
