@@ -178,7 +178,7 @@ export const BATTLES = [
         spawn: [{ type: 'brig', name: 'Black Dog', x: 0.5, y: 0.06, h: 90 }] },
     ],
     islands: [{ x: 0.3, y: 0.38, r: 30 }, { x: 0.7, y: 0.34, r: 28 }, { x: 0.5, y: 0.52, r: 34 }, { x: 0.25, y: 0.64, r: 22 }, { x: 0.77, y: 0.62, r: 22 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.25, hpMul: 2.3 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.3, hpMul: 2.35 },
   },
   {
     id: 'wreck', region: 'pirate', roman: 'XI', year: 1660, name: 'The Treasure Wreck', foe: 'pirate salvors',
@@ -196,11 +196,12 @@ export const BATTLES = [
       { type: 'brig', name: 'Revenge', x: 0.5, y: 0.06, h: 90 },
     ],
     events: [
-      { at: 35, banner: ['More salvors!', 'The Queen Anne comes for her share'],
+      { at: 25, banner: ['More salvors!', 'The Queen Anne comes for her share'],
         spawn: [{ type: 'brig', name: 'Queen Anne', x: 0.82, y: 0.06, h: 90 }, { type: 'schooner', name: 'Gannet', x: 0.18, y: 0.06, h: 90 }] },
+      { at: 40, banner: ['Spanish topsails on the horizon!', 'Haul up the last chests, quickly'] },
     ],
     islands: [{ x: 0.33, y: 0.44, r: 26 }, { x: 0.67, y: 0.46, r: 26 }, { x: 0.5, y: 0.66, r: 24 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.0, hpMul: 2.3 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.0, hpMul: 2.4 },
   },
   {
     id: 'kate', region: 'pirate', roman: 'XII', year: 1661, name: 'Black Wyvern', foe: 'Calico Kate',
@@ -227,11 +228,11 @@ export const BATTLES = [
   {
     id: 'convoy', region: 'campeche', roman: 'XIII', year: 1662, name: 'Convoy to Jamaica', foe: 'Spanish raiders',
     reward: 500, wind: -90,
-    brief: 'Three merchantmen carry the colony’s silver. They sail for the top of the chart on their own; keep the raiders off them. Two must get through.',
+    brief: 'Three merchantmen carry the colony’s silver, with marines aboard to beat off boarders. They sail for the top of the chart on their own; keep the raiders’ guns off them. Two must get through.',
     goals: [{ kind: 'escort', need: 2, ships: [
-      { type: 'merchant', name: 'Good Hope', x: 0.3, y: 0.72, h: -90 },
-      { type: 'merchant', name: 'Prosperous', x: 0.5, y: 0.7, h: -90 },
-      { type: 'merchant', name: 'Bountiful', x: 0.7, y: 0.72, h: -90 },
+      { type: 'merchant', name: 'Good Hope', x: 0.3, y: 0.72, h: -90, up: { marines: 2 } },
+      { type: 'merchant', name: 'Prosperous', x: 0.5, y: 0.7, h: -90, up: { marines: 2 } },
+      { type: 'merchant', name: 'Bountiful', x: 0.7, y: 0.72, h: -90, up: { marines: 2 } },
     ] }],
     enemy: [
       { type: 'xebec', name: 'El Cuchillo', x: 0.1, y: 0.4, h: 0 },
@@ -241,18 +242,18 @@ export const BATTLES = [
       { type: 'brig', name: 'San Diego', x: 0.72, y: 0.14, h: 90 },
     ],
     events: [
-      { at: 14, banner: ['Oars astern!', 'Two xebecs row up behind the convoy'],
+      { at: 15, wind: 180, banner: ['The wind backs into the east!', 'On the beam now: the convoy picks up speed'] },
+      { at: 20, banner: ['Oars astern!', 'Two xebecs row up behind the convoy'],
         spawn: [{ type: 'xebec', name: 'El Puñal', x: 0.06, y: 0.94, h: -45 }, { type: 'xebec', name: 'La Navaja', x: 0.94, y: 0.94, h: -135 }] },
-      { at: 22, wind: 180, banner: ['The wind backs westerly!', 'A beam wind: the convoy picks up speed'] },
     ],
     islands: [{ x: 0.3, y: 0.5, r: 30 }, { x: 0.72, y: 0.6, r: 28 }, { x: 0.5, y: 0.3, r: 26 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 0.85, hpMul: 1.5 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 0.95, hpMul: 1.5 },
   },
   {
     id: 'siege', region: 'campeche', roman: 'XIV', year: 1662, name: 'The Siege of Port Royal', foe: 'Spanish siege fleet',
     goals: [{ kind: 'hold', secs: 150 }], reward: 540, wind: 90,
     brief: 'Spain wants Port Royal back. Hold the harbour fort for two and a half minutes. Bomb ketches will shell it from long range; hunt them down.',
-    forts: [{ island: 0, name: 'Fort Charles', hp: 240, guns: 3, need: 10, team: 'player' }],
+    forts: [{ island: 0, name: 'Fort Charles', hp: 200, guns: 3, need: 10, team: 'player' }],
     enemy: [
       { type: 'brig', name: 'San Lucas', x: 0.3, y: 0.12, h: 90 },
       { type: 'bomb', name: 'El Trueno', x: 0.62, y: 0.1, h: 90 },
@@ -263,9 +264,11 @@ export const BATTLES = [
       { at: 80, banner: ['Enemy reinforcements!', 'A galleon leads them in'], spawn: [{ type: 'galleon', name: 'San Antonio', x: 0.5, y: 0.06, h: 90 }, { type: 'xebec', name: 'La Espada', x: 0.3, y: 0.08, h: 90 }] },
       { at: 115, banner: ['The final assault!', 'The siege fleet throws in everything'],
         spawn: [{ type: 'galleon', name: 'Santa Catalina', x: 0.75, y: 0.05, h: 90 }, { type: 'bomb', name: 'El Volcán', x: 0.15, y: 0.06, h: 90 }, { type: 'xebec', name: 'La Flecha', x: 0.9, y: 0.2, h: 180 }] },
+      { at: 130, banner: ['Relief from Kingston!', 'The brig Gloucester beats into the harbour'],
+        spawn: [{ type: 'brig', name: 'Gloucester', team: 'player', x: 0.92, y: 0.95, h: -90 }] },
     ],
     islands: [{ x: 0.5, y: 0.66, r: 50 }, { x: 0.22, y: 0.42, r: 26 }, { x: 0.78, y: 0.4, r: 26 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.05, hpMul: 1.6 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.25, hpMul: 1.6 },
   },
   {
     id: 'hierro', region: 'campeche', roman: 'XV', year: 1663, name: 'The Iron Marquis', foe: 'Marqués de Hierro',
@@ -282,6 +285,7 @@ export const BATTLES = [
     events: [
       { bossHp: 0.5, banner: ['The Marqués signals the shore!', 'Two galleys row out to his aid'],
         spawn: [{ type: 'xebec', name: 'La Tenaza', x: 0.06, y: 0.3, h: 0 }, { type: 'xebec', name: 'El Clavo', x: 0.94, y: 0.3, h: 180 }] },
+      { bossHp: 0.2, banner: ['The San Jerónimo is holed!', 'She is settling by the bow: one more broadside'] },
     ],
     islands: [{ x: 0.3, y: 0.42, r: 32 }, { x: 0.7, y: 0.42, r: 32 }, { x: 0.5, y: 0.58, r: 26 }],
     ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 0.9, hpMul: 1.3 },
@@ -326,7 +330,7 @@ export const BATTLES = [
         spawn: [{ type: 'xebec', name: 'La Jabalina', x: 0.08, y: 0.08, h: 45 }] },
     ],
     islands: [{ x: 0.12, y: 0.24, r: 28 }, { x: 0.88, y: 0.24, r: 28 }, { x: 0.5, y: 0.42, r: 30 }],
-    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 0.85, hpMul: 1.4 },
+    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 0.92, hpMul: 1.4 },
   },
   {
     id: 'armada', region: 'armada', roman: 'XVIII', year: 1665, name: 'La Gran Armada', foe: 'Capitán General',
@@ -346,7 +350,7 @@ export const BATTLES = [
     ],
     islands: [{ x: 0.5, y: 0.24, r: 40 }, { x: 0.25, y: 0.5, r: 30 }, { x: 0.75, y: 0.5, r: 30 }],
     forts: [{ island: 0, name: 'Castillo del Morro', hp: 260, guns: 3, need: 15 }],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 0.78, hpMul: 1.4 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 0.75, hpMul: 1.4 },
   },
 ];
 
