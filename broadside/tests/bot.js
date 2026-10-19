@@ -18,7 +18,7 @@
   function circle(s, t, G) {
     const a = Math.atan2(s.y - t.y, s.x - t.x) + 0.9;
     const d = s.range * 0.6 + (t.kind === 'fort' ? G.islands[t.island].r : 0);
-    s.pivot = null;
+    s.pivot = null; s.order = null;
     s.path = [clampTo(G, { x: t.x + Math.cos(a) * d, y: t.y + Math.sin(a) * d })];
   }
 
@@ -96,7 +96,7 @@
             const is = G.islands[f.island];
             const a = Math.atan2(s.y - is.y, s.x - is.x);
             const d = is.r * 1.05 + s.L * 0.42 + 18;
-            s.pivot = null;
+            s.pivot = null; s.order = null;
             s.path = [clampTo(G, { x: is.x + Math.cos(a) * d, y: is.y + Math.sin(a) * d })];
             continue;
           }
@@ -112,7 +112,7 @@
         }
         if (!order) { const t = nearest(s, enemies.length ? enemies : c.hostileForts); if (t) order = { target: t }; }
         if (!order) continue;
-        if (order.to) { s.pivot = null; s.path = [{ x: order.to.x, y: order.to.y }]; } else circle(s, order.target, G);
+        if (order.to) { s.pivot = null; s.order = null; s.path = [{ x: order.to.x, y: order.to.y }]; } else circle(s, order.target, G);
       }
     },
   };

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { S, afloat, unitById } from '../state.js';
+import { S, afloat, unitById, selfSailing } from '../state.js';
 import { PI, clamp, lerp, reduceMotion } from '../util.js';
 import { R } from './gl.js';
 
@@ -250,7 +250,7 @@ const shown = (s) => afloat(s) && !s.hidden;
 // Is the player's fleet commanded as one (and does it have more than one ship)?
 function fleetShips() {
   let n = 0;
-  for (const s of S.G.ships) if (s.team === 'player' && afloat(s) && !s.escort) n++;
+  for (const s of S.G.ships) if (s.team === 'player' && afloat(s) && !selfSailing(s)) n++;
   return n;
 }
 
@@ -258,7 +258,7 @@ function fleetShips() {
 function director(dt) {
   const G = S.G;
   np = 0;
-  let sel = S.selected && afloat(S.selected) && S.selected.team === 'player' ? S.selected : null;
+  const sel = S.selected && afloat(S.selected) && S.selected.team === 'player' && !selfSailing(S.selected) ? S.selected : null;
   if (G.phase === 'title' || cam.intro >= 0 && cam.intro < 0.8) {
     // Establishing view: the enemy squadron and the forts, with a slow drift for the menus behind.
     for (const s of G.ships) if (s.team !== 'player' && shown(s)) addP(s.x, s.y, s.L * 0.7);
@@ -285,7 +285,7 @@ function director(dt) {
     if (t && (t.kind === 'fort' ? t.state === 'active' : shown(t))) addP(t.x, t.y, (t.L || 60) * 0.7);
   } else {
     for (const s of G.ships) {
-      if (s.team !== 'player' || !afloat(s) || s.escort) continue;
+      if (s.team !== 'player' || !afloat(s) || selfSailing(s)) continue;
       addP(s.x + Math.cos(s.h) * s.v * lead * 0.5, s.y + Math.sin(s.h) * s.v * lead * 0.5, s.L * 0.7);
     }
   }
