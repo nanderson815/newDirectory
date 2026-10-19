@@ -9,6 +9,7 @@ import { abilitiesSunk } from './abilities/index.js';
 import { goalsSunk } from './goals/index.js';
 import { RAKE, rakeEnd, raked, rollCrit } from './hazards.js';
 import { coreDist, coastGap } from './terrain.js';
+import { landHit } from './land.js';
 
 const BROADSIDE_ARC = 0.62;  // half-angle of each side's firing arc
 const CHASER_ARC = 0.32;     // half-angle of the bow chasers' arc
@@ -170,7 +171,10 @@ export function updateBalls(dt) {
         // Shot that lands on a fort's island hits the fort if it's the enemy's and still firing.
         const f = is.fort ? G.forts.find((q) => q.island === ii) : null;
         if (f && f.team !== b.team && f.state === 'active') hitFort(f, b);
-        else for (let k = 0; k < 6; k++) spawn('sand', b.x, b.y, rand(-40, 40), rand(-40, 40), rand(0.4, 0.7), rand(1.5, 3), 8, rand(20, 50));
+        else {
+          for (let k = 0; k < 6; k++) spawn('sand', b.x, b.y, rand(-40, 40), rand(-40, 40), rand(0.4, 0.7), rand(1.5, 3), 8, rand(20, 50));
+          landHit(G, b.x, b.y, b.dmg, b.team); // a scorch mark; a town there takes the hit (src/sim/land.js)
+        }
         done = true;
         break;
       }
@@ -180,6 +184,7 @@ export function updateBalls(dt) {
       for (const c of G.coasts) {
         if (coastGap(c, b.x, b.y) > -4) continue;
         for (let k = 0; k < 6; k++) spawn('sand', b.x, b.y, rand(-40, 40), rand(-40, 40), rand(0.4, 0.7), rand(1.5, 3), 8, rand(20, 50));
+        landHit(G, b.x, b.y, b.dmg, b.team);
         done = true;
         break;
       }

@@ -12,6 +12,7 @@ ones: [EXTENDING.md](EXTENDING.md).
 - [Ship types](#ship-types): `sloop`, `brig`, `frigate`, `manowar`, `galleon`, `schooner`, `xebec`, `bomb`, `fireship`, `merchant`
 - [Hats](#hats): `cabin`, `rojo`, `comodoro`, `oro`, `kate`, `morion`, `armada`
 - [Geography and openings](#geography-and-openings): `islands`, `shoals`, `reefs`, `coast`, `fleetAt`
+- [Land and landmarks](#land-and-landmarks): `town`, `harbour`, `lighthouse`, `peak`, `volcano`, `church`, `windmill`, `ruin`, `castle`, `skull`, `wreck`, `stacks`, `mangroves`
 - [Combat rules](#combat-rules): raking fire, critical hits
 
 ## Goals
@@ -423,6 +424,139 @@ coast: { side: 'left', depth: 0.2, capes: [{ at: 0.45, width: 0.3, depth: 0.1 }]
 islands: [{ x: 0.72, y: 0.46, r: 34, stretch: 2.6, angle: 80 }],
 shoals: [{ x: 0.42, y: 0.3, r: 34, stretch: 1.6, angle: 20 }],
 reefs: [{ x: 0.55, y: 0.66, r: 12, stretch: 4, angle: -10 }], fleetAt: 'left',
+```
+
+## Land and landmarks
+
+The look of a battle's land and what stands on it: `src/config/lands.js`, keyed by battle id (or a battle def's own
+`land`), with landmark kinds from `LANDMARKS` in `src/sim/land.js`. Most are scenery; harbour (repairs), town (loot),
+peak and volcano (a lee that steals the wind) and lighthouse (sight in fog) change the battle. `npm run check`
+checks that each one fits on its land, inside the outline ships collide with.
+
+| field | description |
+|---|---|
+| `style` | optional: the look of the land: port, windward, main, golden, pirate, campeche, armada (default: the battle's region) |
+| `relief` | optional: per-island shape, [{ island, height, cliffs, at }]: island = island index; height = optional: hill height multiplier (default 1); cliffs = optional: share of the shore that is cliff, 0-1 (default the style's); at = optional: which side the cliffs face, degrees (default random) |
+| `landmarks` | optional: a list of landmarks, { kind, ...placement, ...params } |
+
+Every landmark is `{ kind, ...placement, ...params }`. Placement (one of island, coast, or x and y):
+
+| field | description |
+|---|---|
+| `island` | island index it stands on (or use coast, or x and y) |
+| `coast` | coast index it stands on (0 for a single coast) |
+| `x` | optional: across the chart (portrait fraction), for a landmark in the water |
+| `y` | optional: down the chart (portrait fraction) |
+| `at` | optional: on an island, degrees from its centre (0 = east, 90 = down the chart; default 90); on a coast, how far along its edge (0-1; default 0.5) |
+| `d` | optional: on an island, how far out from the centre toward the shore (0-1; default 0) |
+| `inland` | optional: on a coast, map units in from the shore (default 50) |
+
+### `town`
+
+Houses round a square in the region’s style: English timber and brick, Spanish whitewash and terracotta, a pirate shanty on stilts, a fishing village of palm-thatched huts or a pastel harbour city. Chimneys smoke and a flag flies. Given loot, an enemy town can be bombarded: shot that lands on it sets it burning, and once it is ruined its loot is yours (prize gold, paid if you win).
+
+| param | default | description |
+|---|---|---|
+| `houses` | `6` | optional: how many buildings (default 6) |
+| `look` | (the region’s) | optional: english, spanish, shanty, village, city (default: the region's) |
+| `name` | `the town` | optional: what the banner calls it (default "the town") |
+| `loot` | `0` | optional: prize gold for sacking it, 0 = scenery only (default 0) |
+| `hp` | `60` | optional: how much shot it takes to sack (default 60, about fifteen balls) |
+| `team` | `enemy` | optional: whose town it is, 'enemy' or 'player' (default 'enemy'); only the other side's shot can sack it |
+
+### `harbour`
+
+A wharf with boats moored alongside and an anchorage off it (a ring of buoys). Your ships that lie still in the anchorage (anchored or barely moving) have their hulls patched by the yard’s carpenters, until its timber runs out. A harbour on a fort’s island serves whoever holds the fort. rate 0 makes it scenery.
+
+| param | default | description |
+|---|---|---|
+| `r` | `75` | optional: anchorage radius in map units (default 75) |
+| `rate` | `3` | optional: hull points a second for each ship in the anchorage (default 3; 0 = scenery) |
+| `upTo` | `0.85` | optional: share of her full hull the carpenters can restore (default 0.85) |
+| `stock` | `160` | optional: hull points of timber in the yard for the whole battle (default 160) |
+| `team` | `player` | optional: whose ships it serves, 'player' or 'enemy' (default 'player'); a fort on its island overrides it |
+
+### `lighthouse`
+
+A striped lighthouse with a lamp that glows in fog and dusk; gulls circle it. Given sight, it lifts the fog around it for your lookouts: enemy ships within that range of it show (and can be shot at) wherever your fleet is.
+
+| param | default | description |
+|---|---|---|
+| `sight` | `0` | optional: fog sight radius around it in map units, 0 = just a light (default 0) |
+
+### `peak`
+
+A high hill or mountain on an island or coast. High land steals the wind: in its lee (downwind of it, about 4 times its island's radius) ships sail slower, at worst 50% of the wind's speed right under it. Calm, glassy water shows where the lee lies, and it swings with the wind.
+
+| param | default | description |
+|---|---|---|
+| `height` | `55` | optional: how high, in map units (default 55) |
+| `size` | `0.75` | optional: how wide its foot is, as a share of the island radius (default 0.75) |
+| `lee` | `4` | optional: how far its wind shadow reaches, in island radii (default 4; 0 = none) |
+| `calm` | `0.5` | optional: share of the wind left right under it (default 0.5) |
+
+### `volcano`
+
+A peak with a smoking crater; like any peak it casts a lee downwind.
+
+| param | default | description |
+|---|---|---|
+| `height` | `65` | optional: how high (default 65) |
+| `size` | `0.65` | optional: foot as a share of the island radius (default 0.65) |
+| `lee` | `4` | optional: wind shadow length in island radii (default 4) |
+| `calm` | `0.5` | optional: wind left under it (default 0.5) |
+
+### `church`
+
+A church in the region’s style: an English chapel with a spire, or a whitewashed Spanish mission with a bell tower.
+
+### `windmill`
+
+A stone windmill whose sails turn in the wind.
+
+### `ruin`
+
+A crumbling stone temple overgrown with jungle: a stepped platform, broken columns and fallen blocks.
+
+### `castle`
+
+A honey-stone bastion on a headland in the style of El Morro, its walls angled to the sea, with a watchtower.
+
+### `skull`
+
+Skull Rock: a great white boulder with hollow eyes, staring out to sea.
+
+### `wreck`
+
+An old hull heeled over, ribs showing, on a beach, a reef or a shoal (ships can’t pass the land, and steer clear of the reef anyway). Gulls pick at it.
+
+### `stacks`
+
+Sea stacks: tall rock pillars with grassy tops standing in the surf at the shore, inside the land’s outline.
+
+| param | default | description |
+|---|---|---|
+| `count` | `3` | optional: how many (default 3) |
+
+### `mangroves`
+
+A fringe of mangroves on their stilt roots along the shore, inside the land’s outline.
+
+| param | default | description |
+|---|---|---|
+| `span` | `0` | optional: on an island, how many degrees of shore they cover; on a coast, how much of the edge (default 90 / 0.3) |
+
+Example: Port Royal under siege, its harbour patching your ships while Spanish mortars set the town alight.
+
+```js
+siege: {
+  style: 'port',
+  landmarks: [
+    { kind: 'town', island: 0, at: 150, d: 0.64, houses: 6, team: 'player', name: 'Port Royal' },
+    { kind: 'harbour', island: 0, at: -60, r: 80 },
+    { kind: 'lighthouse', island: 2, at: 0, d: 0.45 },
+  ],
+},
 ```
 
 ## Combat rules

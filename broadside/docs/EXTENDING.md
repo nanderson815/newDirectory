@@ -1,6 +1,6 @@
 # Extending Broadside
 
-Battles are data built from four kinds of primitive. Each lives in a registry, and the validator, the docs
+Battles are data built from five kinds of primitive. Each lives in a registry, and the validator, the docs
 and the test bot all read those registries, so adding a primitive is one module plus one line in a list.
 
 | primitive | where | registry |
@@ -9,6 +9,7 @@ and the test bot all read those registries, so adding a primitive is one module 
 | ability (a ship behaviour) | `src/sim/abilities/<id>.js` | `ABILITIES` in `src/sim/abilities/index.js` |
 | event condition / action | `src/sim/events.js` | `WHEN` / `DO` |
 | ship type | `src/config/ships.js` | `TYPES` |
+| landmark (scenery, or land that matters) | `src/sim/land.js` + `src/render/landmarks.js` | `LANDMARKS` / `BUILD` |
 
 [PRIMITIVES.md](PRIMITIVES.md) lists every one of them with its params and defaults. It is generated, so
 don't edit it by hand.
@@ -47,7 +48,7 @@ With no `goal`/`goals` the goal is `sink`. Optional fields:
 - `player: [shipDefs]` replaces the campaign fleet.
 - `forts: [{ island, name, hp, guns, need, team? }]`: `island` indexes `islands`, `need` is the marines it
   takes to capture, and `team: 'player'` makes it your fort.
-- `events`, `hat`, `fog` (how far your lookouts see), `sea` (size multiplier for the battle's sea on top of the camera's `SEA_SCALE`: 1.2 for a wide-open chase, 0.85 for a tight harbour).
+- `events`, `hat`, `fog` (how far your lookouts see), `land` (its look and landmarks; see Dress the land), `sea` (size multiplier for the battle's sea on top of the camera's `SEA_SCALE`: 1.2 for a wide-open chase, 0.85 for a tight harbour).
 
 Ship defs take `type`, `name`, `x`, `y` and `h`, plus optional `hp` (fixed hull; otherwise the type's hull ×
 `ai.hpMul`), `chasers`, `reloadMul`, `passive`, `boss` and `abilities`.
@@ -70,6 +71,43 @@ coves cut into the land and capes push out to sea. Ships, chests and the buoy ma
 may not start on a reef or (if they're big enough to ground) on a shoal: `npm run check` names the culprit.
 Every captain, your drawn courses and the test bot steer round all of it. Enemy positions can go anywhere, so
 pair `fleetAt` with enemies astern or on the flank for an ambush.
+
+## Dress the land
+
+Every battle's land lives in `src/config/lands.js`, keyed by battle id (a battle def may carry its own `land`
+instead). It says how the land looks and what stands on it; the geography itself (islands, coasts) stays in
+`battles.js`, and landmarks refer to it by index:
+
+```js
+siege: {
+  style: 'port',                                     // the look: port, windward, main, golden, pirate, campeche, armada
+  relief: [{ island: 2, height: 1.1, cliffs: 0.4, at: 0 }],   // hill height, share of cliff shore, which way they face
+  landmarks: [
+    { kind: 'town', island: 0, at: 150, d: 0.66, houses: 6, team: 'player', name: 'Port Royal' },
+    { kind: 'harbour', island: 0, at: -60, r: 80 },  // your ships lying still here patch their hulls
+    { kind: 'lighthouse', island: 2, at: 0, d: 0.45 },
+    { kind: 'wreck', x: 0.5, y: 0.6 },               // in the water: only on a reef, a shoal or land
+  ],
+},
+```
+
+On an island, `at` is the direction from its centre (degrees, 0 east, 90 down the chart) and `d` how far out
+toward the shore (0-1); on a coast, `at` is how far along its edge (0-1) and `inland` how many map units in from
+the shore. `npm run check` makes sure each landmark fits inside the land ships collide with, stays off a fort's
+tower and doesn't overlap its neighbours. Most kinds are scenery; four change the battle (all optional):
+
+- `harbour` with `rate` > 0: ships lying still in its anchorage patch their hulls until the yard's `stock` of
+  timber runs out. On a fort's island it serves whoever holds the fort.
+- `town` with `loot` > 0: the other side's shot that lands on it sets it burning; once it has taken `hp` it is
+  sacked and its loot is paid with the battle's reward on a win.
+- `peak` and `volcano`: high land casts a lee downwind (`lee` island radii long) where ships keep only `calm` of
+  the wind at worst. Calm water shows it, swinging with the wind.
+- `lighthouse` with `sight`: lifts the fog that far round it, for your lookouts and on screen.
+
+To add a kind: an entry in `LANDMARKS` in `src/sim/land.js` (about, params, defaults, where, extent and any sim
+hooks), a builder in `BUILD` in `src/render/landmarks.js`, then `npm run docs`. Landmarks register their living
+details (chimney smoke, lamps, flags, gulls, people) with the builder's `ctx`; `render/land.js` animates them,
+and they show more the closer you zoom.
 
 ## Give a boss a new ability
 

@@ -1,10 +1,11 @@
 import { TYPES, FORT } from '../config/ships.js';
 import { FLEET_SLOTS } from '../config/battles.js';
 import { battleDef, ENDLESS_ID, randomIslands, waveEnemies, waveAI } from '../config/endless.js';
-import { PI, TAU, rand, lerp } from '../util.js';
+import { PI, TAU, rand } from '../util.js';
 import { initAbilities } from './abilities/index.js';
 import { makeCapsule, makeCoast, capsuleRadius, coastList, fleetLayout } from './terrain.js';
 import { setupGoals } from './goals/index.js';
+import { setupLand } from './land.js';
 
 // Builds one ship's battle state from a battle definition plus (for the player) its shipyard upgrades.
 export function makeShip(def, team, place, rot, id, ai) {
@@ -76,23 +77,14 @@ export function createBattle(idx, size, fleet) {
   const islands = B.islands.map((d, ii) => {
     const is = makeCapsule(d, place, rot);
     const fort = fortIslands.has(ii);
-    // The outline: radius multipliers round the centre (render/shapes.js islandShape). A long island bakes its
+    // The outline: radius multipliers round the centre (render/land.js shapes the shore from them). A long island bakes its
     // capsule into them, with more points so the ends stay round.
     const n = is.hl ? Math.round(14 + 10 * (is.hl / is.r)) : 14;
     const verts = Array.from({ length: n }, (_, i) => rand(0.86, 1.08) * capsuleRadius(is, (i / n) * TAU) / is.r);
-    // A fort takes the middle of its island, so its palms keep to the edges. A long island spreads them along it.
-    const nPalm = fort ? 2 : Math.round((d.r > 40 ? 3 : d.r > 30 ? 2 : 1) * (1 + is.hl / is.r * 0.6));
-    const palms = Array.from({ length: nPalm }, (_, k) => {
-      const a = rand(0, TAU), rr = fort ? rand(d.r * 0.62, d.r * 0.72) : rand(0, d.r * 0.4);
-      // Along the ridge in map space; buildIsland's palm frame is (x, z) = map (x, y).
-      const along = is.hl ? lerp(-is.hl, is.hl, nPalm > 1 ? k / (nPalm - 1) : 0.5) * 0.85 : 0;
-      return { x: Math.cos(a) * rr + Math.cos(is.ang) * along, y: Math.sin(a) * rr + Math.sin(is.ang) * along, s: rand(0.85, 1.15), rot: rand(0, TAU), lean: rand(0.08, 0.25) };
-    });
-    // Rocks sit just off the beach; buildIsland places them at map angle -a.
-    const rocks = Array.from({ length: is.hl ? 5 : 3 }, () => { const a = rand(0, TAU); return { a, d: capsuleRadius(is, -a) * rand(1.02, 1.2), s: rand(3, 6) }; });
-    return { ...is, verts, palms, rocks, fort };
+    // seed: the renderer's dice for this island's hills, cliffs and trees (render/land.js), kept with the battle.
+    return { ...is, verts, fort, seed: Math.floor(rand(1, 1e6)) };
   });
-  // Shallows, reef rocks and coastlines (src/sim/terrain.js); the renderer builds them in render/terrain.js.
+  // Shallows, reef rocks and coastlines (src/sim/terrain.js); the renderer builds them in render/land.js.
   const shoals = (B.shoals || []).map((d) => makeCapsule(d, place, rot));
   const reefs = (B.reefs || []).map((d) => makeCapsule(d, place, rot));
   const coasts = coastList(B.coast).map((d) => makeCoast(d, place));
@@ -123,5 +115,7 @@ export function createBattle(idx, size, fleet) {
   const add = (def, team) => { const s = makeShip(def, team, place, rot, nextId(G), B.ai); ships.push(s); return s; };
   setupGoals(G, B, { place, rot, add });
   G.goal = G.goals[0].kind;
+  // The look of the land and its landmarks (src/config/lands.js, src/sim/land.js).
+  setupLand(G, B, { place, rot });
   return G;
 }
