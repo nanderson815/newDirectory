@@ -168,7 +168,7 @@ console.log('Boss');
   const r = await botPlay(page, 120);
   await page.evaluate(() => window.__broadside.sim(200));
   const sv = await page.evaluate(() => window.__broadside.save);
-  check(r === 'win' && sv.hats.includes('oro'), "sinking the Almirante wins the admiral's hat", failures);
+  check(r === 'win' && sv.hats.includes('oro'), `sinking the Almirante wins the admiral's hat (${r}; hats: ${sv.hats.join(', ') || 'none'})`, failures);
   await shot(page, '15-boss-won');
   await page.click('#endChart'); await page.click('#hatsBtn');
   await shot(page, '16-hats');
