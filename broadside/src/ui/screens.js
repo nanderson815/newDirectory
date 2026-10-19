@@ -22,13 +22,28 @@ import { DURATION, EASE } from './tokens.js';
 import { iconSVG } from './icons.js';
 
 // DOM screens around the battle: menu, sea chart, shipyard, hats, briefing, pause, results, tutorial coach.
-const SCREENS = ['menuScreen', 'chartScreen', 'yardScreen', 'hatsScreen', 'briefScreen', 'pauseScreen', 'endScreen'];
+const SCREENS = ['menuScreen', 'settingsScreen', 'chartScreen', 'yardScreen', 'hatsScreen', 'briefScreen', 'pauseScreen', 'endScreen'];
 export const ui = { screen: 'menuScreen', yardSel: 0 };
 
-// A struck gold coin: a bright face with a highlight, a fine rim and a soft inner ring.
-const COIN = '<svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.6" fill="#e4ab45" stroke="#7a4f12" stroke-width="1.1"/>' +
-  '<path d="M4.4 8.6A6 6 0 0 1 11.4 4.2" fill="none" stroke="#fbe3a0" stroke-width="1.6" stroke-linecap="round" opacity="0.85"/>' +
-  '<circle cx="10" cy="10" r="5.4" fill="none" stroke="#a5711f" stroke-width="0.9" opacity="0.8"/><path d="M10 7.4V12.6" stroke="#a5711f" stroke-width="1.3" stroke-linecap="round"/></svg>';
+// Gold as type: a figure in oldstyle numerals and the word in small capitals.
+const fmt = (n) => Number(n).toLocaleString('en-GB');
+const goldHTML = (n) => `${fmt(n)} <small>gold</small>`;
+const WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+const word = (n) => WORDS[n] || String(n);
+const ORDINALS = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh',
+  'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth', 'twentieth'];
+function romanValue(r) {
+  const V = { I: 1, V: 5, X: 10, L: 50, C: 100 };
+  let n = 0;
+  for (let i = 0; i < r.length; i++) { const v = V[r[i]] || 0, w = V[r[i + 1]] || 0; n += v < w ? -v : v; }
+  return n;
+}
+const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+// Where a battle is fought, for the line under its name.
+const WHERE = {
+  port: 'off Port Royal', windward: 'in the Windward Passage', main: 'off the Spanish Main', golden: 'among the Golden Isles',
+  pirate: 'off the Pirate Coast', campeche: 'in the Bay of Campeche', armada: 'against the last Armada',
+};
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 const starsHTML = (n, big) => `<span class="stars${big ? ' big' : ''}" role="img" aria-label="${n} of 3 stars">` +
@@ -39,6 +54,7 @@ const starsHTML = (n, big) => `<span class="stars${big ? ' big' : ''}" role="img
 let booted = false;
 export function showScreen(id) {
   if (id !== null) hideIntro();
+  document.documentElement.classList.toggle('menus', id !== null);
   const prev = ui.screen;
   ui.screen = id;
   for (const s of SCREENS) {
@@ -82,41 +98,57 @@ const his = (B) => (STORY[B.id] && STORY[B.id].her ? 'her' : 'his');
 function rosterText(B) {
   const counts = {};
   for (const e of B.enemy) counts[e.type] = (counts[e.type] || 0) + 1;
-  const parts = Object.entries(counts).map(([t, n]) => `${n} ${n === 1 ? TYPES[t].label.toLowerCase() : PLURAL[t] || TYPES[t].label.toLowerCase() + 's'}`);
+  const parts = Object.entries(counts).map(([t, n]) => `${word(n)} ${n === 1 ? TYPES[t].label.toLowerCase() : PLURAL[t] || TYPES[t].label.toLowerCase() + 's'}`);
   const forts = enemyForts(B).length;
-  if (forts) parts.push(`${forts} fort${forts > 1 ? 's' : ''}`);
+  if (forts) parts.push(`${word(forts)} fort${forts > 1 ? 's' : ''}`);
   const waves = (B.events || []).filter((e) => e.spawn).length;
-  if (waves) parts.push(`then ${waves} wave${waves > 1 ? 's' : ''} of reinforcements`);
-  return parts.join(', ');
+  if (waves) parts.push(`then ${word(waves)} wave${waves > 1 ? 's' : ''} of reinforcements`);
+  return cap(parts.join(', '));
 }
 // Each goal writes its own orders (src/sim/goals/).
 function goalText(B) {
   if (B.tutorial) return 'Follow your bosun’s orders, then sink the old hulk.';
   return briefText(B);
 }
-function ordersHTML(B) {
-  const li = [`<li><b>Orders:</b> ${esc(goalText(B))}</li>`];
-  if (mainGoal(B) === 'waves') li.push(`<li>Between waves your ships patch ${Math.round(0.25 * 100)}% of their hull and restock mines. Each wave beaten pays ${WAVE_GOLD} gold.${save.best ? ` Your best: wave ${save.best}.` : ''}</li>`);
-  else if (!B.tutorial) li.push(`<li><b>${isPirate(B) ? 'Pirates' : 'Enemy'}:</b> ${esc(rosterText(B))}.</li>`);
-  if (B.fog) li.push('<li><b>Fog:</b> your lookouts only see ships close to your own. Keep the fleet together and watch the edges of the murk.</li>');
-  if (ownForts(B).length) li.push('<li>Your fort’s guns fire on anything in range, but it can’t dodge. Hunt down the bomb ketches before they wear it down.</li>');
-  if (enemyForts(B).length) li.push('<li>Forts fire in every direction. Once one is silenced, stop a ship beside it and tap <b>Land</b>.</li>');
-  if (S.G && S.G.ships.some((s) => s.team === 'player' && s.mines > 0)) li.push('<li>Select a ship with mines and tap <b>Mine</b> to leave one astern.</li>');
-  if (!B.tutorial && mainGoal(B) !== 'boss' && mainGoal(B) !== 'breakthrough') li.push(`<li>Batter an enemy below ${Math.round(BOARDING.hpFrac * 100)}% hull, sail alongside and tap <b>Board</b> to take her as a prize (+${BOARDING.prizeGold} gold).</li>`);
-  if (!B.tutorial) li.push('<li class="note">Drag on the sea to set the selected ship’s course, or tap to sail straight there. Tap an enemy to engage. Pinch to zoom; double-tap the sea to recentre.</li>');
-  return li.join('');
+// The battle's own advice, less anything the captain's log has already said: a sentence that shares a run of
+// three words with the log is dropped, so the briefing never tells the same story twice.
+function counsel(B) {
+  const log = STORY[B.id] && STORY[B.id].before;
+  const sentences = String(B.brief || '').split(/(?<=[.!?])\s+/).filter(Boolean);
+  if (!log) return sentences.join(' ');
+  const words = (t) => t.toLowerCase().replace(/[^a-záéíóúñ' ]+/g, ' ').split(/\s+/).filter(Boolean);
+  const lw = words(log), tri = new Set(lw.slice(2).map((w, i) => `${lw[i]} ${lw[i + 1]} ${w}`));
+  return sentences.filter((t) => { const w = words(t); return !w.slice(2).some((x, i) => tri.has(`${w[i]} ${w[i + 1]} ${x}`)); }).join(' ');
+}
+// Orders as a printed order reads: paragraphs with run-in small-capital heads. `withCounsel` adds the battle's
+// advice (the briefing shows it as its lede instead when there is no log entry).
+function ordersHTML(B, { withCounsel = true } = {}) {
+  const h = (t) => `<span class="h">${t}.</span> `;
+  const p = [`<p>${h('Orders')}${esc(goalText(B))}</p>`];
+  const advice = withCounsel && !B.tutorial ? counsel(B) : '';
+  if (mainGoal(B) === 'waves') p.push(`<p>Between waves your ships patch a quarter of their hull and restock mines. Each wave beaten pays ${WAVE_GOLD} gold.${save.best ? ` Your best is wave ${save.best}.` : ''}</p>`);
+  else if (!B.tutorial) p.push(`<p>${h('Against you')}${esc(rosterText(B))}.${advice ? ' ' + esc(advice) : ''}</p>`);
+  if (B.fog) p.push(`<p>${h('Fog')}Your lookouts see only ships close to your own. Keep the fleet together and watch the edges of the murk.</p>`);
+  if (ownForts(B).length) p.push('<p>Your fort’s guns fire on anything in range, but it cannot dodge. Hunt down the bomb ketches before they wear it down.</p>');
+  if (enemyForts(B).length) p.push('<p>Forts fire in every direction. Once one is silenced, stop a ship beside it and tap <i>Land</i>.</p>');
+  if (S.G && S.G.ships.some((s) => s.team === 'player' && s.mines > 0)) p.push('<p>A ship with mines can tap <i>Mine</i> to leave one astern.</p>');
+  if (!B.tutorial && mainGoal(B) !== 'boss' && mainGoal(B) !== 'breakthrough') p.push(`<p>Batter an enemy below ${Math.round(BOARDING.hpFrac * 100)}% hull, come alongside and tap <i>Board</i> to take her as a prize, worth ${BOARDING.prizeGold} gold.</p>`);
+  if (!B.tutorial) p.push('<p class="note">Drag on the sea to plot a course, or tap it to sail straight there; tap an enemy to engage. Pinch to zoom, double-tap to recentre.</p>');
+  return p.join('');
 }
 
-// ---------- Main menu ----------
+// ---------- Title page ----------
 let resetArmed = null;
 export function openMenu() {
   idle();
-  $('menuHats').innerHTML = HAT_ORDER.map((id) => hatSVG(id, !save.hats.includes(id))).join('');
-  $('menuHatCount').textContent = `${HAT_ORDER.filter((id) => save.hats.includes(id)).length} of ${HAT_ORDER.length}`;
   $('startBtn').textContent = Object.keys(save.stars).length ? 'Continue' : 'Set sail';
   disarmReset();
   music.mood('menu');
   showScreen('menuScreen');
+}
+function openSettings() {
+  disarmReset();
+  showScreen('settingsScreen');
 }
 function disarmReset() {
   clearTimeout(resetArmed); resetArmed = null;
@@ -127,7 +159,7 @@ function disarmReset() {
 // ---------- Sea chart ----------
 export function openChart() {
   idle();
-  $('chartGold').innerHTML = `${COIN}<span>${save.gold}</span>`;
+  $('chartGold').innerHTML = goldHTML(save.gold);
   music.mood('calm');
   showScreen('chartScreen');
   renderChart($('chartList'));
@@ -140,32 +172,35 @@ export function openYard() {
   music.mood('calm');
   showScreen('yardScreen');
 }
+// One line of the ledger: what it is, what it does, its price as a figure, and one way to buy it.
 function buyRow(cls, name, desc, pips, cost, id) {
   const can = cost != null && save.gold >= cost;
-  const pipHTML = pips
-    ? `<span class="pips" role="img" aria-label="Level ${pips[0]} of ${pips[1]}">${Array.from({ length: pips[1] }, (_, k) => `<i class="${k < pips[0] ? 'on' : ''}"></i>`).join('')}</span>`
-    : '';
-  const label = cost == null ? (pips && pips[1] === 1 ? 'Owned' : 'Maxed') : `${COIN}${cost}`;
-  const aria = cost == null ? `${name}: fully upgraded` : `Buy ${name} for ${cost} gold`;
-  return `<div class="up-row ${cls}"><div><div class="up-name">${esc(name)}</div><div class="up-desc">${esc(desc)}</div>${pipHTML}</div>` +
-    `<button type="button" class="buy${cost == null ? ' maxed' : ''}" data-buy="${id}"${can ? '' : ' disabled'} aria-label="${esc(aria)}">${label}</button></div>`;
+  const lv = pips && pips[1] > 1 ? ` <span class="lv">${pips[0]} of ${pips[1]}</span>` : '';
+  const aria = cost == null ? `${name}: fully fitted` : `Buy ${name} for ${cost} gold`;
+  const btn = cost == null
+    ? `<button type="button" class="buy maxed" data-buy="${id}" disabled aria-label="${esc(aria)}">${pips && pips[1] === 1 ? 'aboard' : 'fitted'}</button>`
+    : `<button type="button" class="buy" data-buy="${id}"${can ? '' : ' disabled'} aria-label="${esc(aria)}">buy</button>`;
+  return `<div class="up-row ${cls}${cost != null && !can ? ' dear' : ''}"><div><div class="up-name">${esc(name)}${lv}</div><div class="up-desc">${esc(desc)}</div></div>` +
+    `<span class="up-price">${cost == null ? '' : fmt(cost)}</span>${btn}</div>`;
 }
+const dash = (n) => (n ? n : '–');
 function renderYard() {
-  $('yardGold').innerHTML = `${COIN}<span>${save.gold}</span>`;
+  $('yardGold').innerHTML = goldHTML(save.gold);
   const i = (ui.yardSel = Math.min(ui.yardSel, save.fleet.length - 1));
   $('yardTabs').innerHTML = save.fleet.map((f, k) =>
     `<button type="button" class="tab" role="tab" aria-selected="${k === i}" data-ship="${k}">${esc(f.name)}</button>`).join('');
   const f = save.fleet[i], st = fleetStats(f);
-  let html = `<div class="ship-head"><h3>${esc(f.name)}</h3><span>${esc(st.label)}</span></div>` +
+  let html = `<div class="ship-head"><h3>${esc(f.name)}, <i>a ${esc(st.label.toLowerCase())}</i></h3></div>` +
     '<dl class="ship-stats">' +
-    `<div><dt>Hull</dt><dd>${st.hp}</dd></div><div><dt>Guns a side</dt><dd>${st.guns}</dd></div><div><dt>Speed</dt><dd>${st.speed}</dd></div>` +
-    `<div><dt>Bow guns</dt><dd>${st.chasers}</dd></div><div><dt>Mines</dt><dd>${st.mines}</dd></div><div><dt>Marines</dt><dd>${st.marines}</dd></div>` +
-    `<div class="wide"><dt>Shot</dt><dd>${st.ammo.map((k) => AMMO[k].short).join(' · ')}</dd></div>` +
+    `<div><dt>Hull</dt><dd>${st.hp}</dd></div><div><dt>Guns a side</dt><dd>${st.guns}</dd></div>` +
+    `<div><dt>Speed</dt><dd>${st.speed}</dd></div><div><dt>Marines</dt><dd>${dash(st.marines)}</dd></div>` +
+    `<div><dt>Bow guns</dt><dd>${dash(st.chasers)}</dd></div><div><dt>Mines</dt><dd>${dash(st.mines)}</dd></div>` +
+    `<div class="wide"><dt>Shot</dt><dd>${st.ammo.map((k) => AMMO[k].short.toLowerCase()).join(', ')}</dd></div>` +
     '</dl><div class="up-list">';
   const rf = refitOffer(f);
   if (rf) {
     const T = TYPES[rf.next];
-    html += buyRow('refit', `Refit as a ${rf.label}`, `Bigger ship: ${T.hp} base hull, ${T.guns} base guns a side, ${T.marines} marines. Upgrades carry over.`, null, rf.cost, 'refit');
+    html += buyRow('refit', `Refit as a ${rf.label.toLowerCase()}`, `${T.hp} hull, ${word(T.guns)} guns a side, ${T.marines} marines; fittings carry over`, null, rf.cost, 'refit');
   }
   for (const U of UPGRADES) {
     const o = upgradeOffer(f, U.id);
@@ -179,7 +214,7 @@ function renderYard() {
   if (!renderYard.quiet) $('yardShip').querySelector('.up-list').classList.add('stagger');
   const h = nextHire();
   $('yardHire').innerHTML = h
-    ? buyRow('', `Hire the ${TYPES[h.cls].label.toLowerCase()} ${h.name}`, `Joins your squadron. Up to ${MAX_FLEET} ships.`, null, h.cost, 'hire')
+    ? buyRow('', `Hire the ${TYPES[h.cls].label.toLowerCase()} ${h.name}`, `Joins the squadron, which tops out at ${word(MAX_FLEET)} ships`, null, h.cost, 'hire')
     : '';
 }
 function onYardClick(e) {
@@ -213,15 +248,21 @@ export function toast(text, icon = 'check') {
 }
 
 // ---------- Hats ----------
+// "Taken from Capitán Rojo of La Bruja" once won; "Still on the head of ..." until then.
+function hatFrom(from, won) {
+  if (/^Finish /.test(from)) return won ? 'For ' + from.replace(/^Finish/, 'finishing') : from;
+  const who = from.replace(/^The /, 'the ');
+  return won ? `Taken from ${who}` : `Still worn by ${who}`;
+}
 export function openHats() {
   idle();
   $('hatGrid').innerHTML = HAT_ORDER.map((id) => {
     const won = save.hats.includes(id);
     return `<div class="hat-card${won ? '' : ' locked'}">${hatSVG(id, !won)}<h3>${esc(HATS[id].name)}</h3>` +
-      `<p>${esc(HATS[id].from)}</p><p class="won-tag">${won ? 'In your cabin' : iconSVG('lock') + 'Not won yet'}</p></div>`;
+      `<p>${esc(hatFrom(HATS[id].from, won))}</p></div>`;
   }).join('');
   $('hatGrid').classList.add('stagger');
-  $('hatsTally').innerHTML = `<b>${HAT_ORDER.filter((id) => save.hats.includes(id)).length}</b> of ${HAT_ORDER.length}`;
+  $('hatsTally').textContent = `${word(HAT_ORDER.filter((id) => save.hats.includes(id)).length)} of ${word(HAT_ORDER.length)}`;
   showScreen('hatsScreen');
 }
 
@@ -229,23 +270,26 @@ export function openHats() {
 export function openBrief(i) {
   loadBattle(i);
   const B = battleDef(i);
-  $('briefEyebrow').textContent = i === LAB_ID ? `Battle lab · ${B.year}` : mainGoal(B) === 'waves' ? `Skirmish · ${B.year}` : B.tutorial ? `Tutorial · ${B.year}` : `Battle ${B.roman} · ${B.year}`;
+  const n = romanValue(B.roman || '');
+  $('briefEyebrow').textContent = i === LAB_ID ? `Battle lab · ${B.year}` : mainGoal(B) === 'waves' ? 'Exercising the great guns'
+    : B.tutorial ? 'Before the first engagement' : ORDINALS[n] ? `The ${ORDINALS[n]} engagement` : `Battle ${B.roman}`;
   $('briefTitle').textContent = B.name;
-  $('briefText').textContent = B.brief;
   const log = STORY[B.id];
+  $('briefWhere').textContent = [WHERE[B.region], log ? logDate(B.id, B.year) : B.year].filter(Boolean).join(', ');
+  // The log is the hook; without one, the battle's own description takes its place.
   $('briefLog').hidden = !log;
-  if (log) {
-    $('briefLogDate').textContent = `Captain’s log · ${logDate(B.id, B.year)}`;
-    $('briefLogText').textContent = log.before;
-  }
+  $('briefText').hidden = !!log;
+  $('briefText').textContent = log ? '' : B.brief;
+  if (log) $('briefLogText').textContent = log.before;
   const boss = mainGoal(B) === 'boss' ? bossOf(B) : null;
   $('briefBoss').hidden = !boss;
   if (boss) {
     const have = save.hats.includes(boss.hat), hatName = HATS[boss.hat].name.replace(/^Calico Kate's /, '').toLowerCase();
+    const them = his(B) === 'her' ? 'her' : 'him';
     $('briefBoss').innerHTML = hatSVG(boss.hat, false) +
-      `<p><b>${esc(boss.captain)}</b>${have ? `You already have this hat. Beat ${his(B) === 'her' ? 'her' : 'him'} again for gold.` : `Sink ${esc(boss.title)} to win ${his(B)} ${esc(hatName)}.`}</p>`;
+      `<p><b>${esc(boss.captain)}</b><span>${have ? `Already in your cabin. Beat ${them} again for the gold.` : `Sink ${them} and the ${esc(hatName)} is yours.`}</span></p>`;
   }
-  $('briefOrders').innerHTML = ordersHTML(B);
+  $('briefOrders').innerHTML = ordersHTML(B, { withCounsel: !!log });
   $('briefOrders').classList.add('stagger');
   music.mood('calm');
   showScreen('briefScreen');
@@ -271,8 +315,8 @@ function showIntro() {
   if (!ship) return;
   const boss = ship.boss, story = STORY[B.id] || {};
   const el = $('bossIntro');
-  el.innerHTML = '<div class="bi-burst" aria-hidden="true"></div><div class="bi-card">' +
-    `<p class="bi-eyebrow">${isPirate(B) ? 'Pirate queen' : 'Enemy flagship'} sighted</p>` +
+  el.innerHTML = '<div class="bi-card sheet">' +
+    `<p class="bi-eyebrow">${isPirate(B) ? 'The pirate queen' : 'The enemy flagship'} is sighted</p>` +
     `<div class="bi-hat">${hatSVG(boss.hat, false)}</div>` +
     `<h2 class="bi-name">${esc(boss.captain)}</h2>` +
     `<p class="bi-ship">${esc(TYPES[ship.type].label)} <i>${esc(boss.title)}</i></p>` +
@@ -305,7 +349,7 @@ export function pauseGame() {
   if (S.G.endAt != null) { endBattle(); return; } // the battle is already decided: show the result
   S.G.phase = 'paused';
   S.drag = null;
-  $('pauseOrders').innerHTML = ordersHTML(battleDef(S.G.battle));
+  $('pauseOrders').innerHTML = ordersHTML(battleDef(S.G.battle), { withCounsel: true });
   $('pauseOrders').classList.add('stagger');
   showScreen('pauseScreen');
 }
@@ -336,9 +380,9 @@ function renderSkirmishEnd() {
     ? `You held out until wave ${G.wave} and beat ${a.waves} wave${a.waves > 1 ? 's' : ''}. Your best is wave ${a.best}.`
     : 'The first wave was too much. Refit at the shipyard and come back.';
   $('endReward').hidden = !a.gold;
-  $('endReward').innerHTML = `<span class="gold-num">${COIN}<span class="gold-count">+${a.gold}</span></span><span>gold</span>`;
+  $('endReward').innerHTML = `<span class="gold-num"><span class="gold-count">+${a.gold}</span><small>gold</small></span>`;
   if (a.gold) countUp($('endReward').querySelector('.gold-count'), a.gold, { prefix: '+', delay: 450 });
-  if (a.gold) coinShower(Math.min(28, 8 + Math.round(a.gold / 25)));
+  $('endTitle').classList.toggle('won', !!(a.record && a.waves));
   $('endHat').hidden = true;
   $('endLog').hidden = true;
   const sec = Math.floor(G.t);
@@ -366,29 +410,29 @@ function renderEnd() {
   if (G.goal === 'waves') return renderSkirmishEnd();
   const B = battleDef(G.battle), win = G.result === 'win', a = G.award;
   const lost = shipsLost(G);
-  $('endEyebrow').textContent = a && a.lab ? `Battle lab · ${B.name}` : B.tutorial ? 'Shakedown Cruise' : `Battle ${B.roman} · ${B.name}`;
+  $('endEyebrow').textContent = a && a.lab ? `Battle lab · ${B.name}` : B.name;
   $('endTitle').textContent = win ? (G.battle === BATTLES.length - 1 && !a.lab ? 'The sea is England’s!' : 'Victory!') : 'Defeat';
+  $('endTitle').classList.toggle('won', win);
   $('endStars').hidden = !win;
   $('endStars').innerHTML = win ? starsHTML(a.stars, true) : '';
   $('endText').textContent = win ? victoryText(B, lost) : defeatText(G, B);
   const log = win && STORY[B.id];
   $('endLog').hidden = !log;
   if (log) {
-    $('endLogDate').textContent = `Captain’s log · ${logDate(B.id, B.year)}`;
+    $('endLogDate').textContent = `From the log, ${logDate(B.id, B.year)}`;
     $('endLogText').textContent = log.after;
   }
   $('endReward').hidden = !win || a.lab;
   if (win && !a.lab) {
     const notes = [a.stars === 3 ? 'flawless bonus' : '', a.prizes ? `${a.prizes} prize${a.prizes > 1 ? 's' : ''} +${a.prizeGold}` : '', a.first ? '' : 'replay'].filter(Boolean).join(' · ');
-    $('endReward').innerHTML = `<span class="gold-num">${COIN}<span class="gold-count">+${a.gold}</span></span><span>gold</span>${notes ? `<span class="up-desc">${notes}</span>` : ''}`;
+    $('endReward').innerHTML = `<span class="gold-num"><span class="gold-count">+${a.gold}</span><small>gold</small></span>${notes ? `<span class="note">${notes}</span>` : ''}`;
     countUp($('endReward').querySelector('.gold-count'), a.gold, { prefix: '+', delay: 700 });
   }
-  if (win && !a.lab) coinShower(Math.min(28, 8 + Math.round(a.gold / 25)));
   $('endHat').hidden = !(win && a.hat);
   if (win && a.hat) {
     // "the red tricorne", but "Calico Kate's skull hat": a hat named after its owner keeps the name.
     const n = HATS[a.hat].name, named = /^[A-Z][a-z]+ [A-Z]/.test(n);
-    $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p>You won ${named ? '' : 'the '}<b>${esc(named ? n : n.toLowerCase())}</b>! It’s in your hat collection.</p>`;
+    $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p><b>${esc(named ? n : 'The ' + n.toLowerCase())}</b> is yours, and goes to the cabinet.</p>`;
   }
   const sec = Math.floor(G.t);
   $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
@@ -399,18 +443,6 @@ function renderEnd() {
   primary.hidden = !again && next == null;
   primary.textContent = again ? (win ? 'Play again' : 'Try again') : 'Next battle';
   primary.dataset.go = again ? String(G.battle) : String(next);
-}
-
-// Gold coins tumble down the results screen after a win.
-function coinShower(n) {
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const layer = $('coinLayer');
-  layer.innerHTML = Array.from({ length: n }, () => {
-    const x = Math.random() * 100, d = 0.9 + Math.random() * 1.1, delay = Math.random() * 0.9, spin = Math.round(Math.random() * 720 - 360);
-    return `<span class="falling-coin" style="left:${x.toFixed(1)}%;animation-duration:${d.toFixed(2)}s;animation-delay:${delay.toFixed(2)}s;--spin:${spin}deg">${COIN}</span>`;
-  }).join('');
-  clearTimeout(coinShower.t);
-  coinShower.t = setTimeout(() => { layer.innerHTML = ''; }, 2600);
 }
 
 // ---------- Tutorial coach ----------
@@ -478,6 +510,8 @@ export function initUI() {
     if (!S.musicMuted) sfx.init();
   }));
   // First voyage goes straight to the tutorial briefing; after that, the chart.
+  $('settingsBtn').addEventListener('click', openSettings);
+  $('settingsDone').addEventListener('click', openMenu);
   $('startBtn').addEventListener('click', () => { sfx.init(); if (Object.keys(save.stars).length) openChart(); else openBrief(0); });
   $('resetBtn').addEventListener('click', () => {
     if (!resetArmed) {
@@ -522,5 +556,6 @@ export function restoreScreen(id) {
   if (id === 'chartScreen') return openChart();
   if (id === 'yardScreen') return openYard();
   if (id === 'hatsScreen') return openHats();
+  if (id === 'settingsScreen') return openSettings();
   openMenu();
 }

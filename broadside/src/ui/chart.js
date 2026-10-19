@@ -54,7 +54,7 @@ const CARTOUCHE = '<g class="ch-cartouche" transform="translate(852 652)">' +
   '<path d="M-92 -15 H92 M-92 15 H92" class="ch-line" style="stroke-width:0.6;opacity:0.5"/>' +
   '<path d="M-100 -22 Q-114 -16 -108 -6 Q-100 -2 -96 -10 M100 22 Q114 16 108 6 Q100 2 96 10" class="ch-line"/>' +
   '<text y="2" class="ch-title">The West Indies</text>' +
-  '<text y="13" class="ch-sub">DRAWN FOR THE ADMIRAL · 1655</text>' +
+  '<text y="14" class="ch-sub">Drawn for the Admiral, 1655</text>' +
   '</g>';
 
 const ROSE = [826, 166];
@@ -75,7 +75,7 @@ function mapSVG() {
   const land = LAND.map((d) => `<path d="${d}"/>`).join('') +
     ISLES.map(([x, y, rx, ry, r]) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"${r ? ` transform="rotate(${r} ${x} ${y})"` : ''}/>`).join('');
   return `<svg class="chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">` +
-    '<defs><radialGradient id="chPaper" cx="50%" cy="46%" r="75%"><stop offset="0" stop-color="#f7ecd0"/><stop offset="0.65" stop-color="#efdfb6"/><stop offset="1" stop-color="#dcc28a"/></radialGradient>' +
+    '<defs><radialGradient id="chPaper" cx="50%" cy="46%" r="75%"><stop offset="0" stop-color="#f0e5c9"/><stop offset="0.7" stop-color="#e8d9b4"/><stop offset="1" stop-color="#d6c094"/></radialGradient>' +
     `<g id="chLand">${land}</g></defs>` +
     `<rect width="${W}" height="${H}" fill="url(#chPaper)"/>` +
     `<path d="${rh}" class="ch-rhumb"/>` +
@@ -95,8 +95,8 @@ function mapSVG() {
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const LOCK = iconSVG('lock', { cls: 'cn-lock', stroke: 2.2 });
 const SHIP = '<svg viewBox="0 0 40 36" class="cn-you" aria-hidden="true"><path d="M20 2 V24" stroke="#3a2a1b" stroke-width="1.8"/>' +
-  '<path d="M9 6 Q20 3 31 6 Q33 13 31 20 Q20 18 9 20 Q7 13 9 6 Z" fill="#fbf4e3" stroke="#3a2a1b" stroke-width="1.8" stroke-linejoin="round"/>' +
-  '<path d="M20 2 L29 0 L20 -2" fill="#c05a3c"/><path d="M15 10.5 H25 M20 7.5 V16.5" stroke="#c05a3c" stroke-width="2"/>' +
+  '<path d="M9 6 Q20 3 31 6 Q33 13 31 20 Q20 18 9 20 Q7 13 9 6 Z" fill="#f4ecd8" stroke="#3a2a1b" stroke-width="1.8" stroke-linejoin="round"/>' +
+  '<path d="M20 2 L29 0 L20 -2" fill="#a3271c"/><path d="M15 10.5 H25 M20 7.5 V16.5" stroke="#a3271c" stroke-width="2"/>' +
   '<path d="M2 23 H38 L32 33 H8 Z" fill="#7b4c2b" stroke="#3a2a1b" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 
 const stars = (n) => `<span class="cn-stars" aria-hidden="true">${[0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}">★</i>`).join('')}</span>`;
