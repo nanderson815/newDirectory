@@ -246,7 +246,9 @@ function building(g, look, x, z, yaw, rnd, ctx, big) {
     ctx.house(b, 0, 6 + h, 0);
     return b;
   }
-  const w = (big ? 1.4 : 1) * rnd(8.5, 11.5), d = rnd(6.5, 8.5), h = (big ? 1.5 : 1) * rnd(5.5, 7.5);
+  // A city's houses stand two and three storeys tall.
+  const tall = look === 'city' ? rnd(1.4, 2.1) : 1;
+  const w = (big ? 1.4 : 1) * rnd(8.5, 11.5), d = rnd(6.5, 8.5), h = (big ? 1.5 : 1) * rnd(5.5, 7.5) * tall;
   footing(b, w, d, L.foot);
   add(b, box(w, h, d), wall, 0, h / 2, 0, 0.035);
   if (look === 'english') {
@@ -441,11 +443,11 @@ export const BUILD = {
     const bone = '#e6e0d2';
     add(g, blob(), '#8c837a', 0, 1.5, 0, 0.06).scale.set(10, 4, 10);
     // Turned to the camera and tipped back a little, so its hollow eyes look up at you.
-    const head = new THREE.Group();
-    head.rotation.z = 0.45;
-    head.position.y = 2;
-    g.add(head);
-    g = head;
+    const tip = new THREE.Group();
+    tip.rotation.z = 0.45;
+    tip.position.y = 2;
+    g.add(tip);
+    g = tip;
     const head = add(g, new THREE.SphereGeometry(1, 12, 9), bone, 0, 10, 0, 0.035);
     head.scale.set(8.5, 8, 9);
     const jaw = add(g, box(9, 5, 9), '#d8d0bf', 2.5, 4.4, 0, 0.04);
