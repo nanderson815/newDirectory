@@ -98,7 +98,7 @@ export const BATTLES = [
     ],
     islands: [{ x: 0.5, y: 0.38, r: 50 }, { x: 0.2, y: 0.62, r: 26 }, { x: 0.82, y: 0.6, r: 26 }],
     forts: [{ island: 0, name: 'Fort San Lucas', hp: 380, guns: 2, need: 10 }],
-    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 0.9, hpMul: 2.1 },
+    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 1.0, hpMul: 2.1 },
   },
   {
     id: 'silver', region: 'main', roman: 'V', year: 1657, name: 'The Silver Fleet', foe: 'treasure convoy',
@@ -120,7 +120,7 @@ export const BATTLES = [
     goal: 'boss', hat: 'comodoro', reward: 320, wind: 0,
     brief: 'El Comodoro keeps his flagship between two forts. Take the forts first, or dash in and sink him.',
     enemy: [
-      { type: 'galleon', name: 'San Cristóbal', x: 0.5, y: 0.12, h: 90, hp: 440, chasers: 1,
+      { type: 'galleon', name: 'San Cristóbal', x: 0.5, y: 0.12, h: 90, hp: 460, chasers: 1,
         boss: { captain: 'El Comodoro', title: 'San Cristóbal', hat: 'comodoro' } },
       { type: 'brig', name: 'El Alcón', x: 0.3, y: 0.24, h: 90 },
       { type: 'brig', name: 'La Garza', x: 0.7, y: 0.24, h: 90 },
@@ -130,7 +130,7 @@ export const BATTLES = [
       { island: 0, name: 'Fort Santa Fe', hp: 110, guns: 2, need: 10 },
       { island: 1, name: 'Fort Santa Inés', hp: 110, guns: 2, need: 10 },
     ],
-    ai: { spread: 0.12, reloadMul: 1.05, dmgMul: 0.75, hpMul: 1.3 },
+    ai: { spread: 0.12, reloadMul: 1.05, dmgMul: 0.78, hpMul: 1.3 },
   },
 
   {
@@ -173,7 +173,7 @@ export const BATTLES = [
       { type: 'galleon', name: 'San Nicolás', x: 0.76, y: 0.18, h: 90 },
     ],
     islands: [{ x: 0.27, y: 0.48, r: 36 }, { x: 0.73, y: 0.48, r: 36 }, { x: 0.5, y: 0.64, r: 24 }],
-    ai: { spread: 0.11, reloadMul: 1.1, dmgMul: 0.78, hpMul: 1 },
+    ai: { spread: 0.11, reloadMul: 1.1, dmgMul: 0.88, hpMul: 1 },
   },
 
   // ---------- The Pirate Coast ----------
@@ -197,7 +197,7 @@ export const BATTLES = [
       { enemiesLeft: 1, banner: ['The Black Dog!', 'The smugglers’ brig joins the hunt'],
         spawn: [{ type: 'brig', name: 'Black Dog', x: 0.5, y: 0.18, h: 90 }] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.6, hpMul: 2.9 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.52, hpMul: 2.75 },
   },
   {
     id: 'wreck', region: 'pirate', roman: 'XI', year: 1660, name: 'The Treasure Wreck', foe: 'pirate salvors',
@@ -206,7 +206,7 @@ export const BATTLES = [
     goals: [{ kind: 'treasure', need: 6, chests: [
       { x: 0.5, y: 0.12 }, { x: 0.14, y: 0.2 }, { x: 0.86, y: 0.2 }, { x: 0.32, y: 0.27 },
       { x: 0.68, y: 0.29 }, { x: 0.22, y: 0.54 }, { x: 0.78, y: 0.55 },
-    ] }, { kind: 'timer', secs: 45 }],
+    ] }, { kind: 'timer', secs: 44 }],
     enemy: [
       { type: 'schooner', name: 'Magpie', x: 0.3, y: 0.12, h: 90 },
       { type: 'schooner', name: 'Cutthroat', x: 0.7, y: 0.12, h: 90 },
@@ -267,7 +267,7 @@ export const BATTLES = [
         spawn: [{ type: 'xebec', name: 'El Puñal', x: 0.06, y: 0.94, h: -45 }, { type: 'xebec', name: 'La Navaja', x: 0.94, y: 0.94, h: -135 }] },
     ],
     islands: [{ x: 0.3, y: 0.5, r: 30 }, { x: 0.72, y: 0.6, r: 28 }, { x: 0.5, y: 0.3, r: 26 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.15, hpMul: 1.5 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.42, hpMul: 1.5 },
   },
   {
     id: 'siege', region: 'campeche', roman: 'XIV', year: 1662, name: 'The Siege of Port Royal', foe: 'Spanish siege fleet',
@@ -295,7 +295,7 @@ export const BATTLES = [
     goal: 'boss', hat: 'morion', reward: 640, wind: 0,
     brief: 'The Marqués de Hierro has fitted his galleon with mortars. Watch for the red rings: that is where his shells will land. Close in fast.',
     enemy: [
-      { type: 'galleon', name: 'San Jerónimo', x: 0.5, y: 0.08, h: 90, hp: 720, chasers: 1,
+      { type: 'galleon', name: 'San Jerónimo', x: 0.5, y: 0.08, h: 90, hp: 680, chasers: 1,
         abilities: { mortar: { range: 480, reload: 5, dmg: 26, radius: 40 } },
         boss: { captain: 'Marqués de Hierro', title: 'San Jerónimo', hat: 'morion' } },
       { type: 'bomb', name: 'El Martillo', x: 0.25, y: 0.12, h: 90 },
@@ -308,7 +308,7 @@ export const BATTLES = [
       { bossHp: 0.2, banner: ['The San Jerónimo is holed!', 'She is settling by the bow: one more broadside'] },
     ],
     islands: [{ x: 0.3, y: 0.42, r: 32 }, { x: 0.7, y: 0.42, r: 32 }, { x: 0.5, y: 0.58, r: 26 }],
-    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.1, hpMul: 1.4 },
+    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.05, hpMul: 1.4 },
   },
 
   // ---------- The Last Armada ----------
@@ -334,7 +334,7 @@ export const BATTLES = [
           { type: 'brig', name: 'San Gabriel', x: 0.5, y: 0.06, h: 90 }] },
       { enemiesLeft: 1, fog: 0, banner: ['The fog lifts!', 'Finish them in the sunshine'] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.12, hpMul: 1.9 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.16, hpMul: 1.95 },
   },
   {
     id: 'blockade', region: 'armada', roman: 'XVII', year: 1664, name: 'Run the Blockade', foe: 'blockade line',
@@ -358,7 +358,7 @@ export const BATTLES = [
       { at: 30, banner: ['A galley from the shore!', 'La Jabalina rows out to close the gap'],
         spawn: [{ type: 'xebec', name: 'La Jabalina', x: 0.26, y: 0.08, h: 45 }] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.25, hpMul: 1.6 },
+    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.15, hpMul: 1.6 },
   },
   {
     id: 'armada', region: 'armada', roman: 'XVIII', year: 1665, name: 'La Gran Armada', foe: 'Capitán General',
@@ -378,7 +378,7 @@ export const BATTLES = [
     ],
     islands: [{ x: 0.5, y: 0.24, r: 40 }, { x: 0.25, y: 0.5, r: 30 }, { x: 0.75, y: 0.5, r: 30 }],
     forts: [{ island: 0, name: 'Castillo del Morro', hp: 260, guns: 3, need: 15 }],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 0.8, hpMul: 1.45 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 0.85, hpMul: 1.45 },
   },
 ];
 
