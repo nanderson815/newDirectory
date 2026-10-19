@@ -80,7 +80,13 @@ async function runBattle(page, id, fleet, seed) {
     (0, eval)(botSrc); // a fresh bot each battle (its landing-party choice is closure state)
     const B = window.__broadside;
     B.save.fleet = JSON.parse(JSON.stringify(fleet));
+    // Sound draws on Math.random too, and synthesises each sample the first time it plays, so it would make
+    // a run depend on what the page played before. Keep it quiet.
+    B.S.muted = true; B.S.musicMuted = true;
     B.startBattle(id);
+    // Building the scene draws a varying amount of randomness (more on a page's first battle), so seed again
+    // here: the same seed then plays the same battle whichever worker page runs it.
+    a = seed >>> 0;
     const G = B.G;
     const ours = G.ships.filter((s) => s.team === 'player');
     while (G.endAt == null && G.t < maxT) { window.__bot.tick(); B.sim(60); }
