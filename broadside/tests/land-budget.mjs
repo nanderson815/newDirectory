@@ -6,6 +6,7 @@ import { launch, open, save } from './lib.mjs';
 const ids = process.env.ONLY ? process.env.ONLY.split(',') : ['tutorial', 'tortuga', 'cayman', 'rojo', 'sanlucas', 'silver', 'comodoro', 'cartagena', 'santamarta', 'oro', 'cove', 'wreck', 'kate', 'convoy', 'siege', 'hierro', 'fog', 'blockade', 'armada'];
 const browser = await launch();
 const page = await open(browser, { save: save() });
+page.on('console', (m) => { if (m.type() === 'warning' && /^TIMING/.test(m.text())) console.log(m.text()); });
 const rows = await page.evaluate((ids) => {
   const b = window.__broadside, R = window.__broadsideR, out = [];
   let maxV = 0, maxC = 0, sumV = 0, sumT = 0;

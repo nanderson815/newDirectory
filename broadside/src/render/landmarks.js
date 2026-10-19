@@ -104,7 +104,7 @@ const LOOK = {
   english: { walls: ['#f1e7d0', '#e8dcc2', '#dccbab'], roofs: ['#5c5e69', '#656370', '#596069'], accent: '#9a5038', foot: '#a39783', trim: '#5a3d26', glass: '#3b4a5a' },
   spanish: { walls: ['#f7f2e8', '#f2eadb', '#ece1cb'], roofs: ['#c4613a', '#bb5a39', '#cc6c44'], foot: '#c9b48c', trim: '#7a5232', glass: '#2f5e7a' },
   city: { walls: ['#f2c6c2', '#f4e1a1', '#a9d6e5', '#f7f1e3', '#c9e4b4', '#f0b98d'], roofs: ['#c4613a', '#bb5a39', '#cc6c44'], foot: '#c9b48c', trim: '#7a5232', glass: '#2f5e7a' },
-  shanty: { walls: ['#8b6a4a', '#9a7b58', '#7d5f42'], roofs: ['#d8caa2', '#cbbb93', '#bfae86'], accent: '#8d4a36', foot: '#6b4f36', trim: '#3a2a1c', glass: '#2a2018' },
+  shanty: { walls: ['#8b6a4a', '#9a7b58', '#7d5f42'], roofs: ['#b4a582', '#a39474', '#7a5a3e'], accent: '#8d4a36', foot: '#6b4f36', trim: '#3a2a1c', glass: '#2a2018' },
   village: { walls: ['#e2cfa8', '#d8c29a'], roofs: ['#caa458', '#bf9a4e', '#d0ac62'], foot: '#b8996a', trim: '#5a3d26', glass: '#3a2a1c' },
 };
 const pick = (list, rnd) => list[Math.floor(rnd(0, list.length)) % list.length];
@@ -328,7 +328,7 @@ export const BUILD = {
       add(g, cyl(0.45, 0.6, look === 'english' ? 3.4 : 2.4, 6), stone, fx, fy + 1.4, fz);
       for (const sd of [-1, 1]) {
         const [px, pz] = L.at(2.2, sd * 4.3), py = ctx.ground(g, px, pz);
-        if (look === 'english') { if (sd > 0) broadleaf(g, px, py, pz, 0.72, rnd, ctx.st.F); } else palm(g, px, py, pz, 0.78, rnd, ctx.st.F, ctx);
+        if (look === 'english') { if (sd > 0) broadleaf(g, px, py, pz, 0.72, rnd, ctx.st.F); } else if (look !== 'shanty' || sd > 0) palm(g, px, py, pz, 0.78, rnd, ctx.st.F, ctx);
       }
     }
     // Gardens: a tree at the end of a row now and then, so the town settles into the land round it.
@@ -544,7 +544,7 @@ export const BUILD = {
       const y = Math.max(-1, ctx.ground(g, x, z) - 1);
       const p = add(g, cyl(r * 0.78, r, h, 7), st.rock, x, y + h / 2, z, 0.05);
       p.rotation.y = rnd(0, TAU);
-      add(g, blob(), st.grass[1], x, y + h + 0.8, z).scale.set(r * 0.95, 1.8, r * 0.95);
+      bush(g, x, y + h - 1.2, z, r * 0.25, rnd, st.F, [st.grass[1], st.high]); // a grassy cap
       if (rnd() < 0.5) ctx.gulls(g, x, y + h, z, 1, 9, 14);
     }
   },

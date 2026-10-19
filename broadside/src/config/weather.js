@@ -8,6 +8,8 @@
 // light   hemisphere sky/ground and intensity; sun (the key light) colour, intensity and direction.
 // shadow  colour and opacity of the flat shadows; lift = how far a shadow falls (x, z) per unit of height.
 // swell   multiplies ship and mine bob and roll.
+// land    a grade on the land's colours: sat = saturation kept (0-1), tint = a multiply (a storm greys and cools
+//         the land, fog washes it out, a sunset warms it). Omit for none.
 // screen  screen grade drawn over the sea: tint, haze toward the far (top) edge, vignette. Omit for none.
 // gulls, rain, lightning: ambient extras. Omit for none.
 // fog     low-lying fog banks drawn over the map (colour, alpha far from your ships, wisp = alpha of the thin
@@ -25,6 +27,7 @@ export const PRESETS = {
     light: { sky: '#ffffff', ground: '#6a9cc0', hemi: 1.6, sun: '#fff4e0', sunI: 2.4, dir: [-0.55, 1, 0.45] },
     shadow: { color: '#0b2d4a', opacity: 0.28, lift: [0.3, 0.36] },
     swell: 1,
+    land: { sat: 0.94 },
     screen: { vignette: 0.12, vignetteColor: '#0b2d4a' },
     gulls: 7,
     boss: { vignette: 0.22, vignetteColor: '#1a0a26', light: 0.86 },
@@ -40,6 +43,7 @@ export const PRESETS = {
     light: { sky: '#fff0e0', ground: '#6a5a96', hemi: 1.5, sun: '#ffcf96', sunI: 2.6, dir: [-0.6, 0.42, -0.8] },
     shadow: { color: '#3a1840', opacity: 0.32, lift: [0.42, 0.6] },
     swell: 1.1,
+    land: { sat: 0.9, tint: '#fff4e6' },
     screen: { tint: '#ff8a3a', tintA: 0.04, haze: '#ffb25e', hazeA: 0.34, hazeFrom: 0.5, vignette: 0.16, vignetteColor: '#4a1a3a' },
     boss: { vignette: 0.16, vignetteColor: '#2a0a2a', light: 0.88 },
   },
@@ -54,6 +58,7 @@ export const PRESETS = {
     light: { sky: '#cfe4ee', ground: '#3d6470', hemi: 1.5, sun: '#e2f0ff', sunI: 1.7, dir: [-0.4, 1, 0.3] },
     shadow: { color: '#06202a', opacity: 0.3, lift: [0.2, 0.26] },
     swell: 1.9,
+    land: { sat: 0.72, tint: '#d2dede' },
     screen: { tint: '#2a4a66', tintA: 0.06, haze: '#a8c4d0', hazeA: 0.16, hazeFrom: 0.5, vignette: 0.42, vignetteColor: '#04141e' },
     rain: { count: 900, speed: 520, slant: 0.42, length: 34, width: 0.9, color: '#e4f4ff', alpha: 0.36 },
     lightning: { every: [7, 15], thunder: [0.5, 1.6] },
@@ -70,6 +75,7 @@ export const PRESETS = {
     light: { sky: '#f3f5f3', ground: '#7d8f96', hemi: 2.0, sun: '#f2eee6', sunI: 1.15, dir: [-0.3, 1, 0.25] },
     shadow: { color: '#2c3c44', opacity: 0.17, lift: [0.12, 0.15] },
     swell: 0.7,
+    land: { sat: 0.68, tint: '#e4eae8' },
     screen: { tint: '#dfe6e6', tintA: 0.1, haze: '#e6ecec', hazeA: 0.4, hazeFrom: 0.4, vignette: 0.16, vignetteColor: '#8fa2a8' },
     fog: { color: '#e7ecec', alpha: 0.86, wisp: 0.16, radius: 230 },
     boss: { vignette: 0.12, vignetteColor: '#34444a', light: 0.92 },

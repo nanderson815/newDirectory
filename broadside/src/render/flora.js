@@ -32,7 +32,7 @@ export const floraGeos = () => (G ? Object.values(G) : []);
 function geos() {
   if (G) return G;
   G = {
-    puff: ball(8, [0.66, 1.3, 2.12], 0.5), // a hero clump: lone trees, grove edges, bushes
+    puff: ball(10, [0.66, 1.3, 2.12], 0.5), // a hero clump: lone trees, grove edges, bushes
     puffLo: ball(7, [0.86, 1.75], 0.52), // inside a grove
     tier: tier(8),
     trunk: new THREE.CylinderGeometry(0.75, 1, 1, 5, 1, true).translate(0, 0.5, 0),
@@ -219,7 +219,7 @@ export function pine(parent, x, y, z, s, rnd, F, opts = {}) {
   part(t, g.trunk, F.trunk, 0, -0.5, 0, 0.9 * k, 4.5 * k, 0.9 * k);
   for (const [r, h, yy] of [[5.8, 6.4, 3.4], [4.4, 5.6, 7.4], [2.9, 5, 11]]) {
     const m = part(t, g.tier, c, 0, yy * k, 0, r * k, h * k, r * k);
-    if (opts.ink !== false) ink(m, 0.5, 0.15);
+    if (opts.ink !== false || r > 5) ink(m, 0.5, 0.15); // inside a wood only the skirt is outlined
   }
   return t;
 }

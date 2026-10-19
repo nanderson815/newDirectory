@@ -41,12 +41,12 @@ const FLORA = {
 };
 const STYLES = {
   port: {
-    sand: '#efdcab', wet: '#cdb37f', grass: ['#98c262', '#84b058'], meadow: '#b3cc74', high: '#6c994c', forest: '#4c733a',
+    sand: '#efdcab', wet: '#cdb37f', grass: ['#88ae5b', '#749b51'], meadow: '#a6bd6c', high: '#628c47', forest: '#4c733a',
     rock: '#a39b8c', strata: '#847a6b', pad: '#d9c79c',
     cliffs: 0.12, hill: 19, plateau: 5, beach: 0.17, density: 1, veg: { grove: 'broad', palms: 0.45, forest: 1 },
   },
   windward: {
-    sand: '#e5d6aa', wet: '#c4b384', grass: ['#a3b96c', '#8ba65e'], meadow: '#b8c27e', high: '#728d51', forest: '#4a673f',
+    sand: '#e5d6aa', wet: '#c4b384', grass: ['#95aa66', '#7f9559'], meadow: '#a9b276', high: '#728d51', forest: '#4a673f',
     rock: '#948e86', strata: '#6e6962', pad: '#cbbd95',
     cliffs: 0.45, hill: 28, plateau: 8, beach: 0.09, density: 0.75, veg: { grove: 'pine', palms: 0.2, forest: 0.85 },
     F: { canopy: ['#4c7f45', '#56894b'], bush: ['#5b8a4c', '#64924f'] },
@@ -54,28 +54,28 @@ const STYLES = {
   main: {
     sand: '#ecd9ae', wet: '#cbb07e', grass: ['#8db866', '#7aa75c'], meadow: '#bcbd78', high: '#7d9156', forest: '#5a7340',
     rock: '#c6a378', strata: '#a2805c', pad: '#dec8a0',
-    cliffs: 0.22, hill: 16, plateau: 5, beach: 0.15, density: 0.85, veg: { grove: 'broad', palms: 0.42, forest: 0.5, dry: true },
+    cliffs: 0.22, hill: 16, plateau: 5, beach: 0.15, density: 0.85, veg: { grove: 'broad', palms: 0.34, forest: 0.5, dry: true },
     F: { canopy: ['#6b9045', '#77994b', '#61853f'], bush: ['#7c9548', '#6f8a44'] },
   },
   golden: {
-    sand: '#e8d7a3', wet: '#c4ad78', grass: ['#62a34d', '#519546'], meadow: '#7db357', high: '#448541', forest: '#2c6133',
+    sand: '#e8d7a3', wet: '#c4ad78', grass: ['#5c994b', '#4b8943'], meadow: '#76aa55', high: '#448541', forest: '#2c6133',
     rock: '#7e8a72', strata: '#606c58', pad: '#c9bb90',
     cliffs: 0.18, hill: 32, plateau: 6, beach: 0.13, density: 1.6, veg: { grove: 'broad', palms: 0.3, forest: 1.35 },
     F: { canopy: ['#2f7d3a', '#378a3f', '#2b7035', '#3f9243'], broadScale: 1.12 },
   },
   pirate: {
-    sand: '#f2e2b2', wet: '#d2bd88', grass: ['#8ebf5c', '#79ad52'], meadow: '#a8c86c', high: '#5e9645', forest: '#45793a',
+    sand: '#f2e2b2', wet: '#d2bd88', grass: ['#85b158', '#70a04e'], meadow: '#9fbd66', high: '#5e9645', forest: '#45793a',
     rock: '#7d736b', strata: '#625951', pad: '#d9c393',
     cliffs: 0.15, hill: 17, plateau: 4, beach: 0.2, density: 1.1, veg: { grove: 'broad', palms: 0.75, forest: 0.85 },
   },
   campeche: {
-    sand: '#ead9ad', wet: '#c9b583', grass: ['#9cba66', '#86a95a'], meadow: '#b1c473', high: '#6e9450', forest: '#4d773f',
+    sand: '#ead9ad', wet: '#c9b583', grass: ['#93b062', '#7e9e57'], meadow: '#b1c473', high: '#6e9450', forest: '#4d773f',
     rock: '#9c917e', strata: '#7e745f', pad: '#d6c399',
     cliffs: 0, hill: 4, plateau: 2.5, beach: 0.22, density: 1.1, veg: { grove: 'broad', palms: 0.55, forest: 0.75 },
     F: { canopy: ['#3f7c3a', '#488640', '#538f45'] },
   },
   armada: {
-    sand: '#ecd8a8', wet: '#c9b27f', grass: ['#8cb35e', '#77a253'], meadow: '#a3be6c', high: '#5f8c47', forest: '#446e39',
+    sand: '#ecd8a8', wet: '#c9b27f', grass: ['#85aa5a', '#70974f'], meadow: '#9cb469', high: '#5f8c47', forest: '#446e39',
     rock: '#cbb68c', strata: '#a8936a', pad: '#d9c69d',
     cliffs: 0.35, hill: 17, plateau: 6, beach: 0.12, density: 1, veg: { grove: 'broad', palms: 0.5, forest: 0.85 },
   },
@@ -215,7 +215,7 @@ function islandMesh(rl, st, root, glass, sea, cover) {
   g.position.copy(m.position);
   glass.add(g);
   const edge = (u, off) => { const a = u * TAU, Rr = shoreR(a) + off; return [Math.cos(a) * Rr, Math.sin(a) * Rr]; };
-  shoreline(g, edge, Math.max(96, nSeg * 2), (u) => rl.cliffW(u * TAU), sea, is.seed || is.r);
+  shoreline(g, edge, Math.max(96, Math.round(nSeg * 1.4)), (u) => rl.cliffW(u * TAU), sea, is.seed || is.r);
 }
 
 // The shore, seaward of the waterline, as soft translucent bands that follow it (edge(u, off): the point u of
@@ -244,11 +244,11 @@ function shoreline(parent, edge, n, cliffAt, sea, seed) {
   // Shallows: narrow under cliffs (deep water close in), wide off a beach.
   const wide = (cl) => 1 - 0.55 * cl;
   band([
-    [() => -0.4, () => 0.6], [(u, c) => 5 * wide(c), () => 0.46], [(u, c) => 13 * wide(c), () => 0.24],
-    [(u, c) => (24 + 6 * wave(u, 9, 1)) * wide(c), () => 0.08], [(u, c) => (36 + 8 * wave(u, 5, 2)) * wide(c), () => 0],
+    [() => -0.4, () => 0.6], [(u, c) => 6 * wide(c), () => 0.42], [(u, c) => (17 + 4 * wave(u, 9, 1)) * wide(c), () => 0.17],
+    [(u, c) => (36 + 8 * wave(u, 5, 2)) * wide(c), () => 0],
   ], 0.2, S);
   // The wet edge where the water laps the land: barely there on a beach, the dark foot of a cliff.
-  band([[() => -0.9, () => 0], [() => -0.2, (u, c) => 0.16 + 0.42 * c], [() => 0.9, (u, c) => 0.1 + 0.3 * c], [() => 1.8, () => 0]], 0.64, K);
+  band([[() => -0.9, () => 0], [() => 0.1, (u, c) => 0.14 + 0.42 * c], [() => 1.8, () => 0]], 0.64, K);
   // Surf: a bright line just off the sand, its width and strength wandering, with gaps here and there.
   band([
     [() => 0.4, () => 0],
@@ -303,8 +303,10 @@ function paint(geo, info, st, rl) {
     // The floor of the woods, darker where the crowns are thickest, and a little shade round their edges.
     _c.lerp(floor, smooth(0.3, 0.6, f.grove) * 0.8);
     const inland = 1 - f.t, edge = f.s != null ? 1 - smooth(4, 14, f.s) : 1 - smooth(0.01, 0.05, inland);
-    // Steep ground shows rock, except on a mountain's lower flanks, which stay green up to the bare top.
-    const steep = smooth(0.82, 0.58, ny) * (f.peak > 0.05 ? smooth(0.6, 0.8, f.peak) : 1);
+    // Banks: sloping ground a shade deeper green. Only really steep ground shows rock, except on a mountain's
+    // lower flanks, which stay green up to the bare top.
+    _c.lerp(high, smooth(0.88, 0.62, ny) * 0.5 * (1 - smooth(0.4, 0.8, f.grove)));
+    const steep = smooth(0.62, 0.44, ny) * (f.peak > 0.05 ? smooth(0.6, 0.8, f.peak) : 1);
     const rocky = clamp(Math.max(f.cliff * edge * smooth(1.2, 2.6, y), steep, smooth(0.66, 0.86, f.peak)) * (1 - smooth(0, 0.25, f.pad)), 0, 1); // a pad's banks stay green
     if (rocky > 0) {
       // Strata: soft bands of lighter and darker stone, darkest at the foot where the sea has worn it.
@@ -382,7 +384,7 @@ const bumpT = (t, at, w) => { const k = clamp((w / 2 - Math.abs(t - at)) / (w / 
 
 const COAST_T0 = -0.25, COAST_T1 = 1.25;
 function coastMesh(cr, st, root, glass, sea, cover) {
-  const SS = [-2.5, -0.8, 0, 1.2, 2.5, 4, 6, 8, 10.5, 13, 16, 19.5, 23, 27, 32, 37, 43, 50, 57, 66, 75, 86, 98, 112, 128, 147, 168, 192, 220, 252, 290, 335, 380, 450, 520, 610, 700];
+  const SS = [-2.5, -0.8, 0, 1.2, 2.5, 4, 6, 8, 10.5, 13, 16, 19.5, 23, 27, 32, 37, 43, 50, 57, 66, 75, 86, 98, 112, 128, 147, 168, 192, 220, 252, 290, 380, 520, 700];
   const T0 = COAST_T0, T1 = COAST_T1, NT = 176;
   const nS = SS.length, pos = new Float32Array((NT + 1) * nS * 3), info = [];
   for (let i = 0; i <= NT; i++) {
@@ -513,7 +515,7 @@ function plantIsland(G, q, ii, st, pads, root, P, r) {
     // The meadows: a lone tree now and then; bushes (or scrub and cactus) gathered in patches.
     const u = r(), patch = noise2((is.x + c.dx) / 34 + 9.3, (is.y + c.dy) / 34 + ii * 2);
     if (u < 0.05 * want) P.lone(g, c.dx, c.y, c.dy, s, r, wp);
-    else if (patch > 0.58 && u < (V.dry ? 0.36 : 0.24)) P.small(g, c.dx, c.y, c.dy, s, r, wp);
+    else if (patch > 0.58 && u < (V.dry ? 0.3 : 0.24)) P.small(g, c.dx, c.y, c.dy, s, r, wp);
     else if (V.palms && u < 0.08 * want) P.palm(g, c.dx, c.y, c.dy, s, r, null, wp);
   }
   // Boulders at the water's edge.
@@ -534,7 +536,7 @@ function plantCoast(G, q, st, root, P, r) {
     const dt = cell / cr.len, nt = Math.ceil(1.24 / dt), ns = Math.ceil((s1 - s0) / cell), near = s0 < 150;
     const cells = grid(nt, ns, cell, r).map(([i, j, u, v]) => {
       const t = -0.12 + u / cr.len, s = s0 + v, c = { i, j, t, s, ok: false };
-      const sMax = Math.min(330, coastDepth(cr.def, clamp(t, -0.08, 1.08)) * cr.across + 110);
+      const sMax = Math.min(330, coastDepth(cr.def, clamp(t, -0.08, 1.08)) * cr.across + 80);
       if (s > sMax) return c;
       const [mx, my] = cr.point(t, s);
       c.mx = mx; c.my = my;
@@ -572,7 +574,7 @@ function plantCoast(G, q, st, root, P, r) {
       // The meadows stay open: a copse of lone trees here and there, bushes (or scrub) gathered in patches.
       const u = r(), patch = noise2(c.mx / 40 + 9.3, c.my / 40 + 2.1), copse = noise2(c.mx / 70 - 3.3, c.my / 70 + 6.1);
       if (copse > 0.68 && u < 0.2) { if (c.s < 70) P.lone(g, x, c.y, z, s, r, wp); else P.grove(g, x, c.y, z, s, r, true, wp); }
-      else if (patch > 0.66 && u < (V.dry ? 0.28 : 0.16)) P.small(g, x, c.y, z, s, r, wp);
+      else if (patch > 0.66 && u < (V.dry ? 0.22 : 0.16)) P.small(g, x, c.y, z, s, r, wp);
     }
   }
 }
@@ -584,7 +586,8 @@ function plantCoast(G, q, st, root, P, r) {
 function groundFlats(shadows, flats, groundAt, G, sea) {
   if (!shadows.length && !flats.length) return null;
   const pos = [], col = [], idx = [], N = 10;
-  const at = (x, z, c, a) => { pos.push(x, groundAt(x + G.W / 2, z + G.H / 2) + 0.5, z); col.push(c.r, c.g, c.b, a); return pos.length / 3 - 1; };
+  const gy = (x, z) => groundAt(x + G.W / 2, z + G.H / 2);
+  const at = (x, z, c, a, y) => { pos.push(x, (y == null ? gy(x, z) : y) + 0.5, z); col.push(c.r, c.g, c.b, a); return pos.length / 3 - 1; };
   for (const { pts, w, c, a } of flats) {
     if (pts.length === 1) {
       // A square: a disc with a soft rim.
@@ -614,10 +617,12 @@ function groundFlats(shadows, flats, groundAt, G, sea) {
   }
   const s = sea.shadow, [lx, lz] = sea.lift;
   for (const [x, z, rad, h, a] of shadows) {
-    const cx = x + lx * h * 0.8, cz = z + lz * h * 0.8, o = at(cx, cz, s, a);
+    // A shadow is small: one height for it (the highest of three samples, so a slope never cuts into it).
+    const cx = x + lx * h * 0.8, cz = z + lz * h * 0.8, ll = Math.hypot(lx, lz) || 1, ux = (lx / ll) * rad, uz = (lz / ll) * rad;
+    const y = Math.max(gy(cx, cz), gy(cx + ux, cz + uz), gy(cx - ux, cz - uz)), o = at(cx, cz, s, a, y);
     for (let j = 0; j < N; j++) {
       const th = (j / N) * TAU;
-      at(cx + Math.cos(th) * rad * 1.25, cz + Math.sin(th) * rad * 1.25, s, 0);
+      at(cx + Math.cos(th) * rad * 1.25, cz + Math.sin(th) * rad * 1.25, s, 0, y);
       idx.push(o, o + 1 + ((j + 1) % N), o + 1 + j);
     }
   }
@@ -636,12 +641,22 @@ function groundFlats(shadows, flats, groundAt, G, sea) {
   return new THREE.Mesh(geo, flatMat());
 }
 
+// Desaturates (sat, 0-1) and tints (tint, sRGB hex) baked colours in place, in linear light.
+function gradeColors(attr, { sat = 1, tint = '#ffffff' }) {
+  const a = attr.array, k = attr.itemSize, t = C(tint);
+  for (let i = 0; i < a.length; i += k) {
+    const l = a[i] * 0.2126 + a[i + 1] * 0.7152 + a[i + 2] * 0.0722;
+    a[i] = (l + (a[i] - l) * sat) * t.r; a[i + 1] = (l + (a[i + 1] - l) * sat) * t.g; a[i + 2] = (l + (a[i + 2] - l) * sat) * t.b;
+  }
+  attr.needsUpdate = true;
+}
+
 // The sea's colours at the shore, from the battle's weather.
 function seaLook(G) {
   const w = weatherFor(battleDef(G.battle)), wa = w.water;
   return {
     shallow: C(wa.shallow || wa.light), surf: C(wa.foam), rim: C(wa.rim || wa.deep),
-    shadow: C(w.shadow.color), lift: w.shadow.lift,
+    shadow: C(w.shadow.color), lift: w.shadow.lift, land: w.land || null,
   };
 }
 
@@ -818,6 +833,8 @@ export function buildLand(G) {
   const inkMat = new THREE.MeshBasicMaterial({ color: LAND_INK, side: THREE.BackSide });
   const out = new THREE.Group();
   out.userData.land = true;
+  // The weather's grade on the land: a storm greys and cools it, fog washes it out, a sunset warms it.
+  if (sea.land) for (const g of [still.solid, moving.solid]) if (g) gradeColors(g.attributes.color, sea.land);
   if (still.solid) out.add(new THREE.Mesh(still.solid, toon('#ffffff', { vertexColors: true, gradientMap: landRamp() })));
   if (still.ink) out.add(new THREE.Mesh(still.ink, inkMat));
   if (still.glass) {
@@ -870,6 +887,11 @@ const landmarkNear = (G, x, y, pad) => (G.landmarks || []).some((o) => {
   const M = LANDMARKS[o.kind];
   if (!M || o.kind === 'peak' || o.kind === 'volcano' || o.kind === 'mangroves') return false;
   if (o.kind === 'town' && !o.ring) return townCircles(o).some((q) => Math.hypot(x - q.x, y - q.y) < q.r + pad);
+  if (o.kind === 'town' && o.ring) {
+    // Strung round a fort: the band of the island its arc of houses covers.
+    const is = G.islands[o.host.island], d = Math.hypot(x - is.x, y - is.y), span = Math.min(PI * 0.9, (o.houses * 11) / o.ringR);
+    return Math.abs(d - o.ringR) < RING + 3 + pad && Math.abs(angDiff(Math.atan2(y - is.y, x - is.x), o.host.a)) < span / 2 + (8 + pad) / o.ringR;
+  }
   const e = o.kind === 'town' && o.ring ? RING + 4 : o.kind === 'harbour' ? 14 : o.kind === 'stacks' ? 22 : M.extent(o, o.hostR);
   return Math.hypot(x - o.x, y - o.y) < e + pad;
 });

@@ -60,7 +60,8 @@ export function makeWater() {
           // texture close up; at a distance they melt into a gentle sheen).
           vec2 wn = vec2(-uWind.y, uWind.x);
           float rw = dot(vP, uWind) * 0.085 + (nm - 0.5) * 9.0 + dot(vP, wn) * 0.004 - uT * 1.1;
-          float rip = smoothstep(0.9, 0.98, sin(rw)) * smoothstep(0.52, 0.74, texture2D(uNoise, p * 0.0042 + vec2(0.13, uT * 0.004)).r);
+          float rip = smoothstep(0.92, 0.985, sin(rw)) * smoothstep(0.52, 0.74, texture2D(uNoise, p * 0.0042 + vec2(0.13, uT * 0.004)).r)
+                    * smoothstep(0.42, 0.62, texture2D(uNoise, p * 0.013 + vec2(0.71, 0.29)).r); // broken into short dashes
           // They melt away as you zoom out (when a ripple shrinks to a couple of pixels), leaving the water calm.
           col = mix(col, uCrest, rip * 0.12 * (1.0 - smoothstep(0.022, 0.045, fwidth(rw))));
           // Cloud shadows: very large and soft, a slow change of light drifting downwind rather than shapes.
@@ -84,10 +85,10 @@ export function makeWater() {
           float glint = (1.0 - smoothstep(r0, r0 + 0.02, length(d))) * smoothstep(0.55, 1.0, sin(uT * (1.1 + uCaps * 0.9) + h * 50.0)) * step(0.62 - 0.25 * uCaps - 0.2 * sunward, h);
           if (uCaps > 0.0) {
             // Whitecaps: small flecks of foam drawn out along the wind, gathered loosely where the swell runs high.
-            vec2 wq = vec2(dot(p, uWind) * 0.45, dot(p, wn));
+            vec2 wq = vec2(dot(p, uWind) * 0.38, dot(p, wn));
             float f = texture2D(uNoise, wq * 0.028 + vec2(uT * 0.02, -uT * 0.014)).r;
-            float gather = smoothstep(0.55, 0.72, nm);
-            glint = max(glint, smoothstep(0.76, 0.775, f) * gather * uCaps * 0.7);
+            float gather = smoothstep(0.64, 0.8, nm);
+            glint = max(glint, smoothstep(0.775, 0.79, f) * gather * uCaps * 0.7);
           }
           float foam = 0.0;
           for (int i = 0; i < 6; i++) {
