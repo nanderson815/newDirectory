@@ -80,12 +80,12 @@ export const BATTLES = [
     goal: 'boss', hat: 'rojo', reward: 220, wind: 20,
     brief: 'Capitán Rojo’s galleon La Bruja carries bow chasers, so don’t linger in front of her. Sink her and his red tricorne is yours.',
     enemy: [
-      { type: 'galleon', name: 'La Bruja', x: 0.5, y: 0.16, h: 90, hp: 400, chasers: 2, reloadMul: 0.9,
+      { type: 'galleon', name: 'La Bruja', x: 0.5, y: 0.16, h: 90, hp: 350, chasers: 2, reloadMul: 0.9,
         boss: { captain: 'Capitán Rojo', title: 'La Bruja', hat: 'rojo' } },
       { type: 'brig', name: 'El Lobo', x: 0.25, y: 0.22, h: 90 },
     ],
     islands: [{ x: 0.28, y: 0.5, r: 40 }, { x: 0.74, y: 0.52, r: 40 }],
-    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 0.72, hpMul: 1.6 },
+    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 0.7, hpMul: 1.6 },
   },
 
   {
@@ -113,7 +113,7 @@ export const BATTLES = [
     coast: { side: 'right', depth: 0.15, rough: 0.4, coves: [{ at: 0.25, width: 0.2, depth: 0.07 }] },
     islands: [{ x: 0.22, y: 0.2, r: 30 }, { x: 0.3, y: 0.82, r: 28, stretch: 1.8, angle: 20 }],
     reefs: [{ x: 0.5, y: 0.14, r: 11, stretch: 3.5, angle: -15 }],
-    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.7, hpMul: 1.3 },
+    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.76, hpMul: 1.3 },
   },
   {
     id: 'comodoro', region: 'main', roman: 'VI', year: 1658, name: 'San Cristóbal', foe: 'El Comodoro',
@@ -173,7 +173,7 @@ export const BATTLES = [
       { type: 'galleon', name: 'San Nicolás', x: 0.76, y: 0.18, h: 90 },
     ],
     islands: [{ x: 0.27, y: 0.48, r: 36 }, { x: 0.73, y: 0.48, r: 36 }, { x: 0.5, y: 0.64, r: 24 }],
-    ai: { spread: 0.11, reloadMul: 1.1, dmgMul: 0.88, hpMul: 1 },
+    ai: { spread: 0.11, reloadMul: 1.1, dmgMul: 0.9, hpMul: 1 },
   },
 
   // ---------- The Pirate Coast ----------
@@ -206,7 +206,7 @@ export const BATTLES = [
     goals: [{ kind: 'treasure', need: 6, chests: [
       { x: 0.5, y: 0.12 }, { x: 0.14, y: 0.2 }, { x: 0.86, y: 0.2 }, { x: 0.32, y: 0.27 },
       { x: 0.68, y: 0.29 }, { x: 0.22, y: 0.54 }, { x: 0.78, y: 0.55 },
-    ] }, { kind: 'timer', secs: 44 }],
+    ] }, { kind: 'timer', secs: 46 }],
     enemy: [
       { type: 'schooner', name: 'Magpie', x: 0.3, y: 0.12, h: 90 },
       { type: 'schooner', name: 'Cutthroat', x: 0.7, y: 0.12, h: 90 },
@@ -227,7 +227,7 @@ export const BATTLES = [
     faction: 'pirate', goal: 'boss', hat: 'kate', reward: 560, wind: 90,
     brief: 'Calico Kate, queen of the Brethren, sends burning fireships ahead of her frigate. Sink the fireships before they reach you, then sink her. Hurt her and she will call for help.',
     enemy: [
-      { type: 'frigate', name: 'Black Wyvern', x: 0.5, y: 0.1, h: 90, hp: 960, chasers: 2, abilities: { launcher: { type: 'fireship', every: 13 } },
+      { type: 'frigate', name: 'Black Wyvern', x: 0.5, y: 0.1, h: 90, hp: 930, chasers: 2, abilities: { launcher: { type: 'fireship', every: 13 } },
         boss: { captain: 'Calico Kate', title: 'Black Wyvern', hat: 'kate' } },
       { type: 'schooner', name: 'Viper', x: 0.25, y: 0.16, h: 90 },
       { type: 'schooner', name: 'Adder', x: 0.75, y: 0.16, h: 90 },
@@ -288,7 +288,7 @@ export const BATTLES = [
         spawn: [{ type: 'brig', name: 'Gloucester', team: 'player', x: 0.92, y: 0.95, h: -90 }] },
     ],
     islands: [{ x: 0.5, y: 0.66, r: 50 }, { x: 0.22, y: 0.42, r: 26 }, { x: 0.78, y: 0.4, r: 26 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.44, hpMul: 1.7 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.46, hpMul: 1.7 },
   },
   {
     id: 'hierro', region: 'campeche', roman: 'XV', year: 1663, name: 'The Iron Marquis', foe: 'Marqués de Hierro',
@@ -334,7 +334,7 @@ export const BATTLES = [
           { type: 'brig', name: 'San Gabriel', x: 0.5, y: 0.06, h: 90 }] },
       { enemiesLeft: 1, fog: 0, banner: ['The fog lifts!', 'Finish them in the sunshine'] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.25, hpMul: 1.95 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.2, hpMul: 1.95 },
   },
   {
     id: 'blockade', region: 'armada', roman: 'XVII', year: 1664, name: 'Run the Blockade', foe: 'blockade line',
@@ -365,7 +365,7 @@ export const BATTLES = [
     goal: 'boss', hat: 'armada', reward: 900, wind: 0,
     brief: 'The Capitán General leads the last great Armada in the Real Felipe: mines astern, mortars aboard, a harbour fort behind her and galleys in reserve. Win this and the sea is England’s.',
     enemy: [
-      { type: 'manowar', name: 'Real Felipe', x: 0.5, y: 0.08, h: 90, hp: 815, chasers: 2,
+      { type: 'manowar', name: 'Real Felipe', x: 0.5, y: 0.08, h: 90, hp: 780, chasers: 2,
         abilities: { mineLayer: { every: 9 }, mortar: { range: 460, reload: 7, dmg: 24, radius: 38 } },
         boss: { captain: 'Capitán General', title: 'Real Felipe', hat: 'armada' } },
       { type: 'galleon', name: 'San Felipe', x: 0.26, y: 0.14, h: 90 },

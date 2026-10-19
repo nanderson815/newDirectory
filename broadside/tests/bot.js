@@ -17,15 +17,16 @@
 
   // A spot on the chart she can't sail to: land, a reef, or a shoal she'd run aground on.
   const blocked = (s, p) => !!(B().blockedAt && B().blockedAt(s, p.x, p.y));
+  // Water in the lee of high land (src/sim/land.js), where the wind drops.
+  const calm = (p) => !!(B().land && B().land.leeAt(p.x, p.y) < 0.8);
   function circle(s, t, G) {
     const a = Math.atan2(s.y - t.y, s.x - t.x) + 0.9;
     const d = s.range * 0.6 + (t.kind === 'fort' ? G.islands[t.island].r : 0);
     s.pivot = null; s.order = null;
-    // Swing the mark round the target until it's in open water.
-    for (const k of [0, 0.5, -0.5, 1, -1, 1.6, -1.6, 2.3, -2.3, Math.PI]) {
-      const p = clampTo(G, { x: t.x + Math.cos(a + k) * d, y: t.y + Math.sin(a + k) * d });
-      if (!blocked(s, p) || k === Math.PI) { s.path = [p]; return; }
-    }
+    // Swing the mark round the target until it's in open water, out of the lee of high land if it can be
+    // (a captain doesn't fight where the wind drops away).
+    const marks = [0, 0.5, -0.5, 1, -1, 1.6, -1.6, 2.3, -2.3, Math.PI].map((k) => clampTo(G, { x: t.x + Math.cos(a + k) * d, y: t.y + Math.sin(a + k) * d }));
+    s.path = [marks.find((p) => !blocked(s, p) && !calm(p)) || marks.find((p) => !blocked(s, p)) || marks[marks.length - 1]];
   }
 
   // Sail out of a red ring (an enemy mortar shell's landing spot), as the HUD tip says: of a few headings,
