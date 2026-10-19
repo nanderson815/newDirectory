@@ -107,10 +107,11 @@ export function renderPrimitives(C) {
   out.push('## Combat rules', '', 'From `RAKE` and `CRIT` in `src/sim/hazards.js`.', '');
   out.push(`- **Raking fire.** A ball that flies within ${Math.round(RAKE.cone * 180 / Math.PI)}° of the target's bow-stern line has come in`,
     `  through her stern (×${RAKE.stern} damage) or her bow (×${RAKE.bow}). The hit shows "Raked!" over the ship. Enemy captains`,
-    '  come in at an angle rather than bows-on to a broadside, and some (bosses more often) work round to cross your stern.',
+    '  come in at an angle rather than bows-on to a broadside, and some (bosses more often) work round to cross your stern',
+    '  while the broadside facing them is reloading.',
     `- **Critical hits.** Each round-shot ball that lands (bow chasers too; not chain or grape) has a ${CRIT.chance * 100}% chance`,
     `  of a lucky hit, ${CRIT.rakeChance * 100}% when it rakes (a stern rake finds the rudder twice as often):`,
-    `  - *Mast down*: ${Math.round(CRIT.mastSlow * 100)}% slower for the rest of the battle (at worst ${Math.round(CRIT.mastMin * 100)}% speed); she always keeps one mast, and its canvas is gone (\`s.mastsDown\`).`,
+    `  - *Mast down*: ${Math.round(CRIT.mastSlow * 100)}% slower for the rest of the battle (at worst ${Math.round(CRIT.mastMin * 100)}% speed); she always keeps her main mast, and the lost one lies toppled over the side (\`s.mastsDown\`).`,
     `  - *Rudder shot away*: the helm answers at ${CRIT.rudderTurn * 100}% for ${CRIT.rudderSecs} s (\`s.rudderT\`).`,
     `  - *Fire aboard*: ${CRIT.fireDps} hull a second for ${CRIT.fireSecs} s (\`s.fireT\`).`, '');
   return out.join('\n');

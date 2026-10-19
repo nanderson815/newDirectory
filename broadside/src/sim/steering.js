@@ -202,8 +202,9 @@ export function beamSteer(s, t) {
       const sx = t.x - Math.cos(t.h) * 80, sy = t.y - Math.sin(t.h) * 80;
       desired = bearing + (Math.sign(angDiff(bearing, Math.atan2(sy - s.y, sx - s.x))) || 1) * 0.5;
     }
-  } else if (ship && s.crafty && s.speed >= t.speed * 0.95 && along < 0.93 && d > 80) {
-    // A crafty captain works round to cross her stern and rake her, rather than trade broadsides.
+  } else if (ship && s.crafty && s.speed >= t.speed * 0.95 && along < 0.93 && d > 80 && t.reload && t.reload[angDiff(t.h, fromT) < 0 ? 0 : 1] > 1) {
+    // A crafty captain, while the broadside facing him is reloading, works round to cross her stern and rake
+    // her rather than trade broadsides.
     const qx = t.x - Math.cos(t.h) * ideal, qy = t.y - Math.sin(t.h) * ideal;
     desired = Math.atan2(qy - s.y, qx - s.x);
   } else {

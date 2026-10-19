@@ -430,10 +430,11 @@ reefs: [{ x: 0.55, y: 0.66, r: 12, stretch: 4, angle: -10 }], fleetAt: 'left',
 From `RAKE` and `CRIT` in `src/sim/hazards.js`.
 
 - **Raking fire.** A ball that flies within 22° of the target's bow-stern line has come in
-  through her stern (×1.9 damage) or her bow (×1.6). The hit shows "Raked!" over the ship. Enemy captains
-  come in at an angle rather than bows-on to a broadside, and some (bosses more often) work round to cross your stern.
+  through her stern (×1.75 damage) or her bow (×1.5). The hit shows "Raked!" over the ship. Enemy captains
+  come in at an angle rather than bows-on to a broadside, and some (bosses more often) work round to cross your stern
+  while the broadside facing them is reloading.
 - **Critical hits.** Each round-shot ball that lands (bow chasers too; not chain or grape) has a 3% chance
-  of a lucky hit, 10% when it rakes (a stern rake finds the rudder twice as often):
-  - *Mast down*: 30% slower for the rest of the battle (at worst 55% speed); she always keeps one mast, and its canvas is gone (`s.mastsDown`).
+  of a lucky hit, 8% when it rakes (a stern rake finds the rudder twice as often):
+  - *Mast down*: 30% slower for the rest of the battle (at worst 55% speed); she always keeps her main mast, and the lost one lies toppled over the side (`s.mastsDown`).
   - *Rudder shot away*: the helm answers at 50% for 8 s (`s.rudderT`).
   - *Fire aboard*: 2.4 hull a second for 5 s (`s.fireT`).

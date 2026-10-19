@@ -10,21 +10,23 @@ import { SHOAL, REEF, grounds, coreDist } from './terrain.js';
 // Raking: a ball that flies within `cone` (radians, ~22°) of the target's bow-stern line has come in through
 // her stern or her bow and runs the length of her decks. Through the stern it does `stern` times the damage,
 // through the bow `bow` times. Crossing an enemy's stern is the move to learn; never show her yours.
-export const RAKE = { cone: 0.38, stern: 1.9, bow: 1.6 };
+export const RAKE = { cone: 0.38, stern: 1.75, bow: 1.5 };
 
 // Critical hits: each round-shot ball that lands (bow chasers too; not chain or grape) has `chance` of a lucky
 // hit, `rakeChance` when it rakes. A stern rake is twice as likely to find the rudder.
-//   mast down:   the ship sails at 70% speed for the rest of the battle (two masts down: 55%); her canvas on
-//                that mast is gone. A ship always keeps one mast.
+//   mast down:   the ship sails at 70% speed for the rest of the battle (two masts down: 55%); the mast lies
+//                toppled over the side (render/scene.js). A ship always keeps her main mast.
 //   rudder:      her helm answers at half rate for `rudderSecs` seconds.
 //   fire aboard: `fireDps` hull a second for `fireSecs` seconds (12 in all), smoke and flame meanwhile.
-export const CRIT = { chance: 0.03, rakeChance: 0.1, mastSlow: 0.3, mastMin: 0.55, rudderSecs: 8, rudderTurn: 0.5, fireSecs: 5, fireDps: 2.4 };
+export const CRIT = { chance: 0.03, rakeChance: 0.08, mastSlow: 0.3, mastMin: 0.55, rudderSecs: 8, rudderTurn: 0.5, fireSecs: 5, fireDps: 2.4 };
 
 // Words over a ship (the HUD draws them like damage numbers, a little higher and longer).
 const TONE = { good: '#ffd34d', bad: '#ff8a7a', crit: '#ffe9c2', sea: '#bff1ff' };
 export function callout(u, text, tone = 'crit') {
   if (S.floaters.length > 40) S.floaters.shift();
-  S.floaters.push({ id: u.id, x: u.x, y: u.y, value: 0, text, color: TONE[tone] || tone, born: S.clock, life: 1.6, z0: 128, team: u.team });
+  // Two at once (a mast and a fire from one broadside) stack rather than overprint.
+  const stack = S.floaters.filter((f) => f.text && f.id === u.id && S.clock - f.born < 0.9).length;
+  S.floaters.push({ id: u.id, x: u.x, y: u.y, value: 0, text, color: TONE[tone] || tone, born: S.clock, life: 1.6, z0: 128 + stack * 34, team: u.team });
 }
 // Asks the HUD for a one-time tip (src/hud/hud.js TIPS); it shows once a tip slot is free.
 export function askTip(id) { (S.tipAsk || (S.tipAsk = new Set())).add(id); }

@@ -21,8 +21,18 @@ const def = (o = {}) => ({
   ...o, ai: { dmgMul: 0, ...(o.ai || {}) },
 });
 const play = (d, p = page) => p.evaluate((x) => { window.__broadside.playDef(x); window.__broadside.setFire('manual'); window.__broadside.step(1); }, d);
-const snap = async (name, p = page) => {
-  await p.evaluate(() => { window.__broadside.setFire('auto'); window.__broadside.step(2); });
+// The sea is bigger than the screen and the camera follows the action: `frame` points it by hand instead,
+// { ship: name } or { x, y } (map fractions) and how wide: 'close' | 'comfort' | 'wide' | 'all'.
+const snap = async (name, p = page, frame = { x: 0.5, y: 0.5, zoom: 'all' }) => {
+  await p.evaluate((f) => {
+    const b = window.__broadside, G = b.G, cam = b.cam;
+    b.setFire('auto'); b.step(2);
+    const s = f.ship && G.ships.find((q) => q.name === f.ship);
+    cam.mode = 'manual'; cam.idle = -1e9;
+    cam.tx = s ? s.x : f.x * G.W; cam.ty = s ? s.y : f.y * G.H;
+    cam.d = { close: cam.dClose, comfort: cam.dComfort, wide: cam.dWide, all: cam.dMax }[f.zoom || 'all'];
+    b.camTick(0); b.step(1);
+  }, frame);
   await p.screenshot({ path: path.join(SHOTS, name + '.png'), timeout: 120000 });
   await p.evaluate(() => window.__broadside.setFire('manual'));
 };
@@ -48,7 +58,7 @@ const rake = await B(() => {
 });
 check(rake.beam.dmg > 3.9 && rake.beam.dmg < 4.1 && !rake.beam.words.length, `a beam hit does plain damage (${f1(rake.beam.dmg)})`, failures);
 check(rake.stern.dmg > rake.beam.dmg * 1.6, `a ball in through the stern rakes her: ${f1(rake.stern.dmg)} (x${f1(rake.stern.dmg / rake.beam.dmg)})`, failures);
-check(rake.bow.dmg > rake.beam.dmg * 1.5 && rake.bow.dmg < rake.stern.dmg, `through the bow a little less: ${f1(rake.bow.dmg)} (x${f1(rake.bow.dmg / rake.beam.dmg)})`, failures);
+check(rake.bow.dmg > rake.beam.dmg * 1.45 && rake.bow.dmg < rake.stern.dmg, `through the bow a little less: ${f1(rake.bow.dmg)} (x${f1(rake.bow.dmg / rake.beam.dmg)})`, failures);
 check(Math.abs(rake.quarter.dmg - rake.beam.dmg) < 0.1, `a shot from her quarter, outside the ${Math.round(rake.RAKE.cone * 57.3)}° cone, does not rake (${f1(rake.quarter.dmg)})`, failures);
 check(rake.stern.words.some((w) => /Raked/.test(w)) && rake.bow.words.some((w) => /Raked/.test(w)), `"${rake.stern.words[0]}" shows over the ship`, failures);
 check(rake.tip.includes('rake'), 'and the first rake asks for the one-time raking tip', failures);
@@ -59,7 +69,7 @@ await B(() => {
   r.x = t.x - 150; r.y = t.y; r.h = -Math.PI / 2; r.v = 0; r.pivot = r.h; t.hp = t.maxHp = 400;
   b.setFire('auto'); r.reload = [0, 0]; b.sim(60); b.setFire('manual');
 });
-await snap('rake');
+await snap('rake', page, { ship: 'San Juan', zoom: 'close' });
 
 // ---------- Critical hits ----------
 console.log('Critical hits');
@@ -133,7 +143,7 @@ await B(() => {
   t.x = r.x + 30; t.y = r.y - 260; t.h = 0; b.S.floaters.length = 0;
   b.hazards.applyCrit(t, 'mast'); b.sim(20); b.hazards.applyCrit(t, 'fire'); b.sim(30);
 });
-await snap('crits');
+await snap('crits', page, { ship: 'San Juan', zoom: 'close' });
 
 // ---------- Shoals ----------
 console.log('Shoals');
@@ -292,11 +302,13 @@ const scenes = {
   channel: def({ coast: { side: 'left', depth: 0.24, capes: [{ at: 0.45, width: 0.35, depth: 0.12 }] }, islands: [{ x: 0.74, y: 0.45, r: 30, stretch: 2.8, angle: 85 }], shoals: [{ x: 0.52, y: 0.22, r: 30 }] }),
 };
 const land = await open(browser, { width: 844, height: 390, save: save({ stars: { tutorial: 3 } }) });
+// Small features close up, shores whole.
+const frames = { shoals: { x: 0.5, y: 0.5, zoom: 'wide' }, reefs: { x: 0.5, y: 0.5, zoom: 'wide' }, 'long-islands': { x: 0.5, y: 0.46, zoom: 'wide' } };
 for (const [name, d] of Object.entries(scenes)) {
   await play(d);
-  await snap(`${name}-portrait`);
+  await snap(`${name}-portrait`, page, frames[name]);
   await play(d, land);
-  await snap(`${name}-landscape`, land);
+  await snap(`${name}-landscape`, land, frames[name]);
 }
 await play({ ...coastDef, shoals: [{ x: 0.6, y: 0.3, r: 40, stretch: 1.6, angle: 25 }], reefs: [{ x: 0.7, y: 0.68, r: 12, stretch: 4, angle: -15 }], islands: [{ x: 0.78, y: 0.47, r: 26, stretch: 2.4, angle: 75 }] }, land);
 await snap('coast-landscape', land);
