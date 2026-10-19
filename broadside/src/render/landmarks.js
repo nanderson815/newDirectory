@@ -16,6 +16,8 @@ import { bush, palm, broadleaf } from './flora.js';
 // ---------- Small helpers ----------
 const box = (w, h, d) => new THREE.BoxGeometry(w, h, d);
 const cyl = (r0, r1, h, n = 7, open = false) => new THREE.CylinderGeometry(r0, r1, h, n, 1, open);
+// A door or window: a flat pane on a wall, facing +z (four vertices, where a box would take twenty-four).
+const pane = (w, h) => new THREE.PlaneGeometry(w, h);
 let blobGeo = null;
 export const sharedGeos = () => [blobGeo].filter(Boolean);
 const blob = () => (blobGeo = blobGeo || new THREE.IcosahedronGeometry(1, 0));
@@ -111,7 +113,7 @@ const pick = (list, rnd) => list[Math.floor(rnd(0, list.length)) % list.length];
 // How big a house is, by look: w along the street (the ridge), d deep, h to the eaves.
 function plan(look, rnd) {
   if (look === 'city') return { w: rnd(8.4, 10.6), d: rnd(7.8, 9), h: rnd(9.5, 13) };
-  if (look === 'shanty') return { w: rnd(8.4, 10.6), d: rnd(6.7, 7.8), h: rnd(5.4, 6.5) };
+  if (look === 'shanty') return { w: rnd(6.6, 8.4), d: rnd(5.8, 7), h: rnd(5, 6.2) };
   if (look === 'village') return { w: 9, d: 9, h: 5 };
   return { w: rnd(8.4, 10.6), d: rnd(7.3, 8.4), h: look === 'english' ? rnd(6.2, 7.3) : rnd(5.8, 7.2) };
 }
@@ -173,11 +175,11 @@ function house(g, look, x, z, yaw, rnd, ctx, p) {
     }
     // The front: a door, windows (shuttered in Spanish towns), a balcony on the tall city houses.
     const dx = rnd(-0.2, 0.2) * w;
-    add(b, box(1.8, 3.1, 0.4), '#4a3020', dx, 1.55, d / 2);
+    add(b, pane(1.8, 3.1), '#4a3020', dx, 1.55, d / 2 + 0.06);
     const floors = h > 8 ? 2 : 1;
     for (let f = 0; f < floors; f++) {
       const wy = floors > 1 ? h * (f ? 0.74 : 0.36) : h * 0.6;
-      for (const s of [-1, 1]) if (!(f === 0 && Math.abs(s * w * 0.3 - dx) < 1.8)) add(b, box(1.3, 1.5, 0.4), L.glass, s * w * 0.3, wy, d / 2);
+      for (const s of [-1, 1]) if (!(f === 0 && Math.abs(s * w * 0.3 - dx) < 1.8)) add(b, pane(1.3, 1.5), L.glass, s * w * 0.3, wy, d / 2 + 0.06);
     }
     if (look === 'city' && floors > 1) add(b, box(w * 0.55, 0.35, 1.2), L.trim, 0, h * 0.58, d / 2 + 0.5);
   }
@@ -256,8 +258,8 @@ export function townLayout(o) {
     const a = along / bend, R = bend + off;
     return [-bend + Math.cos(a) * R, Math.sin(a) * R, -a];
   };
-  const back = o.look !== 'village' && o.look !== 'shanty' && (o.houses >= 6 || o.look === 'city') && (!bend || bend >= 48);
-  const count = o.houses + Math.round(o.houses * (o.look === 'city' ? 0.7 : back ? 0.35 : 0));
+  const back = o.look !== 'village' && (o.houses >= 6 || o.look === 'city') && (!bend || bend >= 48);
+  const count = o.houses + Math.round(o.houses * (o.look === 'city' ? 0.5 : back ? 0.3 : 0));
   return { half, ext, at, back, count };
 }
 
@@ -346,6 +348,16 @@ export const BUILD = {
     if (hasFocal) ctx.flat(g, [L.at(1.5, 0)], 6, '#b49a6c', 0.45);
     if (look !== 'shanty') { const [x, z] = hasFocal ? L.at(4.5, 0) : L.at(1.2, half * 0.55); pole(g, x, z, 14, ctx, flagFor(o, ctx.st)); }
     { const [x, z] = L.at(1.5, half * 0.86); goods(g, x, z, rnd, ctx); }
+    // Rowing boats drawn up on the beach below the town, where there is a beach.
+    for (const along of [half * 0.35, -half * 0.5]) {
+      let off = 14;
+      while (off < 70 && g.position.y + ctx.ground(g, ...L.at(off, along).slice(0, 2)) > 1.3) off += 2; // (ground is relative to the town)
+      if (off >= 70 || rnd() < 0.3) continue;
+      const [x, z, yaw] = L.at(off - 5, along), y = ctx.ground(g, x, z);
+      const b = rowboat(look === 'shanty' ? '#6b4f36' : '#a5672f');
+      b.position.set(x, y + 0.2, z); b.rotation.set(0, yaw + rnd(-0.4, 0.4), 0.12);
+      g.add(b);
+    }
     ctx.people(g, [L.at(0, -half * 0.7), L.at(0, half * 0.7)], look === 'city' ? 3 : 2);
   },
   harbour(g, o, ctx) {
@@ -555,6 +567,14 @@ export const BUILD = {
   volcano() {}, // the terrain plus a plume (land.js)
 };
 
+// A small rowing boat, bow along +x (in a town's frame: drawn up the beach, bow to the sea), with a thwart.
+function rowboat(color) {
+  const b = new THREE.Group(), m = new THREE.Mesh(liftedExtrude(hullShape(8, 3.4), 1.6, 0.6, 0.55), toon(color));
+  withOutline(m, 0.07);
+  b.add(m);
+  add(b, box(0.7, 0.3, 2.6), '#5e4029', 0, 1.2, 0);
+  return b;
+}
 function canoe(g, x, z, rnd, ctx) {
   const c = add(g, new THREE.CapsuleGeometry(1.2, 7, 2, 6), '#7a4f2c', x, ctx.ground(g, x, z) + 0.8, z, 0.08);
   c.rotation.set(0, rnd(0, PI), PI / 2);

@@ -39,10 +39,27 @@ function capsulePath(c, k, wob, path = new THREE.Shape(), reverse = false) {
   }
   return path;
 }
-function ring(c, k0, k1, wob) {
-  const sh = capsulePath(c, k1, wob);
-  sh.holes.push(capsulePath(c, k0, wob, new THREE.Path(), true));
-  return sh;
+// Soft rings: rows [k, colour, alpha] from the middle out (k times the capsule's wobbled radius), the colour and
+// alpha blending smoothly between rows, so the water deepens gradually instead of in hard steps. brk(a) (0-1)
+// can break a row's alpha up round the outline (surf).
+let softMat = null;
+function soft(group, c, rows, wob, y, brk, segs) {
+  const n = segs || (c.hl ? 64 : 48), pos = [], col = [], idx = [], m = rows.length;
+  const cols = rows.map(([, hex]) => new THREE.Color(hex));
+  for (let j = 0; j <= n; j++) {
+    const a = (j / n) * TAU, w = 1 + wob[0] * Math.sin(3 * a + wob[1]) + wob[2] * Math.sin(5 * a + wob[3]), R = capsuleRadius(c, a) * w;
+    rows.forEach(([k, , al, broken], i) => { pos.push(Math.cos(a) * R * k, y, Math.sin(a) * R * k); col.push(cols[i].r, cols[i].g, cols[i].b, al * (broken && brk ? brk(a) : 1)); });
+  }
+  for (let j = 0; j < n; j++) for (let i = 0; i < m - 1; i++) { const p = j * m + i, q = p + m; idx.push(p, q, p + 1, p + 1, q, q + 1); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 4));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  softMat = softMat || Object.assign(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false }), { userData: { shared: true } });
+  const mesh = new THREE.Mesh(g, softMat);
+  group.add(mesh);
+  return mesh;
 }
 // A random point inside a capsule (map offset from its centre), within `k` of its radius.
 function inside(c, k, r) {
@@ -55,10 +72,10 @@ export function buildShoal(c, r) {
   const g = new THREE.Group();
   g.position.set(wx(c.x), 0, wz(c.y));
   const wob = [r(0.04, 0.08), r(0, TAU), r(0.02, 0.05), r(0, TAU)];
-  flat(g, capsulePath(c, 1.28, wob), 0x8fdde6, 0.32, 0.1);    // soft halo where the bottom shelves up
-  flat(g, capsulePath(c, 1.0, wob), 0xa9efe4, 0.62, 0.14);    // the shallows proper: light turquoise
-  flat(g, capsulePath(c, 0.72, wob), 0xd2f6e6, 0.5, 0.18);    // paler toward the middle
-  flat(g, ring(c, 0.95, 1.04, wob), 0xf1dca0, 0.75, 0.22);    // the sandy fringe
+  // The shallows: turquoise over the sand, paler toward the middle, fading out where the bottom shelves away;
+  // a soft sandy rim marks the edge to keep off.
+  soft(g, c, [[0, '#d6f6e8', 0.55], [0.7, '#b9f0e3', 0.55], [1, '#9fe6dd', 0.5], [1.18, '#8fdde6', 0.22], [1.42, '#8fdde6', 0]], wob, 0.12);
+  soft(g, c, [[0.88, '#f1dca0', 0], [0.99, '#f1dca0', 0.62], [1.09, '#f1dca0', 0]], wob, 0.2);
   // A few sandbars just awash.
   const bars = Math.round(2 + (c.r + c.hl) / 30);
   for (let i = 0; i < bars; i++) {
@@ -77,11 +94,12 @@ export function buildReef(c, r) {
   const g = new THREE.Group();
   g.position.set(wx(c.x), 0, wz(c.y));
   const wob = [r(0.05, 0.1), r(0, TAU), r(0.03, 0.06), r(0, TAU)];
-  flat(g, capsulePath(c, 1.6, wob), 0x8fe3dc, 0.5, 0.1);     // pale water over the coral round it
-  flat(g, capsulePath(c, 1.0, wob), 0x2e6f72, 0.55, 0.13);    // dark rock just under the surface
-  // Breakers: a broken white ring of surf along the edge, and a second fainter one outside it.
-  flat(g, ring(c, 1.0, 1.16, [wob[0] * 2, wob[1], wob[2] * 2, wob[3]]), 0xffffff, 0.8, 0.3);
-  flat(g, ring(c, 1.28, 1.36, [wob[0], wob[1] + 1, wob[2], wob[3] + 2]), 0xffffff, 0.45, 0.28);
+  // Dark rock just under the surface, pale water over the coral round it fading into the sea.
+  soft(g, c, [[0, '#2e6f72', 0.5], [0.92, '#2e6f72', 0.5], [1.12, '#8fe3dc', 0.45], [1.7, '#8fe3dc', 0]], wob, 0.1);
+  // Breakers: a white ring of surf along the edge, thick and thin by turns, and a fainter broken one outside it.
+  const ph = r(0, TAU), brk = (a) => 0.55 + 0.45 * Math.sin(a * 5 + ph) * Math.sin(a * 3 - ph);
+  soft(g, c, [[0.95, '#ffffff', 0], [1.05, '#ffffff', 0.9, true], [1.2, '#ffffff', 0]], [wob[0] * 2, wob[1], wob[2] * 2, wob[3]], 0.3, brk);
+  soft(g, c, [[1.24, '#ffffff', 0], [1.31, '#ffffff', 0.55, true], [1.39, '#ffffff', 0]], [wob[0], wob[1] + 1, wob[2], wob[3] + 2], 0.28, (a) => Math.max(0, Math.sin(a * 6 + ph * 2)));
   rockGeos = rockGeos || [new THREE.DodecahedronGeometry(1, 0), new THREE.IcosahedronGeometry(1, 0)];
   const n = Math.round(5 + (c.r * (c.r + 2 * c.hl)) / 90);
   for (let i = 0; i < n; i++) {
@@ -93,7 +111,7 @@ export function buildReef(c, r) {
     withOutline(rock, 0.14);
     g.add(rock);
     // White water round each rock.
-    const foam = flat(g, capsulePath({ x: 0, y: 0, r: s * 1.8, hl: 0, ang: 0 }, 1, [0.14, r(0, TAU), 0.08, r(0, TAU)]), 0xffffff, 0.7, 0.32);
+    const foam = soft(g, { x: 0, y: 0, r: s * 1.8, hl: 0, ang: 0 }, [[0, '#ffffff', 0.75], [0.7, '#ffffff', 0.6], [1.1, '#ffffff', 0]], [0.14, r(0, TAU), 0.08, r(0, TAU)], 0.32, null, 16);
     foam.position.x = x; foam.position.z = y;
     if (r() < 0.5) {
       const [cx, cy] = inside(c, 1.1, r), cs = r(1.8, 3.2);

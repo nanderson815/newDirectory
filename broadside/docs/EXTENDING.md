@@ -107,7 +107,10 @@ tower and doesn't overlap its neighbours. Most kinds are scenery; four change th
 To add a kind: an entry in `LANDMARKS` in `src/sim/land.js` (about, params, defaults, where, extent and any sim
 hooks), a builder in `BUILD` in `src/render/landmarks.js`, then `npm run docs`. Landmarks register their living
 details (chimney smoke, lamps, flags, gulls, people) with the builder's `ctx`; `render/land.js` animates them,
-and they show more the closer you zoom.
+and they show more the closer you zoom. `ctx.shadow` grounds a building with a soft shadow and `ctx.flat`
+lays a packed-earth street or square under it; plants come from `src/render/flora.js` (each region's mix and
+palette is its `STYLES` entry in `render/land.js`). `node tests/land-budget.mjs` reports each battle's land
+draw calls, vertices and plants: keep a new kind lean.
 
 ## Give a boss a new ability
 

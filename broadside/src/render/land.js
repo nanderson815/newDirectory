@@ -77,7 +77,7 @@ const STYLES = {
   armada: {
     sand: '#ecd8a8', wet: '#c9b27f', grass: ['#85aa5a', '#70974f'], meadow: '#9cb469', high: '#5f8c47', forest: '#446e39',
     rock: '#cbb68c', strata: '#a8936a', pad: '#d9c69d',
-    cliffs: 0.35, hill: 17, plateau: 6, beach: 0.12, density: 1, veg: { grove: 'broad', palms: 0.5, forest: 0.85 },
+    cliffs: 0.35, hill: 17, plateau: 6, beach: 0.12, density: 1, veg: { grove: 'broad', palms: 0.4, forest: 0.85 },
   },
 };
 for (const [id, s] of Object.entries(STYLES)) { s.id = id; s.F = { ...FLORA, ...(s.F || {}) }; }
@@ -532,11 +532,11 @@ function plantCoast(G, q, st, root, P, r) {
   const pads = cr.pads, clear = (mx, my, pad) => !pads.some((p) => Math.hypot(mx - p.x, my - p.y) < p.r + pad) && !landmarkNear(G, mx, my, pad + 3);
   // Only what the camera can reach (the map plus its margin) is planted; far inland the trees grow bigger
   // and sparser (nobody looks closely there).
-  for (const [s0, s1, cell, k] of [[12, 150, 13, 1.28], [150, 330, 19, 1.75]]) {
+  for (const [s0, s1, cell, k] of [[12, 150, 13, 1.28], [150, 330, 21, 1.9]]) {
     const dt = cell / cr.len, nt = Math.ceil(1.24 / dt), ns = Math.ceil((s1 - s0) / cell), near = s0 < 150;
     const cells = grid(nt, ns, cell, r).map(([i, j, u, v]) => {
       const t = -0.12 + u / cr.len, s = s0 + v, c = { i, j, t, s, ok: false };
-      const sMax = Math.min(330, coastDepth(cr.def, clamp(t, -0.08, 1.08)) * cr.across + 80);
+      const sMax = Math.min(330, coastDepth(cr.def, clamp(t, -0.08, 1.08)) * cr.across + 65);
       if (s > sMax) return c;
       const [mx, my] = cr.point(t, s);
       c.mx = mx; c.my = my;
@@ -585,7 +585,7 @@ function plantCoast(G, q, st, root, P, r) {
 // ground just above it, with soft edges, and all of them are one translucent bake.
 function groundFlats(shadows, flats, groundAt, G, sea) {
   if (!shadows.length && !flats.length) return null;
-  const pos = [], col = [], idx = [], N = 10;
+  const pos = [], col = [], idx = [], N = 8;
   const gy = (x, z) => groundAt(x + G.W / 2, z + G.H / 2);
   const at = (x, z, c, a, y) => { pos.push(x, (y == null ? gy(x, z) : y) + 0.5, z); col.push(c.r, c.g, c.b, a); return pos.length / 3 - 1; };
   for (const { pts, w, c, a } of flats) {
