@@ -21,7 +21,8 @@ console.log('Old snapshot');
   await page.goto(PAGE);
   await page.waitForTimeout(2500);
   const c1 = await page.evaluate(() => window.__broadside && window.__broadside.S.clock);
-  await page.waitForTimeout(1000);
+  // A loaded machine's software renderer can take over a second per frame: wait (up to 30 s) for the clock to move.
+  await page.waitForFunction((c) => window.__broadside && window.__broadside.S.clock > c, c1, { timeout: 30000, polling: 200 }).catch(() => {});
   const c2 = await page.evaluate(() => window.__broadside && window.__broadside.S.clock);
   check(c2 > c1, `the game loop keeps running after an old snapshot (clock ${c1 && c1.toFixed(2)} -> ${c2 && c2.toFixed(2)})`, failures);
   check(await page.isVisible('#menuScreen'), 'it falls back to the main menu', failures);
