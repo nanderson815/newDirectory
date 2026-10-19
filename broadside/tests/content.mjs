@@ -73,6 +73,17 @@ expectCaught('ship type missing a stat', () => { const T = clone(C.TYPES); delet
 expectCaught('ship type with an unknown ability', () => { const T = clone(C.TYPES); T[firstType].abilities = { teleport: true }; return { TYPES: T }; }, `TYPES.${firstType} ability 'teleport'`);
 expectCaught('bad endless wave', () => ({ waveEnemies: (n) => C.waveEnemies(n).map((d) => ({ ...d, type: n === 3 ? 'canoe' : d.type })) }), "endless wave 3 ship 0");
 
+// Land (src/config/lands.js, src/sim/land.js LANDMARKS): a battle's own `land` is checked like a LANDS entry.
+console.log('land:');
+expectCaught('unknown landmark kind', (B) => { B.land = { landmarks: [{ kind: 'pyramid', island: 0 }] }; }, 'unknown kind "pyramid"');
+expectCaught('landmark on a missing island', (B) => { B.land = { landmarks: [{ kind: 'church', island: 9 }] }; }, 'is not an index into islands');
+expectCaught('landmark past the shore', (B) => { B.land = { landmarks: [{ kind: 'ruin', island: 0, d: 0.95 }] }; }, 'past its shore');
+expectCaught('unknown landmark param', (B) => { B.land = { landmarks: [{ kind: 'town', island: 0, colour: 'pink' }] }; }, "unknown param 'colour'");
+expectCaught('two landmarks in one spot', (B) => { B.land = { landmarks: [{ kind: 'church', island: 0 }, { kind: 'windmill', island: 0 }] }; }, 'overlaps landmarks[0]');
+expectCaught('wreck in open water', (B) => { B.land = { landmarks: [{ kind: 'wreck', x: 0.5, y: 0.95 }] }; }, 'must lie on a reef, a shoal or an island');
+expectCaught('unknown land style', (B) => { B.land = { style: 'arctic' }; }, 'style must be one of');
+expectCaught('land for a battle that does not exist', () => ({ LANDS: { ...C.LANDS, atlantis: {} } }), 'LANDS.atlantis');
+
 // Geography (src/sim/terrain.js TERRAIN).
 const ship0 = (B) => B.enemy[0];
 expectCaught('ship on a coast', (B) => { B.coast = { side: 'top', depth: 0.25 }; ship0(B).y = 0.05; }, 'is on (or touching) the top coast');

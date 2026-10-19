@@ -1,5 +1,6 @@
 import { S } from '../state.js';
 import { PI, lerp, angDiff } from '../util.js';
+import { leeAt } from './land.js';
 
 // Points of sail: speed factor by the angle between heading and where the wind blows to.
 // Kept gentle: into the wind is slower, never a crawl.
@@ -19,6 +20,8 @@ export function windFactor(h, s) {
     const [a0, f0] = pts[i], [a1, f1] = pts[i + 1];
     if (a <= a1) { f = lerp(f0, f1, (a - a0) / (a1 - a0)); break; }
   }
+  // High land steals the wind in its lee (src/sim/land.js); sweeps don't care.
+  if (s && s.x != null) f *= leeAt(S.G, s.x, s.y);
   return s && s.oars ? Math.max(f, OARS) : f;
 }
 

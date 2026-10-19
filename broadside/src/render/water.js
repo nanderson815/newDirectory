@@ -7,7 +7,9 @@ import { clamp, lerp } from '../util.js';
 const v3 = (r, g, b) => new THREE.Vector3(r, g, b);
 export function makeWater() {
   return new THREE.Mesh(
-    new THREE.PlaneGeometry(8000, 8000).rotateX(-Math.PI / 2),
+    // Tiled rather than two huge triangles: clipping a giant triangle at the screen edge loses depth precision,
+    // and the flat things floating just above the sea (shallows, shadows, the beach line) would flicker under it.
+    new THREE.PlaneGeometry(8000, 8000, 24, 24).rotateX(-Math.PI / 2),
     new THREE.ShaderMaterial({
       uniforms: {
         uT: { value: 0 }, uWind: { value: new THREE.Vector2(1, 0) }, uHalf: { value: new THREE.Vector2(300, 600) },

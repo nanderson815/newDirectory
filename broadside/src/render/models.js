@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { TYPES } from '../config/ships.js';
 import { COL, TAU, lerp } from '../util.js';
 import { R, toon, withOutline } from './gl.js';
-import { hullShape, pearShape, liftedExtrude, sailGeometry, sailPatch, islandShape } from './shapes.js';
+import { hullShape, pearShape, liftedExtrude, sailGeometry, sailPatch } from './shapes.js';
 
 const PI = Math.PI;
 
@@ -66,13 +66,16 @@ function mergeParts(parts, colorSize) {
     }
     if (full) {
       // Material colours are already linear, which is what vertex colours expect.
+      // A geometry's own vertex colours (terrain shaded by height, render/land.js) tint the material colour.
       const groups = p.mats.length > 1 && p.g.groups.length ? p.g.groups : [{ start: 0, count: cnt, materialIndex: 0 }];
+      const vc = p.g.attributes.color;
       for (const gr of groups) {
         const mt = p.mats[gr.materialIndex] || p.mats[0], c = mt.color;
         const end = Math.min(cnt, gr.start + gr.count);
         for (let i = gr.start; i < end; i++) {
           const k = (o + i) * colorSize;
           col[k] = c.r; col[k + 1] = c.g; col[k + 2] = c.b;
+          if (vc) { col[k] *= vc.getX(i); col[k + 1] *= vc.getY(i); col[k + 2] *= vc.getZ(i); }
           if (colorSize === 4) col[k + 3] = mt.opacity;
         }
       }
@@ -661,91 +664,18 @@ export function chestGeometries() {
 }
 
 // ---------- Islands ----------
-export function buildIsland(is, wx, wz) {
-  const g = new THREE.Group();
-  g.position.set(wx(is.x), 0, wz(is.y));
-  const flat = (k, color, op, y) => {
-    const m = new THREE.Mesh(new THREE.ShapeGeometry(islandShape(is, k), 24).rotateX(-PI / 2),
-      new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false }));
-    m.position.y = y; m.renderOrder = 1;
-    g.add(m);
-  };
-  flat(1.55, 0x9fe6f0, 0.45, 0.2);
-  flat(1.25, 0xcdf5f7, 0.6, 0.3);
-  flat(1.1, 0xffffff, 0.9, 0.4); // cartoon surf line hugging the beach
-  const sand = new THREE.Mesh(liftedExtrude(islandShape(is, 0.94), 5, 3.5, 0), toon('#f2d68f'));
-  sand.position.y = -1;
-  withOutline(sand, 0.04);
-  g.add(sand);
-  const grass = new THREE.Mesh(liftedExtrude(islandShape(is, 0.6), 4 + is.r * 0.08, 2.5, 0), toon('#7cc957'));
-  grass.position.y = 5;
-  g.add(grass);
-  if (is.r > 40 && !is.fort) {
-    const hill = new THREE.Mesh(new THREE.SphereGeometry(is.r * 0.32, 12, 8), toon('#68b84a'));
-    hill.scale.y = 0.55; hill.position.set(is.r * 0.12, 9, is.r * 0.1);
-    withOutline(hill, 0.05);
-    g.add(hill);
-  }
-  for (const r of is.rocks) {
-    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(r.s, 0), toon('#8b8f96'));
-    rock.position.set(Math.cos(r.a) * r.d, 0.5, -Math.sin(r.a) * r.d);
-    rock.rotation.set(r.a, r.a * 2, 0);
-    withOutline(rock, 0.12);
-    g.add(rock);
-  }
-  for (const p of is.palms) g.add(buildPalm(p));
-  return g;
-}
-
-let leafGeo = null, nutGeo = null;
-export const sharedIslandGeos = () => [leafGeo, nutGeo];
-function buildPalm(p) {
-  leafGeo = leafGeo || new THREE.SphereGeometry(1, 8, 6);
-  nutGeo = nutGeo || new THREE.SphereGeometry(1.5, 6, 5);
-  const g = new THREE.Group();
-  g.position.set(p.x, 8, p.y);
-  g.rotation.y = p.rot;
-  const h = 26 * p.s;
-  const tilt = new THREE.Group();
-  tilt.rotation.z = p.lean;
-  g.add(tilt);
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(1.3, 2.2, h, 6), toon('#9a6a3a'));
-  trunk.position.y = h / 2;
-  withOutline(trunk, 0.2);
-  tilt.add(trunk);
-  const crown = new THREE.Group();
-  crown.position.y = h;
-  tilt.add(crown);
-  for (let i = 0; i < 6; i++) {
-    const arm = new THREE.Group();
-    arm.rotation.y = (i / 6) * TAU;
-    const leaf = new THREE.Mesh(leafGeo, toon(i % 2 ? '#5cbf4c' : '#49a83d'));
-    leaf.scale.set(10 * p.s, 1.4, 3.6 * p.s);
-    leaf.position.set(8 * p.s, -2, 0);
-    leaf.rotation.z = -0.35;
-    withOutline(leaf, 0.1);
-    arm.add(leaf);
-    crown.add(arm);
-  }
-  for (let i = 0; i < 3; i++) {
-    const nut = new THREE.Mesh(nutGeo, toon('#6b4220'));
-    nut.position.set(Math.cos(i * 2.1) * 1.8, -1.5, Math.sin(i * 2.1) * 1.8);
-    crown.add(nut);
-  }
-  return g;
-}
-
 // ---------- Forts ----------
 // A round stone tower with crenellations, a swivelling gun on top and a flag for whoever holds it.
 export const FORT_BASE_Y = 12;
 export const FORT_SCALE = 1.35; // towers read as landmarks next to the ships
-export function buildFortMesh(f, wx, wz) {
+// look: optional stone colours for the region (render/land.js fortLook): { stone, dark }.
+export function buildFortMesh(f, wx, wz, look) {
   const g = new THREE.Group();
   g.position.set(wx(f.x), FORT_BASE_Y, wz(f.y));
   g.scale.setScalar(FORT_SCALE);
   const body = new THREE.Group();
   g.add(body);
-  const stone = toon('#cfc6b3'), dark = toon('#968d80');
+  const stone = toon((look && look.stone) || '#cfc6b3'), dark = toon((look && look.dark) || '#968d80');
   const base = new THREE.Mesh(new THREE.CylinderGeometry(15, 17.5, 6, 14), dark);
   base.position.y = 3; withOutline(base, 0.05); body.add(base);
   const tower = new THREE.Mesh(new THREE.CylinderGeometry(11, 13, 20, 14), stone);

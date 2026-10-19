@@ -8,6 +8,7 @@ import { updateGoals, judge } from './goals/index.js';
 import { updateEvents } from './events.js';
 import { updateFog } from './fog.js';
 import { updateParticles } from './particles.js';
+import { updateLand } from './land.js';
 import { sfx } from '../audio/sfx.js';
 
 // One simulation tick. Only a battle in play advances; menus keep the sea and particles alive.
@@ -30,6 +31,7 @@ export function update(dt) {
     updateBalls(dt);
     updateMines(dt);
     updateBoardings(dt);
+    updateLand(G, dt);
     updateGoals(G, dt);
     updateEvents(G);
     updateFog();

@@ -5,9 +5,10 @@ import { TYPES } from '../config/ships.js';
 import { COL, PI, TAU, clamp, lerp, rand, angDiff } from '../util.js';
 import { R, toon } from './gl.js';
 import { wx, wz, fitCamera } from './camera.js';
-import { bakeStatic, buildIsland, buildShipMesh, buildFortMesh, sharedIslandGeos, chestGeometries, setShipFading, setShipTorn, FORT_BASE_Y, FORT_SCALE } from './models.js';
+import { buildShipMesh, buildFortMesh, chestGeometries, setShipFading, setShipTorn, FORT_BASE_Y, FORT_SCALE } from './models.js';
 import { WX, applyWeather, syncWeather } from './weather.js';
-import { buildTerrain, lostMasts } from './terrain.js';
+import { lostMasts } from './terrain.js';
+import { buildLand, syncLand, landStats, fortLook } from './land.js';
 
 let worldObjs = [];
 export let shipMeshes = new Map();
@@ -42,28 +43,14 @@ export function buildScene() {
   for (const o of worldObjs) { scene.remove(o); disposeTree(o); }
   shipMeshes = new Map(); fortMeshes = new Map(); worldObjs = [];
 
-  // All islands bake into three meshes: toon land, ink outlines and the translucent shallows.
-  const isles = new THREE.Group();
-  for (const is of G.islands) isles.add(buildIsland(is, wx, wz));
-  const b = bakeStatic(isles);
-  const world = new THREE.Group();
-  if (b.solid) world.add(new THREE.Mesh(b.solid, R.vcToon));
-  if (b.ink) world.add(new THREE.Mesh(b.ink, R.inkMat));
-  if (b.glass) {
-    const shallows = new THREE.Mesh(b.glass, new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false }));
-    shallows.renderOrder = 1;
-    world.add(shallows);
-  }
-  const shared = new Set(sharedIslandGeos());
-  isles.traverse((c) => { if (c.isMesh && !shared.has(c.geometry)) c.geometry.dispose(); });
-  scene.add(world);
-  worldObjs.push(world);
-  // Shoals, reefs and coastlines (render/terrain.js), baked once per battle.
-  const terrain = buildTerrain(G);
-  if (terrain) { scene.add(terrain); worldObjs.push(terrain); }
+  // The land (render/land.js): islands, coasts, shoals, reefs and landmarks, baked once per battle into a few
+  // meshes, plus its living details.
+  const land = buildLand(G);
+  scene.add(land);
+  worldObjs.push(land);
 
   for (const f of G.forts) {
-    const m = buildFortMesh(f, wx, wz);
+    const m = buildFortMesh(f, wx, wz, fortLook(G));
     scene.add(m.g);
     fortMeshes.set(f.id, m);
   }
@@ -105,6 +92,10 @@ function setInst(mesh, i, x, y, z, sx, sy, sz, rx, ry, rz) {
   M4.compose(P3, Q, S3);
   mesh.setMatrixAt(i, M4);
 }
+
+// Smoke from battered forts, gathered while the forts are posed: x, y, z, wind x, wind z, phase per puff.
+const fortSmoke = [];
+let fortPuffs = 0;
 
 // Player ship positions, for what the lookouts can see in fog.
 const eyes = [];
@@ -222,9 +213,21 @@ export function syncScene() {
     m.flagPivot.visible = m.pole.visible = !ruin;
     if (m.team !== f.team) { m.team = f.team; m.flagMat.color.set(f.team === 'player' ? COL.blue : COL.red); }
     m.flagPivot.rotation.y = -G.wind.dir + Math.sin(clock * 9 + f.id) * 0.22;
+    // A fort that has taken a pounding smokes from its battlements, more as its walls crumble.
+    const hurt = f.state === 'active' ? 1 - f.hp / f.maxHp : 0;
+    if (hurt > 0.3) {
+      const n = hurt > 0.65 ? 4 : 2, wdx = Math.cos(G.wind.dir), wdz = Math.sin(G.wind.dir);
+      for (let k = 0; k < n && fortPuffs < 40; k++, fortPuffs++) fortSmoke.push(wx(f.x), fortTopZ - 6, wz(f.y), wdx, wdz, f.id * 0.37 + k / n);
+    }
   }
 
   let np = 0, ng = 0, nd = 0;
+  for (let i = 0; i < fortSmoke.length && np < 1000; i += 6) {
+    const t = (clock * 0.4 + fortSmoke[i + 5]) % 1, sz = (3 + t * 7) * (t > 0.85 ? (1 - t) / 0.15 : 1);
+    setInst(P.puff, np, fortSmoke[i] + fortSmoke[i + 3] * t * 40, fortSmoke[i + 1] + t * 34, fortSmoke[i + 2] + fortSmoke[i + 4] * t * 40, sz, sz, sz, t, i, 0);
+    P.puff.setColorAt(np++, C3.soot);
+  }
+  fortSmoke.length = 0; fortPuffs = 0;
   // Cannonballs fly a low arc from their muzzle height; mortar shells carry their own (high) height.
   let n = 0;
   for (const b of S.balls) {
@@ -256,7 +259,7 @@ export function syncScene() {
     const k = p.life / p.max, f = 1 - k;
     const X = wx(p.x), Z = wz(p.y);
     switch (p.kind) {
-      case 'smoke': case 'soot': case 'drop': {
+      case 'smoke': case 'soot': case 'drop': case 'dust': {
         // Cartoon puffs swell, then pop out of existence instead of fading.
         const pop = p.kind === 'drop' ? 1 : (k < 0.35 ? k / 0.35 : 1) * (0.55 + f * 0.9);
         const sc = p.size * pop;
@@ -398,6 +401,9 @@ export function syncScene() {
     P.chest.instanceMatrix.needsUpdate = P.chestInk.instanceMatrix.needsUpdate = P.chestShadow.instanceMatrix.needsUpdate = true;
   }
 
+  // The land's living details: chimney smoke, lamps, burning towns, birds, people, scorch marks.
+  const lo = syncLand(G, clock, dt, np, ng);
+  np = lo.np; ng = lo.ng;
   P.puff.count = np; P.glow.count = ng; P.debris.count = nd;
   P.rings.forEach((r, i) => { r.count = nr[i]; r.instanceMatrix.needsUpdate = true; });
   for (const pl of [P.puff, P.glow, P.debris]) {
@@ -462,4 +468,4 @@ export function renderScene() {
 export const fortTopZ = FORT_BASE_Y + 30 * FORT_SCALE;
 
 // For tests and screenshots: rebuild the scene after editing G by hand.
-R.debug = { buildScene, addShipMesh, get shipMeshes() { return shipMeshes; } };
+R.debug = { buildScene, addShipMesh, get shipMeshes() { return shipMeshes; }, land: landStats };

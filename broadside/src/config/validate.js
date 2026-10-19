@@ -12,8 +12,11 @@
 //     (src/sim/terrain.js): check(value, B) for the data, blocks(B, p, T, W, H) for ships that start on land,
 //     aground or on a reef.
 //
+//   - a battle's land (src/config/lands.js by id, or its own `land`) is checked by checkLand from
+//     src/sim/land.js: styles, relief, landmark kinds and params, and that each landmark fits on its land.
+//
 //   validateContent({ BATTLES, TYPES, HATS, REGIONS, GOALS, ABILITIES, WHEN, DO,
-//                     waveEnemies?, ENDLESS?, HAT_ORDER?, FLEET_SLOTS?, TERRAIN?, fleetLayout? })
+//                     waveEnemies?, ENDLESS?, HAT_ORDER?, FLEET_SLOTS?, TERRAIN?, fleetLayout?, LANDS?, landOf?, checkLand? })
 //   (the ? ones add checks when given)
 
 // The numbers makeShip() reads from a ship type.
@@ -298,7 +301,9 @@ export function validateContent(C) {
     }
     checkGoals(where, B);
     checkEvents(where, B);
+    if (C.checkLand) for (const m of C.checkLand(C.landOf ? C.landOf(B) : B.land, B, MAPS)) bad(where, m);
   });
+  if (C.LANDS) for (const id of Object.keys(C.LANDS)) if (!seen.has(id)) bad(`LANDS.${id}`, 'is not a battle id (src/config/lands.js is keyed by battle id)');
 
   // ---------- ship types ----------
   for (const [id, T] of Object.entries(TYPES)) {
