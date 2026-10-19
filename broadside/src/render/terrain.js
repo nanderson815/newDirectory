@@ -185,7 +185,8 @@ function buildCoast(G, co, r) {
   slab(-24, 5, 2.5, 5, '#7cc957', 0);
   slab(-66 - r(0, 10), 8, 3, 9, '#62b046', 1.2);
   // Dressing along the shore: palms behind the beach, bushes on the grass, rocks at the water's edge.
-  const bushGeo = new THREE.SphereGeometry(1, 7, 5);
+  // Low-poly on purpose: toon shading hides the facets, and a coast carries a few hundred of these.
+  const bushGeo = new THREE.SphereGeometry(1, 6, 4);
   for (let t = -0.06; t < 1.06; t += r(0.025, 0.05)) {
     const roll = r();
     if (roll < 0.55) {
@@ -222,7 +223,8 @@ function buildCoast(G, co, r) {
         const tree = new THREE.Mesh(bushGeo, toon(TREE[Math.floor(r(0, TREE.length))]));
         tree.scale.set(s, s * 0.72, s);
         tree.position.set(x + Math.cos(a) * d, 17 + r(0, 4), z + Math.sin(a) * d);
-        withOutline(tree, 0.06);
+        // Only the seaward row is inked: further in, the canopies overlap and their outlines would just be noise.
+        if (row === 0) withOutline(tree, 0.06);
         g.add(tree);
       }
     }

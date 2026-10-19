@@ -1,12 +1,11 @@
 import { S, afloat, showBanner } from '../../state.js';
-import { TAU } from '../../util.js';
 import { chartWidth } from '../battle.js';
 import { sfx } from '../../audio/sfx.js';
 
 // Bring a ship (any English ship, or the one named) into the ring marked on the chart at x, y (portrait
 // fractions) with radius r (a fraction of the chart's width), and keep one there for `secs` if given. Once
 // reached it stays met. Lose the named ship first and the battle is lost.
-const GOLD = '#ffe08a';
+const DASH = [9, 8];
 const by = (o, G) => G.ships.filter((s) => s.team === 'player' && afloat(s) && (!o.ship || s.name === o.ship));
 const inside = (o, G) => by(o, G).some((s) => Math.hypot(s.x - o.px, s.y - o.py) < o.pr);
 
@@ -40,22 +39,17 @@ export default {
     if (o.secs && !o.got) lines.push(o.held > 0 ? `Hold on: ${Math.max(0, Math.ceil(o.secs - o.held))}s` : `Hold it for ${o.secs}s`);
     return lines;
   },
-  // A pulsing gold ring with its caption, and a timer arc while a ship holds it.
+  // A fine gold ring with a faint wash and its caption, and a timer ring while a ship holds it.
   draw(o, G, api) {
     if (o.got) return;
-    const { ctx } = api, pulse = Math.sin(S.clock * 3);
+    const { ctx } = api;
     api.seaCircle(o.px, o.py, o.pr, 48);
-    ctx.fillStyle = `rgba(255,214,90,${0.1 + 0.05 * pulse})`; ctx.fill();
-    ctx.setLineDash([12, 9]); ctx.lineDashOffset = -S.clock * 18;
-    ctx.lineWidth = 3.5; ctx.strokeStyle = `rgba(255,214,90,${0.75 + 0.2 * pulse})`; ctx.stroke();
-    ctx.setLineDash([]); ctx.lineDashOffset = 0;
+    ctx.fillStyle = api.tint(api.MARK.chosen, 0.06 + 0.03 * Math.sin(S.clock * 2.5)); ctx.fill();
+    api.stroke(api.tint(api.MARK.chosen, 0.85), { width: api.LINE.thin, dash: DASH, offset: -S.clock * 14 });
     // The caption sits over the ring and the timer under it, clear of a ship inside.
     const top = api.proj(o.px, o.py - o.pr, 0), bot = api.proj(o.px, o.py + o.pr, 0);
-    api.outlinedText(o.label || 'Sail here', top.x, top.y - 13, 15, GOLD, 'center');
-    if (o.secs && o.held > 0) {
-      ctx.beginPath(); ctx.arc(bot.x, bot.y + 16, 10, 0, TAU); ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(20,40,60,0.6)'; ctx.stroke();
-      ctx.beginPath(); ctx.arc(bot.x, bot.y + 16, 10, -TAU / 4, -TAU / 4 + TAU * Math.min(1, o.held / o.secs)); ctx.strokeStyle = api.COL.gold; ctx.stroke();
-    }
+    api.label(o.label || 'Sail here', top.x, top.y - 12, api.MARK.chosen, { size: 11 });
+    if (o.secs && o.held > 0) api.progress(bot.x, bot.y + 16, Math.min(1, o.held / o.secs));
   },
   brief: (o) => `${o.ship ? `Bring ${o.ship}` : 'Bring a ship'} into the gold ring marked on the chart${o.secs ? ` and hold it there for ${o.secs} seconds` : ''}.`,
   won: (o) => (o.ship ? `${o.ship} reaches the mark.` : 'The fleet reaches the mark.'),

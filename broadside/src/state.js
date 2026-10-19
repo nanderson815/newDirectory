@@ -51,3 +51,11 @@ export function addDamage(u, dmg) {
   if (S.floaters.length > 40) S.floaters.shift();
   S.floaters.push({ id: u.id, x: u.x, y: u.y, value: dmg, born: S.clock, team: u.team });
 }
+// A word thrown up off a unit ("Raked!", "Mast down!"). It joins the damage number of the same hit if there is one
+// (shown as a small caption over it); otherwise it rises on its own. tone: 'gold' | 'hit' | 'hurt' | 'heal' | 'cold'.
+export function addFloater(u, text, tone = 'gold') {
+  const f = S.floaters.find((q) => q.id === u.id && S.clock - q.born < 0.35);
+  if (f) { f.text = text; f.tone = tone; return; }
+  if (S.floaters.length > 40) S.floaters.shift();
+  S.floaters.push({ id: u.id, x: u.x, y: u.y, value: null, text, tone, born: S.clock, team: u.team });
+}
