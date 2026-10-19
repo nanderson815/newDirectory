@@ -7,6 +7,8 @@ import { updateAbilities, abilityWind } from './abilities/index.js';
 import { checkExit, sailOff } from './exit.js';
 import { findBroadsideTarget, findChaseTarget, fireBroadside, fireChasers, dropMine, crewMul } from './combat.js';
 import { spawn } from './particles.js';
+import { updateHazards } from './hazards.js';
+import { corePt, coastNearest } from './terrain.js';
 import { sfx } from '../audio/sfx.js';
 
 export function updateShip(s, dt) {
@@ -46,15 +48,18 @@ export function updateShip(s, dt) {
     const dodge = avoidIslands(s, s.h, 140);
     if (dodge !== s.h) desired = dodge;
   }
+  // Masts down, a shot-away rudder, fire aboard, shoals and reefs (src/sim/hazards.js).
+  const hz = updateHazards(s, dt), hzSpeed = hz.speed, hzTurn = hz.turn;
+  if (!afloat(s)) return;
   if (desired != null) {
-    const tr = s.pivot != null ? s.turn * 0.8 : s.turn * (0.55 + 0.45 * Math.min(1, s.v / s.speed));
+    const tr = hzTurn * (s.pivot != null ? s.turn * 0.8 : s.turn * (0.55 + 0.45 * Math.min(1, s.v / s.speed)));
     s.h += clamp(angDiff(s.h, desired), -tr * dt, tr * dt);
   }
   const hpF = 0.55 + 0.45 * s.hp / s.maxHp;
   // Lashed together for boarding, anchored or a hulk: dead in the water. Torn rigging (chain shot) crawls.
   const stopped = s.pivot != null || s.passive || !!s.boarding;
   s.slowT = Math.max(0, s.slowT - dt);
-  const targetV = stopped ? 0 : s.speed * abilityWind(s, windFactor(s.h, s)) * hpF * (s.slowT > 0 ? 0.45 : 1);
+  const targetV = stopped ? 0 : s.speed * abilityWind(s, windFactor(s.h, s)) * hpF * (s.slowT > 0 ? 0.45 : 1) * hzSpeed;
   s.v += (targetV - s.v) * Math.min(1, dt * (stopped ? 1.6 : 0.8));
   s.x += Math.cos(s.h) * s.v * dt;
   s.y += Math.sin(s.h) * s.v * dt;
@@ -94,7 +99,7 @@ export function updateShip(s, dt) {
       const bx = s.x - Math.cos(s.h) * s.L * 0.45, by = s.y - Math.sin(s.h) * s.L * 0.45;
       spawn('wake', bx, by, 0, 0, 1.6, s.B * 0.32);
     }
-    if (s.hp / s.maxHp < 0.36 || s.burning) {
+    if (s.hp / s.maxHp < 0.36 || s.burning || s.fireT > 0) {
       const a = rand(-0.3, 0.3) * s.L;
       const fx = s.x + Math.cos(s.h) * a, fy = s.y + Math.sin(s.h) * a;
       spawn('fire', fx, fy, rand(-4, 4), rand(-4, 4), rand(0.3, 0.6), rand(3, 5), 10, 14);
@@ -120,20 +125,31 @@ export function collide(dt) {
         a.v *= 0.97; b.v *= 0.97;
       }
     }
+    // Islands (long ones push out from the nearest point of their ridge) and coasts.
     for (const is of G.islands) {
-      const dx = a.x - is.x, dy = a.y - is.y, d = Math.hypot(dx, dy) || 0.01;
+      const c = corePt(is, a.x, a.y), cx = c.x, cy = c.y;
+      const dx = a.x - cx, dy = a.y - cy, d = Math.hypot(dx, dy) || 0.01;
       const min = shoreClear(is, a);
-      if (d < min) {
-        a.x = is.x + (dx / d) * min; a.y = is.y + (dy / d) * min;
-        // Slide along the shore: swing the bow onto the nearer tangent instead of grinding to a halt.
-        const n = Math.atan2(dy, dx);
-        if (Math.cos(a.h - n) < 0.2 && a.pivot == null) {
-          const t1 = n + PI / 2, t2 = n - PI / 2;
-          const t = Math.abs(angDiff(a.h, t1)) < Math.abs(angDiff(a.h, t2)) ? t1 : t2;
-          a.h += clamp(angDiff(a.h, t), -3 * dt, 3 * dt);
-        }
-        a.v *= Math.pow(0.6, dt);
-      }
+      if (d < min) beach(a, cx + (dx / d) * min, cy + (dy / d) * min, Math.atan2(dy, dx), dt);
+    }
+    for (const co of G.coasts || []) {
+      const n = coastNearest(co, a.x, a.y), min = a.L * 0.42 + 4;
+      if (n.d >= min) continue;
+      // Outward is away from the land, whichever side of the shoreline she has been shoved to.
+      const sg = n.d < 0 ? -1 : 1, dx = (a.x - n.x) * sg, dy = (a.y - n.y) * sg, d = Math.hypot(dx, dy) || 0.01;
+      beach(a, n.x + (dx / d) * min, n.y + (dy / d) * min, Math.atan2(dy, dx), dt);
     }
   }
+}
+
+// Pushes a ship that ran onto land back out to (x, y), where `n` is the outward direction, and slides her
+// along the shore: the bow swings onto the nearer tangent instead of grinding to a halt.
+function beach(a, x, y, n, dt) {
+  a.x = x; a.y = y;
+  if (Math.cos(a.h - n) < 0.2 && a.pivot == null) {
+    const t1 = n + PI / 2, t2 = n - PI / 2;
+    const t = Math.abs(angDiff(a.h, t1)) < Math.abs(angDiff(a.h, t2)) ? t1 : t2;
+    a.h += clamp(angDiff(a.h, t), -3 * dt, 3 * dt);
+  }
+  a.v *= Math.pow(0.6, dt);
 }

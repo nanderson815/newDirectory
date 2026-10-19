@@ -1,4 +1,4 @@
-// Steering stress test: every player class sails straight at every island from 8 directions, with a single
+// Steering stress test: every player class sails straight at every island from 8 directions (past coasts too), with a single
 // waypoint and with a dense drawn line, and must get past within 40 s. Unreachable targets are skipped.
 import { launch, open, check } from './lib.mjs';
 
@@ -8,7 +8,7 @@ const page = await open(browser);
 const res = await page.evaluate(() => {
   const B = window.__broadside;
   const out = { tried: 0, skipped: 0, stuck: [], slowest: 0 };
-  const battles = ['tortuga', 'sanlucas', 'santamarta'];
+  const battles = ['tortuga', 'sanlucas', 'santamarta', 'cove'];
   for (const id of battles) for (const type of ['sloop', 'frigate', 'manowar']) for (const dense of [false, true]) {
     B.startBattle(id);
     const n = B.G.islands.length;
@@ -26,7 +26,8 @@ const res = await page.evaluate(() => {
       s.x = Math.min(G.W - 25, Math.max(25, is.x + Math.cos(a) * R)); s.y = Math.min(G.H - 25, Math.max(25, is.y + Math.sin(a) * R));
       s.h = Math.atan2(is.y - s.y, is.x - s.x); s.v = s.speed * 0.6;
       const tx = Math.min(G.W - 35, Math.max(35, is.x - Math.cos(a) * R)), ty = Math.min(G.H - 35, Math.max(35, is.y - Math.sin(a) * R));
-      const blocked = (x, y) => G.islands.some((j) => Math.hypot(x - j.x, y - j.y) < j.r * 1.05 + s.L * 0.42 + 4);
+      // Land (long islands by their ridge, coasts too), reefs and shoals she'd ground on.
+      const blocked = (x, y) => B.blockedAt(s, x, y) || G.islands.some((j) => B.terrain.coreDist(j, x, y) < j.r * 1.05 + s.L * 0.42 + 4);
       if (blocked(tx, ty) || blocked(s.x, s.y)) { out.skipped++; continue; }
       if (dense) { const m = Math.ceil(Math.hypot(tx - s.x, ty - s.y) / 12); s.path = Array.from({ length: m }, (_, i) => ({ x: s.x + (tx - s.x) * (i + 1) / m, y: s.y + (ty - s.y) * (i + 1) / m })); }
       else s.path = [{ x: tx, y: ty }];

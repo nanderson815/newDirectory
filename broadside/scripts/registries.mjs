@@ -6,7 +6,7 @@
 // registries (goals, abilities, events) and the config tables import cleanly. Nothing here runs a battle.
 //
 //   import { loadContent } from './registries.mjs';
-//   const C = await loadContent();   // { BATTLES, REGIONS, TYPES, HATS, HAT_ORDER, GOALS, ABILITIES, WHEN, DO, ... }
+//   const C = await loadContent();   // { BATTLES, REGIONS, TYPES, HATS, HAT_ORDER, GOALS, ABILITIES, WHEN, DO, TERRAIN, ... }
 import { register } from 'node:module';
 
 const HOOKS = `
@@ -38,14 +38,17 @@ register('data:text/javascript,' + encodeURIComponent(HOOKS));
 const src = (p) => new URL('../src/' + p, import.meta.url).href;
 
 export async function loadContent() {
-  const [battles, ships, hats, endless, goals, abilities, events] = await Promise.all([
+  const [battles, ships, hats, endless, goals, abilities, events, terrain, hazards] = await Promise.all([
     import(src('config/battles.js')), import(src('config/ships.js')), import(src('config/hats.js')), import(src('config/endless.js')),
     import(src('sim/goals/index.js')), import(src('sim/abilities/index.js')), import(src('sim/events.js')),
+    import(src('sim/terrain.js')), import(src('sim/hazards.js')),
   ]);
   return {
     BATTLES: battles.BATTLES, REGIONS: battles.REGIONS, FLEET_SLOTS: battles.FLEET_SLOTS,
     TYPES: ships.TYPES, HATS: hats.HATS, HAT_ORDER: hats.HAT_ORDER,
     ENDLESS: endless.ENDLESS, waveEnemies: endless.waveEnemies,
     GOALS: goals.GOALS, ABILITIES: abilities.ABILITIES, WHEN: events.WHEN, DO: events.DO,
+    TERRAIN: terrain.TERRAIN, fleetLayout: terrain.fleetLayout, SHOAL: terrain.SHOAL, REEF: terrain.REEF,
+    RAKE: hazards.RAKE, CRIT: hazards.CRIT,
   };
 }

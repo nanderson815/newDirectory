@@ -1,8 +1,9 @@
 import { TYPES, FORT } from '../config/ships.js';
 import { FLEET_SLOTS } from '../config/battles.js';
 import { battleDef, ENDLESS_ID, randomIslands, waveEnemies, waveAI } from '../config/endless.js';
-import { PI, TAU, rand } from '../util.js';
+import { PI, TAU, rand, lerp } from '../util.js';
 import { initAbilities } from './abilities/index.js';
+import { makeCapsule, makeCoast, capsuleRadius, coastList, fleetLayout } from './terrain.js';
 import { setupGoals } from './goals/index.js';
 
 // Builds one ship's battle state from a battle definition plus (for the player) its shipyard upgrades.
@@ -28,6 +29,10 @@ export function makeShip(def, team, place, rot, id, ai) {
     hp, maxHp: hp, reload: [rand(0.6, 1.6), rand(0.6, 1.6)],
     path: [], pivot: null, state: 'afloat', sinkT: 0, flash: 0, yard: 0, bob: rand(0, TAU),
     aiT: 0, targetId: null, ideal: rand(0.5, 0.72), fxT: 0,
+    // Some enemy captains work round to rake (src/sim/steering.js); bosses more often.
+    crafty: Math.random() < (def.boss ? 0.5 : 0.3),
+    // Critical hits (src/sim/hazards.js): masts shot away, seconds the rudder is out, seconds a fire burns.
+    mastsDown: 0, rudderT: 0, fireT: 0,
     rig: T.rig || 'square', escort: !!def.escort, ally: !!def.ally, exits: !!(def.escort || def.exits), flag: false,
     faction: def.faction || null, hidden: false,
   };
@@ -59,25 +64,38 @@ export function createBattle(idx, size, fleet) {
   const rot = land ? PI / 2 : 0;
   let id = 1;
   const ships = [];
+  // fleetAt puts the campaign fleet somewhere other than the bottom of the chart (an ambush, an enemy astern).
+  const lay = fleetLayout(B, FLEET_SLOTS);
   const playerDefs = B.player || fleet.map((f, i) => ({
-    type: f.cls, name: f.name, x: FLEET_SLOTS[i][0], y: FLEET_SLOTS[i][1], h: -90, up: f.up,
+    type: f.cls, name: f.name, x: lay.slots[i][0], y: lay.slots[i][1], h: lay.h, up: f.up,
   }));
   for (const d of playerDefs) ships.push(makeShip(d, 'player', place, rot, id++, B.ai));
   for (const d of B.enemy) ships.push(makeShip({ ...d, faction: B.faction }, 'enemy', place, rot, id++, B.ai));
 
   const fortIslands = new Set((B.forts || []).map((f) => f.island));
   const islands = B.islands.map((d, ii) => {
-    const [x, y] = place(d.x, d.y);
+    const is = makeCapsule(d, place, rot);
     const fort = fortIslands.has(ii);
-    const verts = Array.from({ length: 14 }, () => rand(0.86, 1.08));
-    // A fort takes the middle of its island, so its palms keep to the edges.
-    const palms = Array.from({ length: fort ? 2 : d.r > 40 ? 3 : d.r > 30 ? 2 : 1 }, () => {
+    // The outline: radius multipliers round the centre (render/shapes.js islandShape). A long island bakes its
+    // capsule into them, with more points so the ends stay round.
+    const n = is.hl ? Math.round(14 + 10 * (is.hl / is.r)) : 14;
+    const verts = Array.from({ length: n }, (_, i) => rand(0.86, 1.08) * capsuleRadius(is, (i / n) * TAU) / is.r);
+    // A fort takes the middle of its island, so its palms keep to the edges. A long island spreads them along it.
+    const nPalm = fort ? 2 : Math.round((d.r > 40 ? 3 : d.r > 30 ? 2 : 1) * (1 + is.hl / is.r * 0.6));
+    const palms = Array.from({ length: nPalm }, (_, k) => {
       const a = rand(0, TAU), rr = fort ? rand(d.r * 0.62, d.r * 0.72) : rand(0, d.r * 0.4);
-      return { x: Math.cos(a) * rr, y: Math.sin(a) * rr, s: rand(0.85, 1.15), rot: rand(0, TAU), lean: rand(0.08, 0.25) };
+      // Along the ridge in map space; buildIsland's palm frame is (x, z) = map (x, y).
+      const along = is.hl ? lerp(-is.hl, is.hl, nPalm > 1 ? k / (nPalm - 1) : 0.5) * 0.85 : 0;
+      return { x: Math.cos(a) * rr + Math.cos(is.ang) * along, y: Math.sin(a) * rr + Math.sin(is.ang) * along, s: rand(0.85, 1.15), rot: rand(0, TAU), lean: rand(0.08, 0.25) };
     });
-    const rocks = Array.from({ length: 3 }, () => ({ a: rand(0, TAU), d: d.r * rand(1.02, 1.2), s: rand(3, 6) }));
-    return { x, y, r: d.r, verts, palms, rocks, fort };
+    // Rocks sit just off the beach; buildIsland places them at map angle -a.
+    const rocks = Array.from({ length: is.hl ? 5 : 3 }, () => { const a = rand(0, TAU); return { a, d: capsuleRadius(is, -a) * rand(1.02, 1.2), s: rand(3, 6) }; });
+    return { ...is, verts, palms, rocks, fort };
   });
+  // Shallows, reef rocks and coastlines (src/sim/terrain.js); the renderer builds them in render/terrain.js.
+  const shoals = (B.shoals || []).map((d) => makeCapsule(d, place, rot));
+  const reefs = (B.reefs || []).map((d) => makeCapsule(d, place, rot));
+  const coasts = coastList(B.coast).map((d) => makeCoast(d, place));
 
   const forts = (B.forts || []).map((f) => {
     const is = islands[f.island];
@@ -92,7 +110,7 @@ export function createBattle(idx, size, fleet) {
   if (B.buoy) { const [bx, by] = place(B.buoy.x, B.buoy.y); buoy = { x: bx, y: by }; }
 
   const G = {
-    battle: idx, W, H, land: !!land, ships, islands, forts, mines: [], buoy, chests: [],
+    battle: idx, W, H, land: !!land, ships, islands, shoals, reefs, coasts, forts, mines: [], buoy, chests: [],
     fog: B.fog || 0, faction: B.faction || null,
     events: (B.events || []).map((e) => ({ ...e, fired: false })),
     wind: { base: B.wind * PI / 180 + rot, dir: B.wind * PI / 180 + rot },

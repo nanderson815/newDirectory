@@ -8,8 +8,13 @@
 //   - an ability param named `type` whose description says "ship type" must name a TYPES entry;
 //   - a goal module may add its own checks as validate(o, B) returning a list of problem strings.
 //
+//   - geography fields (islands, shoals, reefs, coast, fleetAt) are checked by the TERRAIN registry
+//     (src/sim/terrain.js): check(value, B) for the data, blocks(B, p, T, W, H) for ships that start on land,
+//     aground or on a reef.
+//
 //   validateContent({ BATTLES, TYPES, HATS, REGIONS, GOALS, ABILITIES, WHEN, DO,
-//                     waveEnemies?, ENDLESS?, HAT_ORDER?, FLEET_SLOTS? })   (the ? ones add checks when given)
+//                     waveEnemies?, ENDLESS?, HAT_ORDER?, FLEET_SLOTS?, TERRAIN?, fleetLayout? })
+//   (the ? ones add checks when given)
 
 // The numbers makeShip() reads from a ship type.
 const TYPE_STATS = ['L', 'B', 'hp', 'guns', 'reload', 'speed', 'turn', 'range', 'masts', 'marines'];
@@ -91,10 +96,22 @@ export function validateContent(C) {
       }
     }
     checkAbilities(at, d.abilities);
-    if (opts.B) onIsland(at, opts.B, d);
+    if (opts.B) onIsland(at, opts.B, { ...d, ship: true });
   }
+  // Ships (and points like chests) mustn't start on land; a ship mustn't start aground or on a reef. p.type
+  // (when known) lets the shoal check spare small ships.
   function onIsland(at, B, p) {
-    if (!isFrac(p.x) || !isFrac(p.y) || !Array.isArray(B.islands)) return;
+    if (!isFrac(p.x) || !isFrac(p.y)) return;
+    if (C.TERRAIN) {
+      const T = p.type ? TYPES[p.type] || null : null;
+      for (const [key, R] of Object.entries(C.TERRAIN)) {
+        if (!R.blocks || ((key === 'shoals' || key === 'reefs') && !p.ship)) continue;
+        const why = MAPS.map(([W, H]) => R.blocks(B, p, T, W, H)).find(Boolean);
+        if (why) bad(at, why);
+      }
+      return;
+    }
+    if (!Array.isArray(B.islands)) return;
     B.islands.forEach((is, i) => {
       if (!is || !isNum(is.r) || !isFrac(is.x) || !isFrac(is.y)) return;
       if (MAPS.some(([W, H]) => Math.hypot((p.x - is.x) * W, (p.y - is.y) * H) < is.r + ISLAND_MARGIN)) bad(at, `is on (or touching) island ${i}`);
@@ -233,13 +250,22 @@ export function validateContent(C) {
     if (B.hat !== undefined && !HATS[B.hat]) bad(where, `hat ${q(B.hat)} is not in HATS (known: ${list(HATS)})`);
     if (B.fog !== undefined && !(isNum(B.fog) && B.fog >= 0)) bad(where, `fog must be a sight distance, got ${q(B.fog)}`);
 
-    if (!Array.isArray(B.islands)) bad(where, 'needs islands (a list, possibly empty)');
+    if (C.TERRAIN) {
+      for (const [key, R] of Object.entries(C.TERRAIN)) {
+        if (B[key] === undefined && key !== 'islands') continue;
+        for (const m of R.check(B[key], B)) bad(where, m);
+      }
+    } else if (!Array.isArray(B.islands)) bad(where, 'needs islands (a list, possibly empty)');
     else B.islands.forEach((is, i) => {
       if (!isObj(is) || !isFrac(is.x) || !isFrac(is.y)) bad(where, `islands[${i}] must have x, y map fractions in [0, 1]`);
       else if (!(isNum(is.r) && is.r > 0)) bad(where, `islands[${i}] needs a radius r > 0`);
     });
-    // Without its own player ships a battle uses the campaign fleet, which starts at FLEET_SLOTS.
-    if (B.player === undefined && Array.isArray(C.FLEET_SLOTS)) C.FLEET_SLOTS.forEach(([x, y], i) => onIsland(`${where} fleet slot ${i}`, B, { x, y }));
+    // Without its own player ships a battle uses the campaign fleet, which starts at FLEET_SLOTS (or where
+    // fleetAt puts it). Any ship may be in it, so the slots must be clear even for a man-o'-war.
+    if (B.player === undefined && Array.isArray(C.FLEET_SLOTS)) {
+      const slots = C.fleetLayout && (B.fleetAt === undefined || (C.TERRAIN && !C.TERRAIN.fleetAt.check(B.fleetAt).length)) ? C.fleetLayout(B, C.FLEET_SLOTS).slots : C.FLEET_SLOTS;
+      slots.forEach(([x, y], i) => onIsland(`${where} fleet slot ${i}`, B, { x, y, ship: true }));
+    }
     if (B.player !== undefined) {
       if (!Array.isArray(B.player) || !B.player.length) bad(where, 'player must be a non-empty list of ship defs (or left out to use the campaign fleet)');
       else B.player.forEach((d, i) => checkShip(`${where} player[${i}]`, d, { B }));

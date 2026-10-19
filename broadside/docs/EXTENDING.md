@@ -52,6 +52,25 @@ With no `goal`/`goals` the goal is `sink`. Optional fields:
 Ship defs take `type`, `name`, `x`, `y` and `h`, plus optional `hp` (fixed hull; otherwise the type's hull ×
 `ai.hpMul`), `chasers`, `reloadMul`, `passive`, `boss` and `abilities`.
 
+## Shape the sea (geography and openings)
+
+Round islands on open water get old fast. A battle can also lay out (all optional, see
+[PRIMITIVES.md](PRIMITIVES.md#geography-and-openings) for every field):
+
+```js
+coast: { side: 'top', depth: 0.34, coves: [{ at: 0.5, width: 0.6, depth: 0.27 }] },   // a shore with a cove in it
+islands: [{ x: 0.8, y: 0.44, r: 30, stretch: 2.3, angle: 95 }],   // a long island lying down the chart
+shoals: [{ x: 0.5, y: 0.37, r: 34, stretch: 1.6 }],   // pale shallows: brigs and bigger run aground, sloops sail over
+reefs: [{ x: 0.27, y: 0.4, r: 12, stretch: 4, angle: 25 }],   // a reef line that holes any hull crossing it
+fleetAt: 'center',   // your fleet starts mid-chart (also 'top', 'left', 'right', or { slots, h })
+```
+
+`coast` may be a list (two shores make a strait). Coast depth is a fraction of the chart across that edge;
+coves cut into the land and capes push out to sea. Ships, chests and the buoy may not start on land, and ships
+may not start on a reef or (if they're big enough to ground) on a shoal: `npm run check` names the culprit.
+Every captain, your drawn courses and the test bot steer round all of it. Enemy positions can go anywhere, so
+pair `fleetAt` with enemies astern or on the flank for an ambush.
+
 ## Give a boss a new ability
 
 A boss is an enemy ship with `boss: { captain, title, hat }`. The battle takes `goal: 'boss'` and a `hat`
