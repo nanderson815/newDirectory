@@ -423,6 +423,13 @@ function keepUnder(x, y, sx, sy) {
   place(cam.tx, cam.ty, cam.d);
 }
 
+// Slides the view by (dx, dy) map units (a course being drawn off the edge of the screen).
+export function nudge(dx, dy) {
+  cam.tx += dx; cam.ty += dy;
+  clampPose();
+  place(cam.tx, cam.ty, cam.d);
+}
+
 // ---------- Screen projection for the HUD and input ----------
 const tmpV = new THREE.Vector3();
 export const scratchA = { x: 0, y: 0 }, scratchB = { x: 0, y: 0 };

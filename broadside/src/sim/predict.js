@@ -1,7 +1,10 @@
+import { S } from '../state.js';
 import { desiredHeading, helm, shorePush } from './ships.js';
+import { updateWind } from './wind.js';
 
 // Course preview: sails a stand-in for a ship along a course with the real helm (turning circle, wind,
-// waypoint skipping and island avoidance), so the HUD can draw the track she will actually take.
+// waypoint skipping, island avoidance and the wind as it will wander), so the HUD can draw the track she
+// will actually take.
 // Run once each time a course changes, not every frame.
 export const PREDICT = { step: 1 / 60, horizon: 11, every: 6 }; // the sim's own tick, so the track matches it
 export const PREDICT_POINTS = Math.ceil(PREDICT.horizon / PREDICT.step / PREDICT.every) + 2;
@@ -26,8 +29,11 @@ export function predictCourse(s, path, out) {
   xy[0] = g.x; xy[1] = g.y; n = 1;
   const steps = Math.round(PREDICT.horizon / PREDICT.step);
   out.done = false;
+  // The wind wanders with battle time: step it along with the stand-in, then put it back.
+  const G = S.G, t0 = G.t, w0 = G.wind.dir;
   for (; k < steps; k++) {
     const dt = PREDICT.step;
+    G.t = t0 + (k + 1) * dt; updateWind();
     const want = desiredHeading(g, dt);
     g.slowT = Math.max(0, g.slowT - dt);
     helm(g, want, dt);
@@ -36,6 +42,7 @@ export function predictCourse(s, path, out) {
     if (!g.path.length) { out.done = true; break; }
     if ((k + 1) % PREDICT.every === 0 && n < max) { xy[n * 2] = g.x; xy[n * 2 + 1] = g.y; n++; }
   }
+  G.t = t0; G.wind.dir = w0;
   if (n < max) { xy[n * 2] = g.x; xy[n * 2 + 1] = g.y; n++; }
   out.n = n; out.t = t; out.left = g.path.length;
   g.abilities = NONE; g.path.length = 0;

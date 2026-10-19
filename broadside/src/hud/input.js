@@ -1,6 +1,6 @@
 import { S, afloat, fortById, shipById } from '../state.js';
 import { clamp } from '../util.js';
-import { projTo, toWorld, pxPerUnit, cam, beginPinch, movePinch, endPinch, wheelZoom, toDirector, skipIntro, gesture } from '../render/camera.js';
+import { projTo, toWorld, pxPerUnit, cam, beginPinch, movePinch, endPinch, wheelZoom, toDirector, skipIntro, gesture, nudge } from '../render/camera.js';
 import { R } from '../render/gl.js';
 import { fireBroadside, findBroadsideTarget, dropMine } from '../sim/combat.js';
 import { startLanding } from '../sim/forts.js';
@@ -77,6 +77,27 @@ function hudPress(p, onPause) {
   return false;
 }
 
+const extend = (drag, w) => {
+  const last = drag.pts.length ? drag.pts[drag.pts.length - 1] : drag.from;
+  if (Math.hypot(w.x - last.x, w.y - last.y) > 12) drag.pts.push(clampWorld(w));
+};
+
+// Drawing a course past the edge of the screen: holding the finger near an edge slides the view that way
+// (faster the closer it is), and the course keeps growing under the finger. Called once a frame.
+const EDGE = 44;
+export function dragTick(dt) {
+  const drag = S.drag;
+  if (!drag || drag.mode !== 'course' || !drag.moved || drag.px == null || !S.G || S.G.phase !== 'play') return;
+  const { cw, ch } = S.view;
+  const ex = drag.px < EDGE ? -(1 - drag.px / EDGE) : drag.px > cw - EDGE ? 1 - (cw - drag.px) / EDGE : 0;
+  const ey = drag.py < EDGE ? 1 - drag.py / EDGE : drag.py > ch - EDGE ? -(1 - (ch - drag.py) / EDGE) : 0;
+  if (!ex && !ey) return;
+  const v = 420 * (cam.d / cam.dComfort) * Math.min(dt, 0.1); // map units this frame
+  nudge((ex * cam.ux + ey * cam.fx) * v, (ex * cam.uy + ey * cam.fy) * v);
+  const w = toWorld(drag.px, drag.py);
+  if (w) extend(drag, w);
+}
+
 export function bindInput(onPause) {
   const cv = hudCanvas;
   const ptrs = new Map(); // live pointers: id -> { x, y }
@@ -135,8 +156,8 @@ export function bindInput(onPause) {
       if (Math.hypot(w.x - s.x, w.y - s.y) > 8) { turnTo(s, Math.atan2(w.y - s.y, w.x - s.x)); drag.turned = true; }
       return;
     }
-    const last = drag.pts.length ? drag.pts[drag.pts.length - 1] : drag.from;
-    if (Math.hypot(w.x - last.x, w.y - last.y) > 12) drag.pts.push(clampWorld(w));
+    drag.px = q.x; drag.py = q.y;
+    extend(drag, w);
   });
 
   // A tap on open sea: sail (or, at anchor, turn) toward it.

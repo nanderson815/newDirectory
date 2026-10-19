@@ -9,8 +9,8 @@ import { renderScene } from './render/scene.js';
 import { WX } from './render/weather.js';
 import { proj, toWorld, cam, updateCamera, settleCamera } from './render/camera.js';
 import { previewFor } from './hud/preview.js';
+import { bindInput, dragTick } from './hud/input.js';
 import { drawHUD } from './hud/hud.js';
-import { bindInput } from './hud/input.js';
 import { update } from './sim/update.js';
 import { loadBattle, adoptBattle, resize, perf, watchPerf } from './game.js';
 import { dropMine } from './sim/combat.js';
@@ -25,6 +25,7 @@ import { audioTick } from './audio/director.js';
 import { ui, initUI, openMenu, openBrief, startPlay, pauseGame, restoreScreen, syncSettings } from './ui/screens.js';
 
 function render(dt) {
+  dragTick(dt);
   updateCamera(Math.min(0.1, dt));
   renderScene();
   drawHUD();

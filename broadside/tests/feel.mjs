@@ -146,6 +146,24 @@ check(c2.sel === other.id && c2.path >= 3, 'a drag that starts on another of you
 // Tap one of your ships: select her.
 await gesture([await mapStroke([{ x: flag.x, y: flag.y, z: 8 }])]);
 check(await B(() => window.__broadside.S.selected.id) === flag.id, 'tapping one of your ships selects her', failures);
+// Hold a course-drawing finger at the top edge: the view slides up the chart and the course keeps growing.
+const edge = await B(() => {
+  const b = window.__broadside, { cw, ch } = b.S.view, cv = document.getElementById('hud'), r = cv.getBoundingClientRect();
+  const top = b.toWorld(cw / 2, 0);
+  const ev = (type, y) => cv.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 41, pointerType: 'touch', isPrimary: true, clientX: r.left + cw * 0.55, clientY: r.top + y }));
+  ev('pointerdown', ch * 0.45);
+  for (let y = ch * 0.45; y > 8; y -= 40) ev('pointermove', y);
+  ev('pointermove', 6);
+  return { topY: top.y, cy: b.cam.ty };
+});
+await page.waitForTimeout(2500); // the live game loop runs meanwhile
+const edge2 = await B(() => {
+  const b = window.__broadside, cv = document.getElementById('hud'), r = cv.getBoundingClientRect();
+  cv.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 41, pointerType: 'touch', isPrimary: true, clientX: r.left + b.S.view.cw * 0.55, clientY: r.top + 6 }));
+  const p = b.S.selected.path;
+  return { endY: p.length ? p[p.length - 1].y : null, n: p.length };
+});
+check(edge2.endY != null && edge2.endY < edge.topY - 60, `holding the finger at the screen edge pans the view and extends the course (${Math.round(edge.topY - (edge2.endY || 0))} units past the old edge)`, failures);
 
 // ---------- The preview is the real track ----------
 console.log('Course preview');
@@ -182,7 +200,11 @@ for (const kind of ['turn', 'island']) {
     // Sail it for real, sampling where she is every 0.1 s (the preview's spacing).
     const out = [];
     for (let k = 0; k < Math.round(p.t * 60); k++) { b.sim(1); if (k % 6 === 5) out.push(s.x, s.y); }
-    return { pv: p, bend, out, path: s.path.length, x: s.x, y: s.y };
+    const x = s.x, y = s.y;
+    // She should finish the course right about now (allow a few ticks either way).
+    let extra = 0;
+    while (s.path.length && extra < 15) { b.sim(1); extra++; }
+    return { pv: p, bend, out, path: s.path.length, x, y, extra };
   });
   const pv = res.pv;
   check(pv.pts.length > 20 && pv.done, `${kind}: the preview sails the whole course (${(pv.pts.length / 2) | 0} points, ${pv.t.toFixed(1)} s)`, failures);

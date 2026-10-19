@@ -60,8 +60,8 @@ function drawArcs(s) {
       ctx.beginPath();
       const n = Math.max(2, Math.round(20 * prog));
       for (let i = 0; i <= n; i++) { const a = dir - SPREAD + (2 * SPREAD * prog * i) / n; seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, i === 0); }
-      ctx.lineCap = 'round'; ctx.lineWidth = prog >= 1 ? 2.4 : 1.6;
-      ctx.strokeStyle = prog >= 1 ? 'rgba(242,182,50,0.9)' : 'rgba(255,255,255,0.4)'; ctx.stroke();
+      ctx.lineCap = 'round'; ctx.lineWidth = prog >= 1 ? 2 : 1.4;
+      ctx.strokeStyle = prog >= 1 ? 'rgba(242,182,50,0.75)' : 'rgba(255,255,255,0.4)'; ctx.stroke();
     }
   }
 }
@@ -512,7 +512,7 @@ export function drawHUD() {
   if (playing && !G.tut && !G.dragged && G.t < 14) {
     ctx.globalAlpha = clamp(Math.min(G.t * 2, 14 - G.t), 0, 1);
     const hy = (hud.actions.length ? hud.actions[0].y : ch) - 22;
-    outlinedText('Drag on the sea to set a course · tap an enemy to engage', cw / 2, hy, Math.min(15, cw / 26), COL.white, 'center');
+    outlinedText('Drag on the sea to set a course · tap an enemy to engage', cw / 2, hy, Math.min(14, cw / 28), COL.white, 'center');
     ctx.globalAlpha = 1;
   }
 }
