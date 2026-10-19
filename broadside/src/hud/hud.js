@@ -5,11 +5,11 @@ import { projTo, proj, pxPerUnit, scratchA, scratchB, cam } from '../render/came
 import { previewFor } from './preview.js';
 import { commandable, haptic, tapFx } from './orders.js';
 import {
-  HUD as K, panel, hairline, text, caption, measure, wrapText, button, iconButton, badge, bar, ring, banner, toast, tipCard,
-  floater, windRose, edgeChevron, seaStroke, hpColor, life,
+  HUD as K, text, caption, measure, wrapText, button, iconButton, badge, bar, ring, banner, toast, tipCard,
+  floater, windRose, edgeChevron, seaStroke, hpColor, life, tint, MARK,
 } from './style.js';
 import { drawIcon } from '../ui/icons.js';
-import { COLOR as C, PALETTE as P, EASE } from '../ui/tokens.js';
+import { COLOR as C, PALETTE as P, EASE, CANVAS_SHADOW, LINE } from '../ui/tokens.js';
 import { shipMeshes, fortTopZ } from '../render/scene.js';
 import { sideDir } from '../sim/combat.js';
 import { goalLines, eachGoal } from '../sim/goals/index.js';
@@ -62,8 +62,7 @@ function seaCircle(cx, cy, rr, n) {
   ctx.beginPath();
   for (let i = 0; i <= n; i++) { const a = (i / n) * TAU; seaTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, i === 0); }
 }
-const CREAM = 'rgba(251,244,227,', cream = new Map();
-const creamA = (a) => { const k = Math.round(a * 100); let s = cream.get(k); if (!s) { s = `${CREAM}${k / 100})`; cream.set(k, s); } return s; };
+const line = (a) => tint(MARK.line, a);
 // A ring on the sea, as a thin line with a soft underlay. dashed: marching dashes.
 function seaRing(x, y, r, color, { width = 1.5, dashed = false, n = 40 } = {}) {
   seaCircle(x, y, r, n);
@@ -80,19 +79,19 @@ function drawArcs(s) {
     const prog = clamp(1 - s.reload[side] / s.reloadTime, 0, 1);
     ctx.beginPath();
     for (let i = 0; i <= N; i++) { const a = dir - SPREAD + (2 * SPREAD * i) / N; seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, i === 0); }
-    seaStroke(ctx, { color: creamA(0.34), width: 1, dash: DASH_RIM, under: 0.14 });
+    seaStroke(ctx, { color: line(0.34), width: 1, dash: DASH_RIM, under: 0.14 });
     ctx.beginPath();
     for (let e = -1; e <= 1; e += 2) {
       const a = dir + e * SPREAD;
       seaTo(s.x + Math.cos(a) * rad * 0.9, s.y + Math.sin(a) * rad * 0.9, true);
       seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, false);
     }
-    seaStroke(ctx, { color: creamA(0.45), width: 1, under: 0.14 });
+    seaStroke(ctx, { color: line(0.45), width: 1, under: 0.14 });
     if (prog > 0.02) {
       ctx.beginPath();
       const n = Math.max(2, Math.round(N * prog));
       for (let i = 0; i <= n; i++) { const a = dir - SPREAD + (2 * SPREAD * prog * i) / n; seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, i === 0); }
-      seaStroke(ctx, prog >= 1 ? { color: 'rgba(246,210,122,0.9)', width: 1.75, under: 0.2 } : { color: creamA(0.6), width: 1.25, under: 0.16 });
+      seaStroke(ctx, prog >= 1 ? { color: tint(MARK.chosen, 0.9), width: 1.75, under: 0.2 } : { color: line(0.6), width: 1.25, under: 0.16 });
     }
   }
 }
@@ -107,32 +106,32 @@ function drawCourse(s, pts, selected, live) {
   ctx.beginPath();
   seaTo(s.x, s.y, true);
   for (let i = pv.idx + 1; i < pv.n; i++) seaTo(xy[i * 2], xy[i * 2 + 1], false);
-  ctx.lineWidth = Math.max(7, s.B * 0.85 * k); ctx.strokeStyle = creamA(selected ? 0.13 : 0.07); ctx.stroke();
-  seaStroke(ctx, { color: creamA(selected ? 0.85 : 0.4), width: selected ? 1.5 : 1.1, under: selected ? 0.22 : 0.1 });
+  ctx.lineWidth = Math.max(7, s.B * 0.85 * k); ctx.strokeStyle = line(selected ? 0.13 : 0.07); ctx.stroke();
+  seaStroke(ctx, { color: line(selected ? 0.85 : 0.4), width: selected ? 1.5 : 1.1, under: selected ? 0.22 : 0.1 });
   let ex = xy[(pv.n - 1) * 2], ey = xy[(pv.n - 1) * 2 + 1];
   const rest = Math.min(pv.rest, pts.length);
   if (!pv.done && rest > 0) {
     ctx.beginPath();
     seaTo(ex, ey, true);
     for (let i = pts.length - rest; i < pts.length; i++) seaTo(pts[i].x, pts[i].y, false);
-    seaStroke(ctx, { color: creamA(selected ? 0.55 : 0.28), width: 2, dash: DASH_DOT, under: 0 });
+    seaStroke(ctx, { color: line(selected ? 0.55 : 0.28), width: 2, dash: DASH_DOT, under: 0 });
     ex = pts[pts.length - 1].x; ey = pts[pts.length - 1].y;
   }
   seaCircle(ex, ey, 8, 18);
-  seaStroke(ctx, { color: creamA(selected ? 0.9 : 0.45), width: 1.25, under: 0.18 });
+  seaStroke(ctx, { color: line(selected ? 0.9 : 0.45), width: 1.25, under: 0.18 });
   const q = projTo(ex, ey, 0.5);
-  ctx.beginPath(); ctx.arc(q.x, q.y, selected ? 2.4 : 1.8, 0, TAU); ctx.fillStyle = creamA(selected ? 0.95 : 0.5); ctx.fill();
+  ctx.beginPath(); ctx.arc(q.x, q.y, selected ? 2.4 : 1.8, 0, TAU); ctx.fillStyle = line(selected ? 0.95 : 0.5); ctx.fill();
 }
 
 // The finger's own line while drawing, faint, so you can see how the ship will round it off.
 function drawStroke(pts) {
   ctx.beginPath();
   for (let i = 0; i < pts.length; i++) seaTo(pts[i].x, pts[i].y, i === 0);
-  seaStroke(ctx, { color: creamA(0.45), width: 2.25, dash: [1, 9], under: 0 });
+  seaStroke(ctx, { color: line(0.45), width: 2.25, dash: [1, 9], under: 0 });
 }
 
 // Engage orders: a thin red ring under each target, with four ticks for the selected ship's own.
-const ENEMY_LINE = 'rgba(239,106,88,0.9)', ENEMY_SOFT = 'rgba(239,106,88,0.45)';
+const ENEMY_LINE = tint(MARK.enemy, 0.9), ENEMY_SOFT = tint(MARK.enemy, 0.45);
 function drawEngage(sel) {
   for (const s of S.G.ships) {
     if (!commandable(s) || !s.order || s.order.kind !== 'engage') continue;
@@ -160,13 +159,13 @@ function drawTapFx() {
   const k = EASE.out(age / 0.6), a = 1 - age / 0.6;
   seaCircle(tapFx.x, tapFx.y, (tapFx.kind === 'engage' ? 30 : 8) + k * 26, 24);
   ctx.lineWidth = 1.5 * a + 0.5;
-  ctx.strokeStyle = tapFx.kind === 'engage' ? `rgba(239,106,88,${a})` : creamA(a);
+  ctx.strokeStyle = tint(tapFx.kind === 'engage' ? MARK.enemy : MARK.line, a);
   ctx.stroke();
 }
 
 // Heading dial for an anchored ship: a thin ring plus an arrow toward where she's turning.
 function drawPivot(s, active) {
-  const rr = s.L * 0.8, col = active ? P.goldHi : creamA(0.7);
+  const rr = s.L * 0.8, col = active ? MARK.chosen : line(0.7);
   seaCircle(s.x, s.y, rr, 40);
   seaStroke(ctx, { color: col, width: active ? 1.5 : 1.1, under: 0.2 });
   const a = s.pivot, tip = s.L * 1.4, c = Math.cos(a), sn = Math.sin(a);
@@ -184,7 +183,7 @@ function drawPivot(s, active) {
 // The chosen ship: a fine gold ring on the water.
 function drawSelected(s) {
   seaCircle(s.x, s.y, s.L * 0.62, 40);
-  seaStroke(ctx, { color: 'rgba(246,210,122,0.92)', width: 1.5, under: 0.24 });
+  seaStroke(ctx, { color: tint(MARK.chosen, 0.92), width: LINE.thin, under: 0.24 });
 }
 
 // ---------- Over the ships ----------
@@ -205,7 +204,7 @@ function ghostNow(g) {
 }
 
 // The status word under a ship's bar, if she has one. [text, colour]
-const TAG = { fireship: ['Fireship', P.terracottaHi], escort: ['Escort', C.onGlass2], fleeing: ['Fleeing', P.goldHi], ally: ['Ally', P.blueHi], rigging: ['Rigging cut', '#ffc2b4'], prize: ['Prize', P.blueHi] };
+const TAG = { fireship: ['Fireship', MARK.warn], escort: ['Escort', C.onGlass2], fleeing: ['Fleeing', MARK.chosen], ally: ['Ally', MARK.friend], rigging: ['Rigging cut', MARK.hurt], prize: ['Prize', MARK.friend] };
 const tagOf = (s) => (s.fireship ? TAG.fireship : s.escort ? TAG.escort : s.fleeing ? TAG.fleeing : s.ally ? TAG.ally : s.slowT > 0 ? TAG.rigging : s.prize ? TAG.prize : null);
 
 // A slim hull bar over each ship you can see (yours by how sound she is, theirs in enemy red), with a small star
@@ -216,12 +215,11 @@ function drawShipBar(s) {
   const top = projTo(s.x, s.y, (m ? m.top : 40) + 12);
   const w = clamp(s.L * 0.5 * pxPerUnit(s.x, s.y), 24, 46), x = top.x - w / 2, y = top.y;
   const k = s.hp / s.maxHp, h = s.boss ? 4 : 3;
-  bar(ctx, x, y, w, h, k, { color: s.team === 'player' ? hpColor(k) : P.redHi, ghost: ghostOf(s, k), track: 'rgba(4,14,17,0.55)' });
-  if (s.flag) drawIcon(ctx, 'star', x - 7, y + h / 2, 9, P.goldHi, { shadow: STAR_SHADOW });
+  bar(ctx, x, y, w, h, k, { color: s.team === 'player' ? hpColor(k) : MARK.enemy, ghost: ghostOf(s, k), track: MARK.track });
+  if (s.flag) drawIcon(ctx, 'star', x - 7, y + h / 2, 9, MARK.chosen, { shadow: CANVAS_SHADOW.textTight });
   const tag = tagOf(s);
   if (tag) caption(ctx, tag[0], top.x, y + h + 9, { size: 9, color: tag[1], align: 'center' });
 }
-const STAR_SHADOW = { color: 'rgba(4,14,17,0.6)', blur: 3, y: 1 };
 
 // Two ships lashed together: the odds and a progress ring between them while the boarders fight it out.
 function drawBoarding(s) {
@@ -229,7 +227,7 @@ function drawBoarding(s) {
   if (!e || e.hidden) return;
   const q = projTo((s.x + e.x) / 2, (s.y + e.y) / 2, 30);
   const k = clamp(s.boarding.t / BOARDING.time, 0, 1);
-  caption(ctx, `Boarding  ${s.marines} v ${defence(e)}`, q.x, q.y - 28, { size: 10, color: P.goldHi, align: 'center', halo: 'strong' });
+  caption(ctx, `Boarding  ${s.marines} v ${defence(e)}`, clamp(q.x, 70, S.view.cw - 70), q.y - 28, { size: 10, color: MARK.chosen, align: 'center', halo: 'strong' });
   ring(ctx, q.x, q.y - 8, 9, k, { width: 2.5 });
 }
 
@@ -238,9 +236,9 @@ function drawFort(f) {
   const q = projTo(f.x, f.y, fortTopZ + 14);
   if (f.state === 'active') {
     const w = 48, k = f.hp / f.maxHp;
-    bar(ctx, q.x - w / 2, q.y, w, 4, k, { color: f.team === 'player' ? P.blueHi : P.redHi, ghost: ghostOf(f, k), track: 'rgba(4,14,17,0.55)' });
+    bar(ctx, q.x - w / 2, q.y, w, 4, k, { color: f.team === 'player' ? MARK.friend : MARK.enemy, ghost: ghostOf(f, k), track: MARK.track });
   } else {
-    caption(ctx, f.capture ? 'Landing party ashore' : 'Silenced', q.x, q.y, { size: 10, color: P.goldHi, align: 'center', halo: 'strong' });
+    caption(ctx, f.capture ? 'Landing party ashore' : 'Silenced', q.x, q.y, { size: 10, color: MARK.chosen, align: 'center', halo: 'strong' });
     if (f.capture) ring(ctx, q.x, q.y + 20, 9, clamp(f.capture.t / CAPTURE_TIME, 0, 1), { width: 2.5 });
   }
 }
@@ -272,8 +270,8 @@ function drawShellTargets() {
     if (b.kind !== 'shell') continue;
     const k = Math.min(1, b.u), r = b.radius * (0.55 + 0.45 * k), enemy = b.team === 'enemy';
     seaCircle(b.tx, b.ty, r, 28);
-    ctx.fillStyle = enemy ? `rgba(239,106,88,${0.08 + 0.16 * k})` : `rgba(121,166,220,${0.08 + 0.16 * k})`; ctx.fill();
-    seaStroke(ctx, { color: enemy ? P.redHi : P.blueHi, width: 1.5, under: 0.22 });
+    ctx.fillStyle = tint(enemy ? MARK.enemy : MARK.friend, 0.08 + 0.16 * k); ctx.fill();
+    seaStroke(ctx, { color: enemy ? MARK.enemy : MARK.friend, width: LINE.thin, under: 0.22 });
   }
 }
 
@@ -303,16 +301,20 @@ function offerTip(id) {
   writeSave();
   tip = { text: TIPS[id], t0: S.clock, lines: null, w: 0 };
 }
+// Just above the action bar in portrait; in landscape, where the sea is short, at the top between the dock and
+// the right-hand column (under the boss card if there is one).
 function drawTip(bottom) {
   if (!tip) return;
   const age = S.clock - tip.t0;
   if (age > TIP_SECS) { tip = null; return; }
-  const { cw } = S.view;
-  const w = Math.min(cw - ins.l - ins.r - 32, 340), x = Math.round((cw - w) / 2);
+  const { cw, ch } = S.view, wide = cw > ch;
+  const x0 = wide ? dockBox.x + dockBox.w + K.gap * 2 : box.L, x1 = wide ? colBox.x - K.gap * 2 : box.R;
+  const w = Math.min(x1 - x0, 340), x = Math.round((x0 + x1 - w) / 2);
   if (!tip.lines || tip.w !== w) { tip.lines = wrapText(ctx, tip.text, w - 32, 14, 500); tip.w = w; }
   const h = 26 + 16 + tip.lines.length * 19.5;
-  const a = life(age, TIP_SECS, 0.42, 0.5), rise = (1 - EASE.out(Math.min(1, age / 0.42))) * 14;
-  tipCard(ctx, x, Math.round(bottom - 12 - h + rise), w, tip.text, { step: 'Tip', alpha: a, lines: tip.lines });
+  const a = life(age, TIP_SECS, 0.42, 0.5), e = 1 - EASE.out(Math.min(1, age / 0.42));
+  const y = wide ? box.T + (bossBottom ? bossBottom - box.T + K.gap : 0) - e * 10 : bottom - 12 - h + e * 14;
+  tipCard(ctx, x, Math.round(y), w, tip.text, { step: 'Tip', alpha: a, lines: tip.lines });
 }
 export const resetTip = () => { tip = null; };
 
@@ -336,9 +338,11 @@ function drawToast() {
   if (!ts || S.clock >= ts.until) return;
   const s = shipById(ts.shipId);
   if (!s || !afloat(s) || s.hidden) return;
-  const m = shipMeshes.get(s.id), q = projTo(s.x, s.y, (m ? m.top : 40) + 12);
-  const secs = ts.secs || 1.2;
-  toast(ctx, clamp(q.x, 80, S.view.cw - 80), q.y - 24, ts.text, { t: 1 - (ts.until - S.clock) / secs, maxWidth: Math.min(300, S.view.cw - 32) });
+  const m = shipMeshes.get(s.id), q = projTo(s.x, s.y, (m ? m.top : 40) + 12), { cw, ch } = S.view;
+  if (q.x < 0 || q.x > cw || q.y < 0 || q.y > ch) return; // her words are for when you can see her
+  const secs = ts.secs || 1.2, maxWidth = Math.min(300, cw - 32);
+  const half = Math.min(maxWidth, measure(ctx, ts.text, 13, 600) + 26) / 2 + 8;
+  toast(ctx, clamp(q.x, half, cw - half), q.y - 24, ts.text, { t: 1 - (ts.until - S.clock) / secs, maxWidth });
 }
 
 // ---------- The kit goals and abilities draw with ----------
@@ -347,7 +351,7 @@ function drawToast() {
 // are drawn once. Draw rings with ring() and words with label(); outlinedText() is the old name for a label.
 const drawn = new Set();
 const api = {
-  ctx, seaTo, seaCircle, projTo, proj, COL, P, C,
+  ctx, seaTo, seaCircle, projTo, proj, COL, P, C, MARK, tint, LINE,
   above(s) { const m = shipMeshes.get(s.id); return proj(s.x, s.y, (m ? m.top : 40) + 12); },
   once(key) { if (drawn.has(key)) return false; drawn.add(key); return true; },
   // A ring on the sea: thin, with a soft underlay so it reads on bright and dark water. dashed: marching dashes.
@@ -357,7 +361,7 @@ const api = {
   // A small quiet word on the sea: spaced capitals with a soft shadow.
   label: (str, x, y, color = C.onGlass, o = {}) => caption(ctx, str, x, y, { size: 10, color, align: 'center', halo: 'strong', ...o }),
   // A progress ring (a hold timer, a capture).
-  progress: (x, y, k, color = P.gold) => ring(ctx, x, y, 9, k, { width: 2.5, color }),
+  progress: (x, y, k, color) => ring(ctx, x, y, 9, k, color ? { width: 2.5, color } : { width: 2.5 }),
   text: (str, x, y, o) => text(ctx, str, x, y, o),
   outlinedText: (str, x, y, size, color, align) => caption(ctx, str, x, y, { size: Math.min(11, size * 0.8), color, align: align || 'left', halo: 'strong' }),
 };
@@ -373,11 +377,11 @@ const box = { L: 0, T: 0, R: 0, B: 0 };
 const dockBox = { x: 0, y: 0, w: 0, h: 0 }, colBox = { x: 0, y: 0, w: 0, h: 0 }, barBox = { x: 0, y: 0, w: 0, h: 0 };
 const pauseRect = { x: 0, y: 0, r: 0 }, recentreRect = { x: 0, y: 0, r: 0 };
 
-// The fleet dock: one glass panel, a row per ship of yours (her name over a thin hull bar), split by hairlines.
-// The chosen ship has a gold hairline round her row; the last row is Whole fleet. Rows you can tap are 44 tall.
-// Ships that sail themselves (merchantmen, allies) share one compact row of small bars; lost ships shrink to a
-// quiet line with the word for what happened.
-const ROW = 44, ROW_SM = 30, DOCK_PAD = 4;
+// The fleet dock, top left, with no box round it: a 44 px row per ship you command, her name (soft-shadowed, like
+// every word on the sea) over a thin hull bar. The chosen ship's name is gold with a short gold rule beside it;
+// with Whole fleet on, every name turns gold and the rule marks the Whole fleet row. Words appear only when they
+// say something (Sunk, Captured, Through, Prize). Merchantmen or allies share one compact row of short bars.
+const ROW = 44, ROW_SM = 28;
 const cardPool = [];
 function card(i) { return cardPool[i] || (cardPool[i] = { x: 0, y: 0, w: 0, h: 0, ship: null, fleet: false }); }
 const GROUP_NAME = { escort: 'Merchantmen', ally: 'Allies' };
@@ -394,90 +398,84 @@ function dockRows(G) {
   for (const s of own) {
     const kind = s.escort ? 'escort' : s.ally ? 'ally' : null;
     if (kind && own.filter((o) => (kind === 'escort' ? o.escort : o.ally && !o.escort)).length > 1) {
-      if (!groups[kind]) rows.push((groups[kind] = { kind: 'group', name: GROUP_NAME[kind], ships: [], h: ROW_SM + 2 }));
+      if (!groups[kind]) rows.push((groups[kind] = { kind: 'group', name: GROUP_NAME[kind], ships: [], h: ROW_SM + 6 }));
       groups[kind].ships.push(s);
     } else rows.push({ kind: 'ship', ship: s, h: commandable(s) ? ROW : ROW_SM });
   }
   fleetRow = own.filter(commandable).length > 1;
   return rows;
 }
+// The mark of "this one" in the dock: a short vertical rule just left of the row.
+const chosenRule = (x, cy) => { ctx.fillStyle = MARK.chosen; ctx.fillRect(x - 8, cy - 9, LINE.base, 18); };
 function drawDock(G, sel) {
   const hud = S.hud, list = dockRows(G);
   if (fleetRow && G.phase === 'play' && G.t > 3) offerTip('fleet');
-  const w = Math.round(clamp(S.view.cw * 0.34, 128, 150)), x = box.L, y0 = box.T;
-  let h = DOCK_PAD * 2;
-  for (const r of list) h += r.h;
-  if (fleetRow) h += ROW;
-  panel(ctx, x, y0, w, h, { tone: 'glass', r: K.radius, elevation: 2 });
-  let y = y0 + DOCK_PAD, n = 0;
-  const ix = x + 12, iw = w - 24;
+  const w = Math.round(clamp(S.view.cw * 0.32, 120, 144)), x = box.L, y0 = box.T - 6;
+  const ix = x + 8, iw = w - 16; // the row's hit rect is wider than its ink
+  let y = y0, n = 0;
   for (let i = 0; i < list.length; i++) {
     const row = list[i], rh = row.h;
-    if (i) hairRule(ix, y, iw);
     if (row.kind === 'group') { drawGroupRow(row, ix, y, iw); y += rh; continue; }
     const s = row.ship, alive = afloat(s) && s.team === 'player', safe = s.state === 'escaped', big = rh === ROW;
-    // With Whole fleet on, only that row gets the hairline; every ship's name turns gold.
     const chosen = big && (s === sel || S.selectAll);
-    if (chosen && !S.selectAll) hairline(ctx, x + 3, y + 2, w - 6, rh - 4, K.radius - 4);
-    const cy = y + (big ? rh / 2 - 5 : alive ? rh / 2 - 3 : rh / 2);
+    const cy = y + (big ? rh / 2 - 4 : rh / 2);
+    if (chosen && !S.selectAll) chosenRule(ix, cy + 4);
     let nx = ix;
-    if (s.flag) { drawIcon(ctx, 'star', nx + 4.5, cy, 10, alive ? P.goldHi : C.onGlass3); nx += 14; }
-    // A word on the right only when it says something: lost, through, a prize, a ship that sails herself.
+    if (s.flag) { drawIcon(ctx, 'star', nx + 4.5, cy, 10, alive ? MARK.chosen : C.onGlass3, { shadow: CANVAS_SHADOW.textTight }); nx += 14; }
     const status = safe ? 'Through' : !alive ? (afloat(s) ? 'Captured' : 'Sunk') : s.prize ? 'Prize' : s.escort ? 'Escort' : s.ally ? 'Ally' : null;
-    const sw = status ? caption(ctx, status, ix + iw, cy + 0.5, { size: 9, align: 'right', color: safe ? P.greenHi : !alive ? P.terracottaHi : C.onGlass3, halo: 'none' }) + 8 : 0;
-    text(ctx, s.name, nx, cy, { size: big ? 13.5 : 12.5, weight: 600, color: !alive && !safe ? C.onGlass3 : chosen ? P.goldHi : C.onGlass, halo: 'none', maxWidth: ix + iw - sw - nx });
+    const sw = status ? caption(ctx, status, ix + iw, cy + 0.5, { size: 9, align: 'right', color: safe ? MARK.exit : !alive ? MARK.warn : C.onGlass2, halo: 'soft' }) + 8 : 0;
+    text(ctx, s.name, nx, cy, { size: big ? 14 : 12.5, weight: 600, color: !alive && !safe ? C.onGlass3 : chosen ? MARK.chosen : C.onGlass, halo: 'soft', maxWidth: ix + iw - sw - nx });
     if (alive) {
       const k = s.hp / s.maxHp;
-      bar(ctx, ix, cy + (big ? 13 : 10), iw, big ? 3 : 2, k, { color: hpColor(k), ghost: ghostOf(s, k), outline: false, track: 'rgba(4,14,17,0.55)', shine: false });
+      bar(ctx, ix, cy + (big ? 12 : 9), iw, big ? 3 : 2, k, { color: hpColor(k), ghost: ghostOf(s, k), track: MARK.track, shine: false });
     }
     if (!selfSailing(s)) { // merchantmen and allies can't be given orders
-      const c = card(n++); c.x = x; c.y = y; c.w = w; c.h = rh; c.ship = s; c.fleet = false; hud.cards.push(c);
+      const c = card(n++); c.x = x - 4; c.y = y; c.w = w + 4; c.h = rh; c.ship = s; c.fleet = false; hud.cards.push(c);
     }
     y += rh;
   }
   if (fleetRow) {
-    hairRule(ix, y, iw);
-    const on = S.selectAll;
-    if (on) hairline(ctx, x + 3, y + 2, w - 6, ROW - 4, K.radius - 4);
-    const col = on ? P.goldHi : C.onGlass2, lw = measure(ctx, 'Whole fleet', 12.5, 600);
-    const cx = x + w / 2 - (lw + 24) / 2;
-    drawIcon(ctx, 'fleet', cx + 9, y + ROW / 2, 18, col);
-    text(ctx, 'Whole fleet', cx + 24, y + ROW / 2 + 0.5, { size: 12.5, weight: 600, color: col, halo: 'none' });
-    const c = card(n++); c.x = x; c.y = y; c.w = w; c.h = ROW; c.ship = null; c.fleet = true; hud.cards.push(c);
+    const on = S.selectAll, cy = y + ROW / 2;
+    if (on) chosenRule(ix, cy);
+    const col = on ? MARK.chosen : C.onGlass2;
+    drawIcon(ctx, 'fleet', ix + 8, cy, 17, col, { shadow: CANVAS_SHADOW.textTight });
+    text(ctx, 'Whole fleet', ix + 22, cy + 0.5, { size: 12.5, weight: 600, color: col, halo: 'soft' });
+    const c = card(n++); c.x = x - 4; c.y = y; c.w = w + 4; c.h = ROW; c.ship = null; c.fleet = true; hud.cards.push(c);
     y += ROW;
   }
-  dockBox.x = x; dockBox.y = y0; dockBox.w = w; dockBox.h = h;
+  dockBox.x = x; dockBox.y = y0; dockBox.w = w; dockBox.h = y - y0;
 }
 // Merchantmen (or allies) in company: a caption, how many are through, and a short bar for each ship.
 function drawGroupRow(row, ix, y, iw) {
-  const ships = row.ships, cy = y + 11;
+  const ships = row.ships, cy = y + 12;
   let through = 0;
   for (const s of ships) if (s.state === 'escaped') through++;
-  caption(ctx, row.name, ix, cy, { size: 9, color: C.onGlass2, halo: 'none' });
-  if (through) caption(ctx, `${through} through`, ix + iw, cy, { size: 9, align: 'right', color: P.greenHi, halo: 'none' });
+  caption(ctx, row.name, ix, cy, { size: 9, color: C.onGlass2 });
+  if (through) caption(ctx, `${through} through`, ix + iw, cy, { size: 9, align: 'right', color: MARK.exit });
   const gap = 5, bw = (iw - gap * (ships.length - 1)) / ships.length;
   for (let i = 0; i < ships.length; i++) {
     const s = ships[i], safe = s.state === 'escaped', alive = afloat(s) && s.team === 'player';
     const k = safe ? 1 : alive ? s.hp / s.maxHp : 0;
-    bar(ctx, ix + i * (bw + gap), cy + 11, bw, 3, k, { color: safe ? P.greenHi : hpColor(k), ghost: alive ? ghostOf(s, k) : null, outline: false, track: alive || safe ? 'rgba(4,14,17,0.55)' : 'rgba(224,138,104,0.35)', shine: false });
+    bar(ctx, ix + i * (bw + gap), cy + 11, bw, 3, k, { color: safe ? MARK.exit : hpColor(k), ghost: alive ? ghostOf(s, k) : null, track: alive || safe ? MARK.track : tint(MARK.warn, 0.4), shine: false });
   }
 }
-function hairRule(x, y, w) { ctx.fillStyle = C.glassLine; ctx.fillRect(x, Math.round(y) - 0.5, w, 1); }
 
-// The boss: a crimson card between the dock and the pause button (or under the dock if there's no room).
+let bossBottom = 0;
+// The boss: her name and a long red bar, top centre between the dock and the pause button (or under the dock if
+// there's no room). No card: the name and the bar are the whole of it.
 function drawBoss(G) {
   let b = null;
   for (const s of G.ships) if (s.boss && s.state !== 'sunk') { b = s; break; }
   if (!b) return;
-  const gap = K.gap;
-  let x0 = dockBox.x + dockBox.w + gap, x1 = colBox.x - gap, y = box.T;
-  if (x1 - x0 < 128) { x0 = box.L; x1 = box.L + dockBox.w; y = dockBox.y + dockBox.h + gap; }
-  const w = Math.min(300, x1 - x0), x = Math.round((x0 + x1 - w) / 2), h = 40;
-  panel(ctx, x, y, w, h, { tone: 'crimson', r: K.radius, elevation: 2 });
-  const tw = w > 200 ? caption(ctx, b.boss.title, x + w - 12, y + 14, { size: 9, align: 'right', color: 'rgba(247,226,196,0.6)', halo: 'none' }) + 10 : 0;
-  text(ctx, b.boss.captain, x + 12, y + 14.5, { size: 14, weight: 600, face: 'display', color: '#f7e2c4', halo: 'none', maxWidth: w - 24 - tw });
+  const gap = K.gap * 2;
+  let x0 = dockBox.x + dockBox.w + gap, x1 = colBox.x - gap, y = box.T + 2;
+  if (x1 - x0 < 120) { x0 = box.L; x1 = box.L + dockBox.w; y = dockBox.y + dockBox.h + K.gap; }
+  const w = Math.min(280, x1 - x0), x = Math.round((x0 + x1 - w) / 2), cx = x + w / 2;
+  bossBottom = y + 40;
+  text(ctx, b.boss.captain, cx, y + 10, { size: 15, weight: 600, face: 'display', color: C.onGlass, align: 'center', halo: 'strong', maxWidth: w });
   const k = b.hp / b.maxHp;
-  bar(ctx, x + 12, y + 27, w - 24, 4, k, { color: P.redHi, ghost: ghostOf(b, k), outline: false, track: 'rgba(0,0,0,0.4)', shine: false });
+  bar(ctx, x, y + 23, w, 4, k, { color: MARK.enemy, ghost: ghostOf(b, k), track: MARK.track });
+  if (w > 190) caption(ctx, b.boss.title, cx, y + 37, { size: 9, align: 'center', color: C.onGlass2, halo: 'strong' });
 }
 
 // The right-hand column: pause, the wind rose, and the objective as a quiet right-aligned caption block.
@@ -504,7 +502,7 @@ function drawColumn(G) {
 
 // ---------- Action bar ----------
 // A row of tiles for the selected ship, bottom centre: Fire port / starboard (manual gunnery: a reload line,
-// a gold hairline and glow when loaded), Anchor, Shot (round / chain / grape: tap to cycle), Mine (with a count),
+// gold ink over a full line when loaded), Anchor, Shot (round / chain / grape: tap to cycle), Mine (with a count),
 // Board and Land, each only when it applies. Tiles are 52 tall, so every target is at least 44 x 44.
 const pool = [];
 const TILE_H = 52;
@@ -581,8 +579,8 @@ function drawShot(a, sel) {
   const step = 22, x0 = x + w / 2 - ((kinds.length - 1) * step) / 2, cy = y + h / 2 - 7.5;
   for (let i = 0; i < kinds.length; i++) {
     const on = kinds[i] === sel.ammo, cx = x0 + i * step;
-    if (on) { ctx.beginPath(); ctx.arc(cx, cy, 10, 0, TAU); ctx.fillStyle = 'rgba(246,210,122,0.12)'; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(246,210,122,0.7)'; ctx.stroke(); }
-    drawIcon(ctx, kinds[i], cx, cy, on ? 15 : 13, on ? P.goldHi : C.onGlass3);
+    drawIcon(ctx, kinds[i], cx, cy, on ? 16 : 13, on ? MARK.chosen : C.onGlass3);
+    if (on) { ctx.fillStyle = MARK.chosen; ctx.fillRect(cx - 5, cy + 11, 10, 1.5); }
   }
 }
 
@@ -608,7 +606,7 @@ function drawChevrons() {
     if (inBox(barBox, x, y, 12)) x = x < barBox.x + barBox.w / 2 ? barBox.x - 16 : barBox.x + barBox.w + 16;
     S.hud.chevrons++;
     const far = Math.hypot(dx, dy) / Math.hypot(cw, ch);
-    edgeChevron(ctx, x, y, a, { size, color: s.boss ? P.goldHi : P.redHi, alpha: clamp(1.2 - far * 0.6, 0.45, 0.95) });
+    edgeChevron(ctx, x, y, a, { size, color: s.boss ? MARK.chosen : MARK.enemy, alpha: clamp(1.2 - far * 0.6, 0.45, 0.95) });
   }
 }
 
@@ -623,7 +621,7 @@ export function drawHUD() {
   if (!G || !R.renderer) return;
   if (ghostsOf !== G) { ghosts.clear(); ghostsOf = G; rowsKey = -1; }
   box.L = ins.l + K.edge; box.T = ins.t + K.edge; box.R = cw - ins.r - K.edge; box.B = ch - ins.b - K.edge;
-  dockBox.w = colBox.w = barBox.w = 0;
+  dockBox.w = colBox.w = barBox.w = 0; bossBottom = 0;
   // A ship is always selected: if yours goes down (or is taken), the next one in the line steps up.
   if (!commandable(S.selected)) S.selected = G.ships.find(commandable) || S.selected;
   const sel = commandable(S.selected) ? S.selected : null;
@@ -633,10 +631,10 @@ export function drawHUD() {
     // Tutorial buoy
     if (G.tut && G.tut.step === 0 && G.buoy) {
       const pulse = 24 + Math.sin(S.clock * 3) * 3;
-      seaRing(G.buoy.x, G.buoy.y, pulse, P.goldHi, { width: 2, n: 32 });
-      seaCircle(G.buoy.x, G.buoy.y, 6, 16); ctx.fillStyle = P.goldHi; ctx.fill();
+      seaRing(G.buoy.x, G.buoy.y, pulse, MARK.chosen, { width: LINE.base, n: 32 });
+      seaCircle(G.buoy.x, G.buoy.y, 6, 16); ctx.fillStyle = MARK.chosen; ctx.fill();
       const q = projTo(G.buoy.x, G.buoy.y, 26);
-      caption(ctx, 'Sail here', q.x, q.y - 6, { size: 11, color: P.goldHi, align: 'center', halo: 'strong' });
+      caption(ctx, 'Sail here', q.x, q.y - 6, { size: 11, color: MARK.chosen, align: 'center', halo: 'strong' });
     }
     if (sel) drawArcs(sel);
     const dr = S.drag;

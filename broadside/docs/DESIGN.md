@@ -83,8 +83,7 @@ Gold is spent sparingly: one gold button per screen. Captions are gold-hi on gla
 
 ### Type
 - **Fraunces** (soft optical-size serif, SOFT 60) for titles, names, big numbers and the captain's log (italic).
-  **Source Sans 3** (humanist sans) for everything you read or tap. Both from Google Fonts. Lilita One is still
-  loaded only for the current HUD until it moves to the kit; drop it then.
+  **Source Sans 3** (humanist sans) for everything you read or tap. Both from Google Fonts, and nothing else.
 - Offline fallbacks keep the character: display `Iowan Old Style, Palatino, Charter, Georgia, Noto Serif, serif`;
   UI `Seravek, Segoe UI, Roboto, Noto Sans, Helvetica Neue, system-ui`.
 - Scale (px / line-height / weight): hero 56/1/700 (wordmark), display 40/1.05/650, h1 30/1.1/650, h2 23/1.15/600,
@@ -118,8 +117,30 @@ Gold is spent sparingly: one gold button per screen. Captions are gold-hi on gla
   colour (`currentColor` in the DOM, any fill on canvas), no text inside. One set of path data for the DOM
   (`iconSVG`) and the canvas (`drawIcon`, or `iconImage` to blit).
 - Set: anchor, mine, board, land, firePort, fireStarboard, round, chain, grape, fleet, pause, play, wind, gold,
-  star, lock, hat, back, next, close, check, restart, helm (settings), map, ship, music, sound, mute, skull.
-- Icon plus a short label on buttons; an icon alone only for universal actions (pause, back, close).
+  star, lock, hat, back, next, close, check, restart, helm (settings), recentre, map, ship, music, sound, mute, skull.
+- Icon plus a short label on buttons; an icon alone only for universal actions (pause, back, close, recentre).
+
+### Battle HUD
+Drawn every frame on the HUD canvas, only through the kit (`src/hud/hud.js`; screenshots: `node tests/hud-shots.mjs`).
+- **Layout** (12px edge plus safe-area insets): fleet dock top left; pause, wind rose and the objective (a quiet
+  right-aligned caption block, first line brighter) top right; the boss's crimson card between them; the action
+  bar bottom centre; the recentre button above its right end. Tips sit above the action bar (top centre in
+  landscape). Off-screen enemies are edge chevrons that slide clear of all of these.
+- **Fleet dock:** one glass panel, a 44px row per ship you command (name over a 3px hull bar), hairlines between
+  rows, a gold hairline round the chosen one (with Whole fleet on, only that row; every name turns gold). Words
+  appear only when they say something (Sunk, Captured, Through, Prize). Merchantmen or allies share one compact row
+  of short bars.
+- **Action bar:** 52px stacked tiles (icon over a short label). Loaded guns: gold hairline, gold ink, soft glow; a
+  reload line fills along the bottom. Toggled (anchored): gold hairline. The one main action (Board or Land when it
+  will work) is the only gold fill. Shot shows every shot she carries with the loaded one ringed; a tap loads the next.
+- **On the sea:** thin lines with a soft dark underlay (`seaStroke`), never wedges or fills: the gun-range rim with end
+  ticks and a reload sweep, the course ribbon, a fine gold ring for the chosen ship, red rings for engage targets,
+  goal rings (gold reach and chests, blue protect, red target, green exit). Words on the sea are small spaced
+  capitals (`api.label` for goals and abilities). Hull bars over ships are 3px: your ships by how sound they are,
+  the enemy's in red; lost hull flashes pale and drains away. Nothing is drawn for a ship hidden in fog or gone.
+- **Moments:** damage numbers in Fraunces with a spring pop (cream when you hit, coral when you're hit; a floater
+  may carry a word such as "Raked!" and a tone), glass toasts over the ship, banners that glide in over a soft dark
+  wash, tip cards that rise in. One at a time where they'd compete: the opening hint waits while a tip shows.
 
 ### Sea chart
 - The route shows the voyage so far (terracotta dashes) and the leg ahead (dotted); legs not yet sailed aren't

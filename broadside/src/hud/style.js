@@ -70,6 +70,35 @@ export function life(age, dur, inT = 0.15 * dur, outT = 0.2 * dur) {
 
 export const hpColor = (k) => (k > 0.6 ? C.hpHigh : k > 0.3 ? C.hpMid : C.hpLow);
 
+// A token colour (#rrggbb or rgba()) at another opacity, cached, so the HUD never spells out a colour itself.
+const tints = new Map();
+export function tint(color, a) {
+  let m = tints.get(color);
+  if (!m) tints.set(color, (m = new Map()));
+  const k = Math.round(a * 100);
+  let s = m.get(k);
+  if (!s) {
+    let r, g, b;
+    if (color[0] === '#') { const n = parseInt(color.length === 4 ? color.replace(/./g, (c, i) => (i ? c + c : '')) : color.slice(1, 7), 16); r = n >> 16; g = (n >> 8) & 255; b = n & 255; }
+    else [r, g, b] = color.match(/[\d.]+/g).map(Number);
+    s = `rgba(${r},${g},${b},${k / 100})`;
+    m.set(k, s);
+  }
+  return s;
+}
+
+// What marks on the sea and over ships mean, by colour. Goals and abilities get these through their draw api.
+export const MARK = {
+  line: P.cream,      // your courses, arcs, dials
+  chosen: P.goldHi,   // the chosen ship, loaded guns, gold rings (reach, chests)
+  enemy: P.redHi,     // enemy hull bars, engage rings, targets, their shells
+  friend: P.blueHi,   // forts and ships in your care, allies, prizes
+  exit: P.greenHi,    // the way out, through, repairs
+  warn: P.terracottaHi, // fireships, losses
+  hurt: '#ffc2b4',    // rigging cut and other damage words
+  track: C.shadow,    // the empty part of a bar
+};
+
 // ---------- Surfaces ----------
 const TONES = {
   glass: { top: 'rgba(23, 67, 77, 0.88)', bottom: 'rgba(8, 29, 35, 0.9)', line: C.glassLine, hi: 'rgba(255,255,255,0.07)', ink: C.onGlass },
@@ -177,7 +206,7 @@ export function wrapText(ctx, str, maxW, size = HUD.value, weight = 500) {
 // ---------- Controls ----------
 // A button. state: 'normal' | 'pressed' | 'disabled' | 'active' (toggled on: a gold hairline and gold ink).
 // variant 'glass' | 'gold' (the main action: one per screen) | 'danger'. `progress` (0..1) is a reload line
-// filling along the bottom edge; `ready` (a loaded gun) is a gold hairline with a soft glow. `stack` puts the
+// filling along the bottom edge; `ready` (a loaded gun) is gold ink over a full gold line, no box. `stack` puts the
 // icon over a small label (the action bar's tiles); otherwise icon and label sit side by side.
 export function button(ctx, x, y, w, h, {
   label = '', icon = null, state = 'normal', variant = 'glass', progress = null, ready = false, sub = null, stack = false,
@@ -190,16 +219,13 @@ export function button(ctx, x, y, w, h, {
   ctx.save();
   if (disabled) ctx.globalAlpha *= 0.42;
   const oy = pressed ? 1 : 0;
-  if (ready && !pressed && !disabled) { // the glow of a loaded gun
-    ctx.save(); shadow(ctx, GLOW_GOLD); rrect(ctx, x, y, w, h, r); ctx.fillStyle = T.bottom; ctx.fill(); ctx.restore();
-  }
   panel(ctx, x, y + oy, w, h, { tone, r, elevation: pressed || disabled ? 1 : 2 });
   if (pressed) { rrect(ctx, x, y + oy, w, h, r); ctx.fillStyle = 'rgba(0,0,0,0.14)'; ctx.fill(); }
-  if (lit) hairline(ctx, x, y + oy, w, h, r, { alpha: ready ? 0.85 : 0.7 });
-  if (progress != null && !ready) {
-    const k = Math.min(1, Math.max(0, progress));
+  if (state === 'active' && tone === 'glass') hairline(ctx, x, y + oy, w, h, r, { alpha: 0.7 });
+  if (progress != null || ready) {
+    const k = ready ? 1 : Math.min(1, Math.max(0, progress));
     ctx.save(); rrect(ctx, x, y + oy, w, h, r); ctx.clip();
-    ctx.fillStyle = 'rgba(188,217,214,0.06)'; ctx.fillRect(x, y + oy, w * k, h);
+    if (!ready) { ctx.fillStyle = 'rgba(188,217,214,0.06)'; ctx.fillRect(x, y + oy, w * k, h); }
     ctx.fillStyle = 'rgba(4,14,17,0.45)'; ctx.fillRect(x + r * 0.6, y + oy + h - 4, w - r * 1.2, 2);
     ctx.fillStyle = P.gold; ctx.fillRect(x + r * 0.6, y + oy + h - 4, (w - r * 1.2) * k, 2);
     ctx.restore();

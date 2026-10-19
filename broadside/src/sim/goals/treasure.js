@@ -57,7 +57,7 @@ export default {
     if (!api.once('chests')) return;
     for (const c of G.chests) {
       if (c.taken) continue;
-      api.ring(c.x, c.y, 15 + Math.sin(S.clock * 2.5 + c.x) * 2, 'rgba(246,210,122,0.9)', { width: 1.5, n: 24 });
+      api.ring(c.x, c.y, 15 + Math.sin(S.clock * 2.5 + c.x) * 2, api.tint(api.MARK.chosen, 0.9), { width: api.LINE.thin, n: 24 });
     }
   },
   brief: (o) => `Haul up ${o.need} of the ${o.chests.length} floating chests by sailing over them. Sink or board a salvor to take back what she has hauled.`,

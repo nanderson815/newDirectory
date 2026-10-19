@@ -25,6 +25,6 @@ export default {
   draw(s, a, api) {
     if (!s.repairing) return;
     const q = api.above(s);
-    api.label('Repairing', q.x, q.y + 24, api.P.greenHi, { size: 9 });
+    api.label('Repairing', q.x, q.y + 24, api.MARK.exit, { size: 9 });
   },
 };

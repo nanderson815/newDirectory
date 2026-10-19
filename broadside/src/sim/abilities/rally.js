@@ -20,6 +20,6 @@ export default {
   },
   draw(s, a, api) {
     api.seaCircle(s.x, s.y, a.radius, 56);
-    api.stroke(s.team === 'player' ? 'rgba(246,210,122,0.5)' : 'rgba(239,106,88,0.5)', { width: 1, dash: DASH, offset: -S.clock * 8 });
+    api.stroke(api.tint(s.team === 'player' ? api.MARK.chosen : api.MARK.enemy, 0.5), { width: api.LINE.hair, dash: DASH, offset: -S.clock * 8 });
   },
 };

@@ -5,7 +5,7 @@ import { sfx } from '../../audio/sfx.js';
 // Bring a ship (any English ship, or the one named) into the ring marked on the chart at x, y (portrait
 // fractions) with radius r (a fraction of the chart's width), and keep one there for `secs` if given. Once
 // reached it stays met. Lose the named ship first and the battle is lost.
-const GOLD = '#f6d27a', DASH = [9, 8];
+const DASH = [9, 8];
 const by = (o, G) => G.ships.filter((s) => s.team === 'player' && afloat(s) && (!o.ship || s.name === o.ship));
 const inside = (o, G) => by(o, G).some((s) => Math.hypot(s.x - o.px, s.y - o.py) < o.pr);
 
@@ -44,11 +44,11 @@ export default {
     if (o.got) return;
     const { ctx } = api;
     api.seaCircle(o.px, o.py, o.pr, 48);
-    ctx.fillStyle = `rgba(246,210,122,${Math.round((0.06 + 0.03 * Math.sin(S.clock * 2.5)) * 100) / 100})`; ctx.fill();
-    api.stroke('rgba(246,210,122,0.85)', { width: 1.75, dash: DASH, offset: -S.clock * 14 });
+    ctx.fillStyle = api.tint(api.MARK.chosen, 0.06 + 0.03 * Math.sin(S.clock * 2.5)); ctx.fill();
+    api.stroke(api.tint(api.MARK.chosen, 0.85), { width: api.LINE.thin, dash: DASH, offset: -S.clock * 14 });
     // The caption sits over the ring and the timer under it, clear of a ship inside.
     const top = api.proj(o.px, o.py - o.pr, 0), bot = api.proj(o.px, o.py + o.pr, 0);
-    api.label(o.label || 'Sail here', top.x, top.y - 12, GOLD, { size: 11 });
+    api.label(o.label || 'Sail here', top.x, top.y - 12, api.MARK.chosen, { size: 11 });
     if (o.secs && o.held > 0) api.progress(bot.x, bot.y + 16, Math.min(1, o.held / o.secs));
   },
   brief: (o) => `${o.ship ? `Bring ${o.ship}` : 'Bring a ship'} into the gold ring marked on the chart${o.secs ? ` and hold it there for ${o.secs} seconds` : ''}.`,
