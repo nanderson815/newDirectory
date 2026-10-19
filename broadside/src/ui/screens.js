@@ -200,7 +200,7 @@ function renderYard() {
   const rf = refitOffer(f);
   if (rf) {
     const T = TYPES[rf.next];
-    html += buyRow('refit', `Refit as a ${rf.label.toLowerCase()}`, `${T.hp} hull, ${word(T.guns)} guns a side, ${T.marines} marines; fittings carry over`, null, rf.cost, 'refit');
+    html += buyRow('refit', `Refit as a ${rf.label.toLowerCase().replace(/-/g, '\u2011')}`, `${T.hp} hull, ${word(T.guns)} guns a side, ${T.marines} marines; fittings carry over`, null, rf.cost, 'refit');
   }
   for (const U of UPGRADES) {
     const o = upgradeOffer(f, U.id);

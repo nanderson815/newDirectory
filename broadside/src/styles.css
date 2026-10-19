@@ -704,6 +704,9 @@ html.no-fell-sc .btn { font-variant-caps: small-caps; }
   #yardScreen .ship-stats { grid-row: 4; } #yardScreen .row.foot { grid-row: 6; align-self: end; }
   #yardScreen .up-list { grid-column: 2; grid-row: 1 / span 5; align-self: stretch; overflow-y: auto; min-height: 0; margin-right: -10px; padding-right: 10px; scrollbar-width: thin; scrollbar-color: var(--c-paper-rule) transparent; }
   #yardScreen .up-list .up-row:first-child { border-top: 0; padding-top: 0; }
+  /* The ledger fades at its foot, so a row running under the edge reads as "more below", not as a cut. */
+  #yardScreen .up-list { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent); padding-bottom: 20px; }
+  .panel.split > .col + .col > .boss-line:first-child { border-top: 0; padding-top: 0; }
   #yardScreen .hire { grid-column: 2; grid-row: 6; }
   #yardScreen .ship-stats { font-size: 15.5px; line-height: 1.4; }
 
