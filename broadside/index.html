@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0b252c">
+<meta name="theme-color" content="#121a1d">
 <title>Broadside!</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,500..800,60;1,9..144,400..600,60&family=Source+Sans+3:wght@400..700&family=Lilita+One&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..700;1,400..600&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Lilita+One&display=swap">
 </head>
 <body>
 
 <div class="stage">
   <canvas id="sea" aria-hidden="true"></canvas>
-  <canvas id="hud" aria-label="Battle map. Drag from one of your ships to plot its course."></canvas>
+  <canvas id="hud" aria-label="Battle map. Drag on the sea to plot the selected ship's course; tap an enemy to engage."></canvas>
 </div>
 
 <div class="coach" id="coach" hidden>
@@ -21,23 +21,26 @@
   <p class="coach-text" id="coachText"></p>
 </div>
 
-<!-- Main menu: the battle behind it is the hero; the menu sits low over a soft scrim -->
+<!-- Title page: the live sea above, a printed title page below (beside it in landscape) -->
 <div class="overlay menu-screen" id="menuScreen">
-  <div class="menu">
-    <header class="menu-head">
-      <p class="eyebrow">The Caribbean · 1655</p>
-      <h1 class="wordmark">Broadside<span aria-hidden="true">!</span></h1>
-      <p class="lede">Command a small English squadron against Spain, the pirates of the Brethren and, at last, La Gran Armada. Beat their captains and take their hats.</p>
-    </header>
-    <div class="menu-hats">
-      <p class="caption"><span>Hats won</span><span id="menuHatCount"></span></p>
-      <div class="hat-strip" id="menuHats"></div>
-    </div>
-    <div class="menu-actions">
-      <p class="error-text" id="glError" hidden>This game needs WebGL, and your browser didn't provide it. Try a recent Chrome or Safari.</p>
-      <button type="button" class="btn big" id="startBtn">Set sail</button>
-      <button type="button" class="btn text small" id="resetBtn">New campaign</button>
-    </div>
+  <div class="sheet title-page">
+    <h1 class="wordmark">Broadside!</h1>
+    <p class="title-sub">The sea-fights of an English captain in the West&nbsp;Indies, and the hats he&nbsp;took.</p>
+    <p class="fleuron" aria-hidden="true">❧</p>
+    <p class="error-text" id="glError" hidden>This game needs WebGL, and your browser didn't provide it. Try a recent Chrome or Safari.</p>
+    <button type="button" class="btn big" id="startBtn">Set sail</button>
+    <p class="title-links">
+      <button type="button" class="btn text" id="resetBtn">New campaign</button>
+      <button type="button" class="btn text" id="settingsBtn">Settings</button>
+    </p>
+    <p class="imprint">Port Royal: <i>printed for the Admiralty, 1655.</i></p>
+  </div>
+</div>
+
+<!-- Settings, from the title page -->
+<div class="overlay" id="settingsScreen" hidden>
+  <div class="sheet panel narrow">
+    <h2>Settings</h2>
     <section class="settings" aria-label="Settings">
       <div class="setting">
         <div class="setting-row">
@@ -64,133 +67,121 @@
         </div>
       </div>
     </section>
+    <div class="row actions">
+      <button type="button" class="btn" id="settingsDone">Done</button>
+    </div>
   </div>
 </div>
 
-<!-- Sea chart: pick a battle -->
+<!-- Sea chart: the map lies on the dark; chrome is set in paper-coloured type around it -->
 <div class="overlay chart-screen" id="chartScreen" hidden>
   <div class="chart-frame">
-    <button type="button" class="btn icon-btn chart-back" id="chartBack" aria-label="Menu" data-icon="back"><span class="btn-label">Menu</span></button>
-    <div class="chart-title">
-      <p class="eyebrow">Sea chart</p>
-      <h2>Choose a battle</h2>
-    </div>
-    <p class="purse" id="chartGold"></p>
+    <button type="button" class="btn text on-dark chart-back" id="chartBack" data-icon="back">Menu</button>
+    <p class="purse on-dark" id="chartGold"></p>
     <div class="chart-view">
       <div class="chart" id="chartList" role="group" aria-label="Sea chart of the Caribbean. Each battle is a button; scroll or drag to pan."></div>
     </div>
     <div class="chart-nav">
-      <button type="button" class="btn quiet" id="yardBtn" data-icon="ship">Shipyard</button>
-      <button type="button" class="btn quiet" id="hatsBtn" data-icon="hat">Hats</button>
+      <button type="button" class="btn quiet on-dark" id="yardBtn">Shipyard</button>
+      <button type="button" class="btn quiet on-dark" id="hatsBtn">Hats</button>
     </div>
   </div>
 </div>
 
-<!-- Shipyard -->
+<!-- Shipyard: a chandler's ledger -->
 <div class="overlay" id="yardScreen" hidden>
-  <div class="panel glass wide">
-    <div class="panel-head">
-      <div>
-        <p class="eyebrow">Port Royal</p>
-        <h2>Shipyard</h2>
-      </div>
+  <div class="sheet panel wide">
+    <header class="sheet-head">
+      <h2>Shipyard</h2>
       <p class="purse" id="yardGold"></p>
-    </div>
+    </header>
     <div class="ship-tabs" id="yardTabs" role="tablist" aria-label="Your fleet"></div>
     <div class="ship-card" id="yardShip" role="tabpanel"></div>
     <div class="hire" id="yardHire"></div>
-    <div class="row">
-      <button type="button" class="btn quiet" id="yardBack" data-icon="map">Back to the chart</button>
+    <div class="row foot">
+      <button type="button" class="btn quiet" id="yardBack">Back to the chart</button>
     </div>
   </div>
 </div>
 
-<!-- Hat collection -->
+<!-- Hats -->
 <div class="overlay" id="hatsScreen" hidden>
-  <div class="panel glass wide">
-    <div class="panel-head">
-      <div>
-        <p class="eyebrow">Captain's cabin</p>
-        <h2>Hat collection</h2>
-      </div>
+  <div class="sheet panel wide">
+    <header class="sheet-head">
+      <h2>A Cabinet of Hats</h2>
       <p class="tally" id="hatsTally"></p>
-    </div>
+    </header>
     <div class="hat-grid" id="hatGrid"></div>
-    <div class="row">
-      <button type="button" class="btn quiet" id="hatsBack" data-icon="map">Back to the chart</button>
+    <div class="row foot">
+      <button type="button" class="btn quiet" id="hatsBack">Back to the chart</button>
     </div>
   </div>
 </div>
 
-<!-- Battle briefing -->
+<!-- Battle briefing: the captain's log, then orders -->
 <div class="overlay" id="briefScreen" hidden>
-  <div class="panel paper split">
+  <div class="sheet panel split">
     <div class="col">
-      <p class="eyebrow" id="briefEyebrow"></p>
-      <h1 class="title-sm" id="briefTitle"></h1>
+      <p class="kicker" id="briefEyebrow"></p>
+      <h1 id="briefTitle"></h1>
+      <p class="dateline" id="briefWhere"></p>
       <div class="log" id="briefLog" hidden>
-        <p class="log-date" id="briefLogDate"></p>
         <p class="log-text" id="briefLogText"></p>
       </div>
       <p class="lede" id="briefText"></p>
     </div>
     <div class="col">
-    <div class="boss-card" id="briefBoss" hidden></div>
-    <ul class="orders" id="briefOrders"></ul>
-    <div class="row actions">
-      <button type="button" class="btn" id="sailBtn">Set sail</button>
-      <button type="button" class="btn quiet" id="briefBack" data-icon="map">Chart</button>
-    </div>
+      <div class="boss-line" id="briefBoss" hidden></div>
+      <div class="orders" id="briefOrders"></div>
+      <div class="row actions">
+        <button type="button" class="btn" id="sailBtn">Set sail</button>
+        <button type="button" class="btn quiet" id="briefBack">Chart</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- Pause -->
 <div class="overlay" id="pauseScreen" hidden>
-  <div class="panel glass split">
+  <div class="sheet panel split">
     <div class="col">
-    <div class="panel-head">
-      <div>
-        <p class="eyebrow">Paused</p>
-        <h2>Captain's cabin</h2>
-      </div>
-    </div>
-    <ul class="orders" id="pauseOrders"></ul>
+      <h1 class="title-sm">Hove to</h1>
+      <div class="orders" id="pauseOrders"></div>
     </div>
     <div class="col">
-    <section class="settings" aria-label="Settings">
-      <div class="setting">
+      <section class="settings" aria-label="Settings">
+        <div class="setting">
+          <div class="setting-row">
+            <span class="setting-label" id="fireLabelB">Gunnery</span>
+            <div class="toggle" role="group" aria-labelledby="fireLabelB">
+              <button type="button" id="fireAutoB" data-fire="auto">Auto</button>
+              <button type="button" id="fireManualB" data-fire="manual">Manual</button>
+            </div>
+          </div>
+          <p class="setting-note" id="fireNoteB"></p>
+        </div>
         <div class="setting-row">
-          <span class="setting-label" id="fireLabelB">Gunnery</span>
-          <div class="toggle" role="group" aria-labelledby="fireLabelB">
-            <button type="button" id="fireAutoB" data-fire="auto">Auto</button>
-            <button type="button" id="fireManualB" data-fire="manual">Manual</button>
+          <span class="setting-label" id="musicLabel">Music</span>
+          <div class="toggle" role="group" aria-labelledby="musicLabel">
+            <button type="button" id="musicOn" data-music="on">On</button>
+            <button type="button" id="musicOff" data-music="off">Off</button>
           </div>
         </div>
-        <p class="setting-note" id="fireNoteB"></p>
-      </div>
-      <div class="setting-row">
-        <span class="setting-label" id="musicLabel">Music</span>
-        <div class="toggle" role="group" aria-labelledby="musicLabel">
-          <button type="button" id="musicOn" data-music="on">On</button>
-          <button type="button" id="musicOff" data-music="off">Off</button>
+        <div class="setting-row">
+          <span class="setting-label" id="soundLabel">Sound</span>
+          <div class="toggle" role="group" aria-labelledby="soundLabel">
+            <button type="button" id="soundOn" data-sound="on">On</button>
+            <button type="button" id="soundOff" data-sound="off">Off</button>
+          </div>
         </div>
+      </section>
+      <div class="row actions">
+        <button type="button" class="btn" id="resumeBtn">Resume</button>
+        <button type="button" class="btn quiet" id="restartBtn">Restart</button>
       </div>
-      <div class="setting-row">
-        <span class="setting-label" id="soundLabel">Sound</span>
-        <div class="toggle" role="group" aria-labelledby="soundLabel">
-          <button type="button" id="soundOn" data-sound="on">On</button>
-          <button type="button" id="soundOff" data-sound="off">Off</button>
-        </div>
-      </div>
-    </section>
-    <div class="row actions">
-      <button type="button" class="btn" id="resumeBtn" data-icon="play">Resume</button>
-      <button type="button" class="btn quiet" id="restartBtn" data-icon="restart">Restart</button>
-    </div>
-    <div class="row">
-      <button type="button" class="btn text small" id="retreatBtn">Retreat to the chart</button>
-    </div>
+      <p class="row center">
+        <button type="button" class="btn text" id="retreatBtn">Retreat to the chart</button>
+      </p>
     </div>
   </div>
 </div>
@@ -198,34 +189,34 @@
 <!-- Battle over -->
 <div class="overlay" id="endScreen" hidden>
   <div class="coin-layer" id="coinLayer" aria-hidden="true"></div>
-  <div class="panel paper end split">
+  <div class="sheet panel end split">
     <div class="col">
-      <p class="eyebrow" id="endEyebrow"></p>
+      <p class="kicker" id="endEyebrow"></p>
       <h1 id="endTitle">Victory!</h1>
       <div class="stars big" id="endStars" aria-hidden="true"></div>
-      <p class="lede" id="endText"></p>
       <p class="reward" id="endReward" hidden></p>
+      <p class="lede" id="endText"></p>
       <div class="hat-won" id="endHat" hidden></div>
     </div>
     <div class="col">
-    <div class="log" id="endLog" hidden>
-      <p class="log-date" id="endLogDate"></p>
-      <p class="log-text" id="endLogText"></p>
-    </div>
-    <dl class="stats">
-      <div><dt>Time</dt><dd id="statTime">0:00</dd></div>
-      <div><dt>Hit rate</dt><dd id="statHits">0%</dd></div>
-      <div><dt>Ships lost</dt><dd id="statLost">0</dd></div>
-    </dl>
-    <div class="row actions">
-      <button type="button" class="btn" id="endPrimary">Next battle</button>
-      <button type="button" class="btn quiet" id="endChart" data-icon="map">Sea chart</button>
-    </div>
+      <div class="log" id="endLog" hidden>
+        <p class="log-text" id="endLogText"></p>
+        <p class="log-date" id="endLogDate"></p>
+      </div>
+      <dl class="stats">
+        <div><dt>Time</dt><dd id="statTime">0:00</dd></div>
+        <div><dt>Hit rate</dt><dd id="statHits">0%</dd></div>
+        <div><dt>Ships lost</dt><dd id="statLost">0</dd></div>
+      </dl>
+      <div class="row actions">
+        <button type="button" class="btn" id="endPrimary">Next battle</button>
+        <button type="button" class="btn quiet" id="endChart">Sea chart</button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Boss intro card: shown for a moment when a boss battle begins; tap to skip -->
+<!-- Boss intro: a printed notice, shown for a moment when a boss battle begins; tap to skip -->
 <div class="boss-intro" id="bossIntro" hidden role="dialog" aria-label="Boss battle" aria-live="assertive"></div>
 
 <script type="module" src="/src/main.js"></script>
