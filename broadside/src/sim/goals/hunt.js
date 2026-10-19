@@ -3,7 +3,6 @@ import { shipMark } from './marks.js';
 
 // Sink (or take) the named enemy ships; the rest of the enemy can be left alone. A quarry that gets away (the
 // flee ability, a retreat event) loses the battle. Quarry may arrive later in the battle by a spawn event.
-const RED = '#ff8a7a';
 const quarry = (o, G) => G.ships.filter((s) => s.origTeam === 'enemy' && names(o.ships).includes(s.name));
 const gone = (s) => s.state === 'sinking' || s.state === 'sunk' || s.team === 'player';
 const list = (n) => (n.length > 1 ? `${n.slice(0, -1).join(', ')} and ${n[n.length - 1]}` : n[0]);
@@ -25,7 +24,7 @@ export default {
     return lines;
   },
   draw(o, G, api) {
-    for (const s of quarry(o, G)) if (s.team === 'enemy') shipMark(api, s, 'Target', RED, false);
+    for (const s of quarry(o, G)) if (s.team === 'enemy') shipMark(api, s, 'Target', api.MARK.enemy, false);
   },
   brief(o, B) {
     const n = names(o.ships), runs = B.enemy.some((d) => n.includes(d.name) && d.abilities && d.abilities.flee);

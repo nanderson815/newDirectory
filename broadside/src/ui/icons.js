@@ -120,6 +120,8 @@ export const ICONS = {
     { d: circle(12, 12, 5.6) }, { d: circle(12, 12, 1.6), f: 'fill' },
     { d: 'M12 2.2V21.8M2.2 12H21.8M5.1 5.1L18.9 18.9M18.9 5.1L5.1 18.9', w: 1.7 },
   ],
+  // A sight: hand the camera back to the director.
+  recentre: [{ d: circle(12, 12, 6.2) }, { d: circle(12, 12, 1.7), f: 'fill' }, { d: 'M12 2.6V5.4M12 18.6V21.4M2.6 12H5.4M18.6 12H21.4' }],
   map: [{ d: 'M3 6.2L8.6 4L15.4 6.4L21 4.2V17.8L15.4 20L8.6 17.6L3 19.8Z' }, { d: 'M8.6 4V17.6M15.4 6.4V20', w: 1.5 }],
   ship: [
     { d: 'M12 2.8V15' },

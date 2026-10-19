@@ -48,9 +48,8 @@ export const FONT = {
   display: '"Fraunces", "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Charter, "Bitstream Charter", Georgia, "Noto Serif", serif',
   ui: '"Source Sans 3", "Source Sans Pro", Seravek, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Inter, system-ui, sans-serif',
 };
-// The Google Fonts request (index.html links the same URL). Lilita One is the old HUD face, kept only until
-// the HUD moves onto src/hud/style.js; drop it then.
-export const FONT_URL = 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,500..800,60;1,9..144,400..600,60&family=Source+Sans+3:wght@400..700&family=Lilita+One&display=swap';
+// The Google Fonts request (index.html links the same URL).
+export const FONT_URL = 'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,500..800,60;1,9..144,400..600,60&family=Source+Sans+3:wght@400..700&display=swap';
 
 // Type scale in CSS px: [size, line-height, weight]. Display sizes use Fraunces, the rest Source Sans 3.
 export const TYPE = {

@@ -50,6 +50,19 @@ export function drawKitDemo(ctx, w, h, now = 0) {
   K.button(ctx, L + 246, y, w - L * 2 - 246, 40, { label: 'Drop mine', icon: 'mine', sub: '×2 left' });
   y += 54;
 
+  head('Action tiles · reload, on, count, main, loaded');
+  const tiles = [
+    { icon: 'firePort', label: 'Port', progress: 0.4 }, { icon: 'anchor', label: 'Weigh', state: 'active' }, { icon: 'mine', label: 'Mine', count: 2 },
+    { icon: 'board', label: '12 v 8', variant: 'gold' }, { icon: 'land', label: 'need 8', state: 'disabled' }, { icon: 'fireStarboard', label: 'Starboard', ready: true },
+  ];
+  const tw = (w - L * 2 - 8 * (tiles.length - 1)) / tiles.length;
+  tiles.forEach((o, i) => {
+    const x = L + i * (tw + 8);
+    K.button(ctx, x, y, tw, 52, { ...o, stack: true });
+    if (o.count) K.badge(ctx, x + tw - 8, y + 8, o.count, { size: 10 });
+  });
+  y += 66;
+
   head('Icon buttons · progress, active, badge, ready');
   const ib = [
     { icon: 'pause' }, { icon: 'fleet', active: true }, { icon: 'anchor', badge: 'On' }, { icon: 'mine', badge: 2 },
@@ -64,8 +77,12 @@ export function drawKitDemo(ctx, w, h, now = 0) {
   K.text(ctx, 'Frigate', L + 80, y + 10, { size: 12, color: C.onGlass2 });
   K.text(ctx, '★ Flagship', L + 140, y + 10, { size: 12, weight: 700, color: P.goldHi });
   K.text(ctx, 'Rigging cut', L + 220, y + 10, { size: 12, weight: 600, color: '#ffd2c6' });
-  K.text(ctx, '−24', w - 40, y + 10, { size: 20, weight: 650, face: 'display', color: '#fff1c4', align: 'center', halo: 'strong' });
   y += 24;
+  K.floater(ctx, L + 30, y + 16, { value: '\u221224', age: 0.4, size: 21 });
+  K.floater(ctx, L + 90, y + 16, { value: '\u22128', tone: 'hurt', age: 0.4, size: 17 });
+  K.floater(ctx, L + 160, y + 16, { value: '\u221231', word: 'Raked!', tone: 'gold', age: 0.4, size: 22 });
+  K.floater(ctx, L + 250, y + 16, { word: 'Mast down!', age: 0.4 });
+  y += 36;
   K.text(ctx, 'Sink the boss · Enemy ships 3', L, y + 10, { size: 13, weight: 600, color: C.onGlass });
   K.caption(ctx, 'Wind · fresh breeze', w - L, y + 10, { align: 'right' });
   y += 30;
