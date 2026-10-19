@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import { TAU, PI, clamp, lerp } from '../util.js';
-import { toon, withOutline, R } from './gl.js';
+import { TAU, PI } from '../util.js';
+import { toon, withOutline } from './gl.js';
 import { hullShape, liftedExtrude } from './shapes.js';
-import { RING } from '../sim/land.js';
 
 // Landmark and plant models for render/land.js. Every builder works in the landmark's own frame: the group sits
 // on the ground at its spot with +x facing out to sea (or into the wind, for a windmill). Builders register
@@ -516,4 +515,3 @@ export function buoys(root, x, z, r, n) {
     add(b, new THREE.ConeGeometry(0.9, 1.6, 6), '#c8302a', 0, 2.6, 0);
   }
 }
-export { RING };

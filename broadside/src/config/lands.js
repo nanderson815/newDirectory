@@ -66,12 +66,12 @@ export const LANDS = {
   },
 
   // ---------- The Spanish Main ----------
-  // San Lucas: a whitewashed town under the fort, a harbour that serves whoever holds it, a mission on the hill.
+  // San Lucas: a whitewashed town under the fort (bombard it for its silver), its wharf, a mission on the hill.
   sanlucas: {
     relief: [{ island: 0, height: 0.8 }, { island: 1, height: 0.9 }, { island: 2, height: 1.1, cliffs: 0.4, at: 0 }],
     landmarks: [
       { kind: 'town', island: 0, at: 115, d: 0.66, houses: 6, name: 'San Lucas', loot: 120 },
-      { kind: 'harbour', island: 0, at: 50 },
+      { kind: 'harbour', island: 0, at: 50, rate: 0 },
       { kind: 'church', island: 1, at: 200, d: 0.25 },
       { kind: 'windmill', island: 2, at: 160, d: 0.3 },
     ],
@@ -88,13 +88,14 @@ export const LANDS = {
       { kind: 'ruin', island: 1, at: 0, d: 0.2 },
     ],
   },
-  // San Cristóbal: the Comodoro's anchorage between two fort islands.
+  // San Cristóbal: the Comodoro's anchorage between two fort islands. Take Santa Inés and its harbour patches
+  // your hulls.
   comodoro: {
     relief: [{ island: 0, height: 0.8 }, { island: 1, height: 0.8 }, { island: 2, height: 1.2, cliffs: 0.3, at: 90 }],
     landmarks: [
       { kind: 'town', island: 0, at: 150, d: 0.75, houses: 5, name: 'Santa Fe' },
       { kind: 'town', island: 1, at: 30, d: 0.75, houses: 5, name: 'Santa Inés' },
-      { kind: 'harbour', island: 1, at: 100, rate: 0 },
+      { kind: 'harbour', island: 1, at: 100 },
       { kind: 'church', island: 2, at: 0, d: 0.1 },
     ],
   },

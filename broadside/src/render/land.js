@@ -1,10 +1,9 @@
 import * as THREE from 'three';
-import { S } from '../state.js';
 import { TAU, PI, clamp, lerp, angDiff } from '../util.js';
 import { R, toon } from './gl.js';
 import { wx, wz, cam } from './camera.js';
 import { bakeStatic, FORT_BASE_Y } from './models.js';
-import { capsuleRadius, coastDepth, coastPoint, coreDist, coastGap } from '../sim/terrain.js';
+import { coastDepth, coastPoint, coreDist, coastGap } from '../sim/terrain.js';
 import { placer } from '../sim/battle.js';
 import { LANDMARKS, RING } from '../sim/land.js';
 import { BUILD, palm, broadleaf, pine, cactus, agave, bush, canopy, mangrove, flagCloth, buoys, sharedGeos } from './landmarks.js';
@@ -521,15 +520,17 @@ export function buildLand(G) {
       }
       // Woods: canopies packed where the forest noise is high, a few lone trees in the meadows between.
       const conifer = !!st.trees.pine;
-      for (let t = -0.12; t < 1.12; t += 0.011) {
-        for (let s0 = 52; s0 < 330; s0 += 18) {
+      for (let t = -0.12; t < 1.12; t += 0.014) {
+        // Past the map's edge (plus the margin the camera may show) nobody will ever see a tree.
+        const sMax = Math.min(330, coastDepth(cr.def, clamp(t, -0.08, 1.08)) * cr.across + 110);
+        for (let s0 = 52; s0 < sMax; s0 += 21) {
           const s = s0 + r(-6, 6), [mx, my] = cr.point(t + r(-0.004, 0.004), s);
-          const f = cr.forest(mx, my), p = f > 0.52 ? 0.8 * st.forest : 0.05;
+          const f = cr.forest(mx, my), p = f > 0.52 ? 0.66 * st.forest : 0.04;
           if (r() > p || !clear(mx, my, 6)) continue;
           const y = cr.h(t, s, null, mx, my), big = f > 0.6 ? 1.25 : 1;
           if (conifer && r() < 0.55) pine(g, wx(mx), y, wz(my), r(0.95, 1.3) * big, r, st.canopy);
           else if (st.trees.cactus && f < 0.6 && r() < 0.5) plant(r() < 0.5 ? 'cactus' : 'agave', g, wx(mx), y, wz(my), r(0.9, 1.2), r, st, vegCtx);
-          else canopy(g, wx(mx), y, wz(my), r(0.8, 1.1) * big, r, st.canopy, s0 < 80 || f < 0.56);
+          else canopy(g, wx(mx), y, wz(my), r(0.9, 1.2) * big, r, st.canopy, s0 < 80 || f < 0.56);
         }
       }
     }

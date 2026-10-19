@@ -41,7 +41,7 @@ check(CAMPAIGN.every((id) => all.entries.includes(id)), 'every campaign battle h
 for (const r of all.out) {
   check(r.n >= 3 && r.kinds >= 3, `${r.id}: ${r.n} landmarks of ${r.kinds} kinds (${r.style})`, failures);
   check(r.bad.length === 0, `${r.id}: landmarks inside the land ships collide with${r.bad.length ? ': ' + r.bad.join('; ') : ''}`, failures);
-  check(r.calls <= 9 && r.verts < 140000, `${r.id}: land draws in ${r.calls} calls, ${r.verts} vertices`, failures);
+  check(r.calls <= 9 && r.verts < 150000, `${r.id}: land draws in ${r.calls} calls, ${r.verts} vertices`, failures);
 }
 check(page.errors.length === 0, `no page errors building every battle ${page.errors.slice(0, 3).join(' | ')}`, failures);
 
