@@ -110,29 +110,36 @@ function goalText(B) {
   if (B.tutorial) return 'Follow your bosun’s orders, then sink the old hulk.';
   return briefText(B);
 }
-// The battle's own advice, less anything the captain's log has already said: a sentence that shares a run of
-// three words with the log is dropped, so the briefing never tells the same story twice.
-function counsel(B) {
-  const log = STORY[B.id] && STORY[B.id].before;
+// The battle's own advice, less anything the sheet already says. A sentence is dropped when half or more of its
+// content words (stemmed to five letters) already appear in the log, the orders or the notes, so the briefing
+// never tells the same thing twice.
+const STOP = new Set(['they', 'them', 'then', 'their', 'there', 'will', 'from', 'with', 'that', 'this', 'your', 'into',
+  'before', 'after', 'while', 'when', 'where', 'what', 'which', 'more', 'most', 'some', 'only', 'each', 'every', 'have', 'here']);
+const stems = (t) => String(t).toLowerCase().replace(/<[^>]+>/g, ' ').replace(/[^a-záéíóúñ ]+/g, ' ').split(/\s+/)
+  .filter((w) => w.length > 3 && !STOP.has(w)).map((w) => w.slice(0, 5));
+function counsel(B, said) {
   const sentences = String(B.brief || '').split(/(?<=[.!?])\s+/).filter(Boolean);
-  if (!log) return sentences.join(' ');
-  const words = (t) => t.toLowerCase().replace(/[^a-záéíóúñ' ]+/g, ' ').split(/\s+/).filter(Boolean);
-  const lw = words(log), tri = new Set(lw.slice(2).map((w, i) => `${lw[i]} ${lw[i + 1]} ${w}`));
-  return sentences.filter((t) => { const w = words(t); return !w.slice(2).some((x, i) => tri.has(`${w[i]} ${w[i + 1]} ${x}`)); }).join(' ');
+  const known = new Set(stems(said));
+  return sentences.filter((t) => { const w = stems(t); return !w.length || w.filter((x) => known.has(x)).length / w.length < 0.5; }).join(' ');
 }
 // Orders as a printed order reads: paragraphs with run-in small-capital heads. `withCounsel` adds the battle's
 // advice (the briefing shows it as its lede instead when there is no log entry).
 function ordersHTML(B, { withCounsel = true } = {}) {
   const h = (t) => `<span class="h">${t}.</span> `;
   const p = [`<p>${h('Orders')}${esc(goalText(B))}</p>`];
-  const advice = withCounsel && !B.tutorial ? counsel(B) : '';
+  let roster = -1;
   if (mainGoal(B) === 'waves') p.push(`<p>Between waves your ships patch a quarter of their hull and restock mines. Each wave beaten pays ${WAVE_GOLD} gold.${save.best ? ` Your best is wave ${save.best}.` : ''}</p>`);
-  else if (!B.tutorial) p.push(`<p>${h('Against you')}${esc(rosterText(B))}.${advice ? ' ' + esc(advice) : ''}</p>`);
+  else if (!B.tutorial) roster = p.push(`${h('Against you')}${esc(rosterText(B))}.`) - 1;
   if (B.fog) p.push(`<p>${h('Fog')}Your lookouts see only ships close to your own. Keep the fleet together and watch the edges of the murk.</p>`);
   if (ownForts(B).length) p.push('<p>Your fort’s guns fire on anything in range, but it cannot dodge. Hunt down the bomb ketches before they wear it down.</p>');
   if (enemyForts(B).length) p.push('<p>Forts fire in every direction. Once one is silenced, stop a ship beside it and tap <i>Land</i>.</p>');
   if (S.G && S.G.ships.some((s) => s.team === 'player' && s.mines > 0)) p.push('<p>A ship with mines can tap <i>Mine</i> to leave one astern.</p>');
   if (!B.tutorial && mainGoal(B) !== 'boss' && mainGoal(B) !== 'breakthrough') p.push(`<p>Batter an enemy below ${Math.round(BOARDING.hpFrac * 100)}% hull, come alongside and tap <i>Board</i> to take her as a prize, worth ${BOARDING.prizeGold} gold.</p>`);
+  // The battle's own advice joins the roster, less whatever the log and the paragraphs above already say.
+  if (roster >= 0) {
+    const advice = withCounsel ? counsel(B, [(STORY[B.id] || {}).before || '', ...p].join(' ')) : '';
+    p[roster] = `<p>${p[roster]}${advice ? ' ' + esc(advice) : ''}</p>`;
+  }
   if (!B.tutorial) p.push('<p class="note">Drag on the sea to plot a course, or tap it to sail straight there; tap an enemy to engage. Pinch to zoom, double-tap to recentre.</p>');
   return p.join('');
 }
@@ -275,7 +282,9 @@ export function openBrief(i) {
     : B.tutorial ? 'Before the first engagement' : ORDINALS[n] ? `The ${ORDINALS[n]} engagement` : `Battle ${B.roman}`;
   $('briefTitle').textContent = B.name;
   const log = STORY[B.id];
-  $('briefWhere').textContent = [WHERE[B.region], log ? logDate(B.id, B.year) : B.year].filter(Boolean).join(', ');
+  // The chart region names the waters, unless the battle is plainly somewhere else (the siege is at Port Royal).
+  const elsewhere = B.region !== 'port' && /Port Royal/.test(`${B.name} ${log ? log.before : ''}`);
+  $('briefWhere').textContent = [elsewhere ? '' : WHERE[B.region], log ? logDate(B.id, B.year) : B.year].filter(Boolean).join(', ');
   // The log is the hook; without one, the battle's own description takes its place.
   $('briefLog').hidden = !log;
   $('briefText').hidden = !!log;
