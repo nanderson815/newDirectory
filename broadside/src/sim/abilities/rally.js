@@ -2,6 +2,8 @@ import { S, afloat } from '../../state.js';
 
 // A flagship's example: friendly ships within `radius` of her reload in `reload` times the usual time (0.7: 30%
 // faster). Several rally ships don't stack. The HUD rings her radius so you can keep the line close.
+const DASH = [3, 9];
+
 export default {
   id: 'rally',
   about: 'Friendly ships near her reload faster.',
@@ -17,10 +19,7 @@ export default {
     }
   },
   draw(s, a, api) {
-    const { ctx } = api;
     api.seaCircle(s.x, s.y, a.radius, 56);
-    ctx.setLineDash([5, 11]); ctx.lineDashOffset = -S.clock * 10;
-    ctx.lineWidth = 2.5; ctx.strokeStyle = s.team === 'player' ? 'rgba(255,214,90,0.6)' : 'rgba(255,110,90,0.6)'; ctx.stroke();
-    ctx.setLineDash([]); ctx.lineDashOffset = 0;
+    api.stroke(s.team === 'player' ? 'rgba(246,210,122,0.5)' : 'rgba(239,106,88,0.5)', { width: 1, dash: DASH, offset: -S.clock * 8 });
   },
 };

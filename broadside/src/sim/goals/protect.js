@@ -6,7 +6,7 @@ import { ring, shipMark } from './marks.js';
 // first); `allies` are ship defs this goal adds as allied captains who fight on their own. Without `secs` it is
 // met as long as nothing is lost, so pair it with a goal that ends the battle; with `secs` it ends the battle.
 // Enemy captains go for whatever you're guarding first.
-const BLUE = '#8fd0ff';
+const BLUE = '#9cc4ee';
 const clock = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 // The guarded ships, found by name the first time they're needed: other goals may add them after this one's setup.
 function guarded(o, G) {
@@ -55,7 +55,7 @@ export default {
       const is = G.islands[f.island];
       ring(api, f.x, f.y, is.r + 16, BLUE, true);
       const q = api.projTo(f.x, f.y + is.r + 16, 4);
-      api.outlinedText('Protect', q.x, q.y + 11, 12, BLUE, 'center');
+      api.label('Protect', q.x, q.y + 10, BLUE);
     }
   },
   brief: (o, B) => `Keep ${who(o, B)} safe${o.secs ? ` for ${clock(o.secs)}` : ''}: lose ${names(o.ships).length + (o.allies || []).length + names(o.forts).length > 1 ? 'any of them' : 'it'} and the battle is lost.`,

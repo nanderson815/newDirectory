@@ -25,6 +25,6 @@ export default {
   draw(s, a, api) {
     if (!s.repairing) return;
     const q = api.above(s);
-    api.outlinedText('Repairing', q.x, q.y + 27, 11, '#9fe08a', 'center');
+    api.label('Repairing', q.x, q.y + 24, api.P.greenHi, { size: 9 });
   },
 };
