@@ -180,7 +180,7 @@ function drawPivot(s, active) {
   ctx.closePath(); ctx.fillStyle = col; ctx.fill();
 }
 
-// The chosen ship: a fine gold ring on the water.
+// The chosen ship: a fine gilt ring on the water.
 function drawSelected(s) {
   seaCircle(s.x, s.y, s.L * 0.62, 40);
   seaStroke(ctx, { color: tint(MARK.chosen, 0.92), width: LINE.thin, under: 0.24 });
@@ -260,9 +260,20 @@ function drawFloaters() {
     const v = word || f.value == null ? null : Math.round(f.value);
     const tone = f.tone || (f.team === 'player' ? 'hurt' : 'hit');
     const size = v != null ? Math.min(24, 15 + Math.sqrt(Math.max(0, v)) * 1.4) : 13;
-    floater(ctx, q.x + (word ? 0 : Math.sin(f.born * 13) * 8), q.y, { value: v != null ? numStr(v) : null, word: f.text || null, tone, age, dur, size });
+    const fx = q.x + (word ? 0 : Math.sin(f.born * 13) * 8);
+    // Behind the fleet dock, the objective lines or a banner a callout would only be noise: let it ghost.
+    ctx.globalAlpha = behindChrome(fx, q.y) ? 0.14 : 1;
+    floater(ctx, fx, q.y, { value: v != null ? numStr(v) : null, word: f.text || null, tone, age, dur, size });
+    ctx.globalAlpha = 1;
   }
 }
+function behindChrome(x, y) {
+  if (inBox(lastDock, x, y, 18) || inBox(lastObj, x, y, 18)) return true;
+  // A banner sits a third of the way down the screen.
+  const bn = S.banner;
+  return !!bn && S.clock < bn.until && Math.abs(y - S.view.ch * 0.3) < 70;
+}
+
 // "−12" with a true minus sign, cached.
 const nums = new Map();
 const numStr = (v) => { let s = nums.get(v); if (!s) { s = `−${v}`; nums.set(v, s); } return s; };
@@ -382,6 +393,10 @@ function drawMarkers(G) {
 // Layout edges for this frame (safe area + the 12 px HUD edge), and the boxes chevrons keep clear of.
 const box = { L: 0, T: 0, R: 0, B: 0 };
 const dockBox = { x: 0, y: 0, w: 0, h: 0 }, colBox = { x: 0, y: 0, w: 0, h: 0 }, barBox = { x: 0, y: 0, w: 0, h: 0 };
+// The objective lines under the wind rose. Floaters are drawn before the dock and the column measure themselves,
+// so they fade behind last frame's boxes.
+const objBox = { x: 0, y: 0, w: 0, h: 0 };
+const lastDock = { x: 0, y: 0, w: 0, h: 0 }, lastObj = { x: 0, y: 0, w: 0, h: 0 };
 const pauseRect = { x: 0, y: 0, r: 0 }, recentreRect = { x: 0, y: 0, r: 0 };
 
 // The fleet dock, top left, with no box round it: a 44 px row per ship you command, her name (soft-shadowed, like
@@ -504,6 +519,7 @@ function drawColumn(G) {
     text(ctx, lines[i], box.R, y, { size: first ? 13 : 12, weight: first ? 600 : 500, color: first ? C.onGlass : C.onGlass2, align: 'right', halo: 'soft', maxWidth: maxW });
     y += first ? 18 : 16;
   }
+  objBox.x = box.R - maxW; objBox.y = wy + wr + 16; objBox.w = maxW; objBox.h = y - objBox.y;
   colBox.x = box.R - K.button; colBox.y = box.T; colBox.w = K.button; colBox.h = wy + wr + 14 - box.T;
 }
 
@@ -610,6 +626,8 @@ function drawChevrons() {
     // Slide along the edge out from under the dock, the right-hand column and the action bar.
     if (inBox(dockBox, x, y, 10)) { if (Math.abs(dy) * hw > Math.abs(dx) * hh) x = dockBox.x + dockBox.w + 14; else y = dockBox.y + dockBox.h + 14; }
     if (inBox(colBox, x, y, 10)) { if (Math.abs(dy) * hw > Math.abs(dx) * hh) x = colBox.x - 14; else y = colBox.y + colBox.h + 14; }
+    // Below the wind rose the objective lines run along the right edge: an arrow there slides down past them.
+    if (inBox(objBox, x, y, 8) && x > objBox.x + objBox.w * 0.5) y = objBox.y + objBox.h + 14;
     if (inBox(barBox, x, y, 12)) x = x < barBox.x + barBox.w / 2 ? barBox.x - 16 : barBox.x + barBox.w + 16;
     S.hud.chevrons++;
     const far = Math.hypot(dx, dy) / Math.hypot(cw, ch);
@@ -628,7 +646,8 @@ export function drawHUD() {
   if (!G || !R.renderer) return;
   if (ghostsOf !== G) { ghosts.clear(); ghostsOf = G; rowsKey = -1; }
   box.L = ins.l + K.edge; box.T = ins.t + K.edge; box.R = cw - ins.r - K.edge; box.B = ch - ins.b - K.edge;
-  dockBox.w = colBox.w = barBox.w = 0; bossBottom = 0;
+  Object.assign(lastDock, dockBox); Object.assign(lastObj, objBox);
+  dockBox.w = colBox.w = barBox.w = objBox.w = 0; bossBottom = 0;
   // A ship is always selected: if yours goes down (or is taken), the next one in the line steps up.
   if (!commandable(S.selected)) S.selected = G.ships.find(commandable) || S.selected;
   const sel = commandable(S.selected) ? S.selected : null;
