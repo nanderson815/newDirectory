@@ -20,12 +20,31 @@
   function circle(s, t, G) {
     const a = Math.atan2(s.y - t.y, s.x - t.x) + 0.9;
     const d = s.range * 0.6 + (t.kind === 'fort' ? G.islands[t.island].r : 0);
-    s.pivot = null;
+    s.pivot = null; s.order = null;
     // Swing the mark round the target until it's in open water.
     for (const k of [0, 0.5, -0.5, 1, -1, 1.6, -1.6, 2.3, -2.3, Math.PI]) {
       const p = clampTo(G, { x: t.x + Math.cos(a + k) * d, y: t.y + Math.sin(a + k) * d });
       if (!blocked(s, p) || k === Math.PI) { s.path = [p]; return; }
     }
+  }
+
+  // Sail out of a red ring (an enemy mortar shell's landing spot), as the HUD tip says: of a few headings,
+  // take the one that leaves the ring soonest without turning the ship round. Returns a point, or null.
+  function dodge(s, shells, G) {
+    for (const b of shells) {
+      const reach = b.radius + s.L * 0.45;
+      if (Math.hypot(s.x - b.tx, s.y - b.ty) > reach) continue;
+      const away = Math.atan2(s.y - b.ty, s.x - b.tx);
+      let best = null, bs = -Infinity;
+      for (const a of [away, s.h, s.h + 0.8, s.h - 0.8, s.h + Math.PI / 2, s.h - Math.PI / 2]) {
+        const p = { x: s.x + Math.cos(a) * (reach + 30), y: s.y + Math.sin(a) * (reach + 30) };
+        const turn = Math.abs(Math.atan2(Math.sin(a - s.h), Math.cos(a - s.h)));
+        const score = Math.hypot(p.x - b.tx, p.y - b.ty) - turn * 25;
+        if (score > bs) { bs = score; best = p; }
+      }
+      return clampTo(G, best);
+    }
+    return null;
   }
 
   const GOAL_ORDERS = {
@@ -89,6 +108,7 @@
         hostileForts: G.forts.filter((f) => f.team === 'enemy' && f.state === 'active'),
       };
       const silent = G.forts.filter((f) => f.state !== 'active');
+      const shells = B().S.balls.filter((b) => b.kind === 'shell' && b.team === 'enemy' && b.u < 0.8);
       // Give up on a lander that sank, was taken by boarders or no longer has the marines for any fort.
       if (lander && (!live(lander) || lander.team !== 'player' || !silent.some((q) => lander.marines >= q.need || q.capture))) lander = null;
       for (const s of ships) {
@@ -102,12 +122,14 @@
             const is = G.islands[f.island];
             const a = Math.atan2(s.y - is.y, s.x - is.x);
             const d = is.r * 1.05 + s.L * 0.42 + 18;
-            s.pivot = null;
+            s.pivot = null; s.order = null;
             s.path = [clampTo(G, { x: is.x + Math.cos(a) * d, y: is.y + Math.sin(a) * d })];
             continue;
           }
         }
         if (s.mines > 0 && enemies.some((e) => Math.hypot(e.x - s.x, e.y - s.y) < 120)) B().dropMine(s);
+        const out = dodge(s, shells, G);
+        if (out) { s.pivot = null; s.path = [out]; continue; }
         // Fireships closing in come first; then whatever the battle's goals ask for.
         const fire = enemies.filter((e) => e.fireship && Math.hypot(e.x - s.x, e.y - s.y) < 320);
         let order = fire.length && !s.flag ? { target: nearest(s, fire) } : null;
@@ -118,7 +140,7 @@
         }
         if (!order) { const t = nearest(s, enemies.length ? enemies : c.hostileForts); if (t) order = { target: t }; }
         if (!order) continue;
-        if (order.to) { s.pivot = null; s.path = [{ x: order.to.x, y: order.to.y }]; } else circle(s, order.target, G);
+        if (order.to) { s.pivot = null; s.order = null; s.path = [{ x: order.to.x, y: order.to.y }]; } else circle(s, order.target, G);
       }
     },
   };

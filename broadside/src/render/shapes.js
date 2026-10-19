@@ -40,7 +40,54 @@ export function sailGeometry(w, h) {
     pos.setX(i, w * 0.22 * (1 - z * z) * (0.75 + 0.25 * (1 - y * y)));
   }
   geo.computeVertexNormals();
+  // The belly at full draw; the rig shader takes it back out as the sail spills wind (see models.js).
+  const belly = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) belly[i * 3] = pos.getX(i);
+  geo.setAttribute('bulge', new THREE.BufferAttribute(belly, 3));
   return geo;
+}
+
+// A fore-and-aft or lateen sail: a bilinear patch over four corners ([x, y] in the pivot's x-y plane, u along
+// the foot from luff to leech, v from foot to head; pass the same point twice for a triangle). It bellies out
+// along z by up to `belly`, most at mid-chord.
+export function sailPatch(c00, c10, c01, c11, belly, su = 6, sv = 4) {
+  const pos = [], uv = [], bul = [], idx = [];
+  for (let j = 0; j <= sv; j++) {
+    const v = j / sv;
+    for (let i = 0; i <= su; i++) {
+      const u = i / su;
+      const bx = lerp(c00[0], c10[0], u), by = lerp(c00[1], c10[1], u);
+      const tx = lerp(c01[0], c11[0], u), ty = lerp(c01[1], c11[1], u);
+      const z = belly * Math.sin(Math.PI * u) * (0.55 + 0.45 * Math.sin(Math.PI * v));
+      pos.push(lerp(bx, tx, v), lerp(by, ty, v), z);
+      uv.push(u, v);
+      bul.push(0, 0, z);
+    }
+  }
+  for (let j = 0; j < sv; j++) for (let i = 0; i < su; i++) {
+    const a = j * (su + 1) + i, b = a + 1, c = a + su + 1, d = c + 1;
+    idx.push(a, b, c, b, d, c);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute('bulge', new THREE.Float32BufferAttribute(bul, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+
+// A fluyt's deck plan: a bluff bow, the beam carried well aft, then pinched in to a narrow high stern.
+export function pearShape(L, B) {
+  const l = L / 2, b = B / 2;
+  const sh = new THREE.Shape();
+  sh.moveTo(l, 0);
+  sh.bezierCurveTo(l * 0.98, -b * 0.72, l * 0.55, -b * 1.04, -l * 0.05, -b * 1.02);
+  sh.bezierCurveTo(-l * 0.6, -b, -l * 0.9, -b * 0.62, -l, -b * 0.42);
+  sh.lineTo(-l, b * 0.42);
+  sh.bezierCurveTo(-l * 0.9, b * 0.62, -l * 0.6, b, -l * 0.05, b * 1.02);
+  sh.bezierCurveTo(l * 0.55, b * 1.04, l * 0.98, b * 0.72, l, 0);
+  return sh;
 }
 
 // A unit-ellipse foam band with a scalloped edge, thicker at the bow (+x), for the hull foam collars.

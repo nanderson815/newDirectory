@@ -16,15 +16,16 @@ export async function launch() {
   return chromium.launch(opts);
 }
 
-// Opens the game. `save` seeds the campaign save; `fresh` clears it.
-export async function open(browser, { width = 390, height = 844, save = null } = {}) {
-  const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2, hasTouch: true, isMobile: width < height });
+// Opens the game. `save` seeds the campaign save; `fresh` clears it. `fonts: true` serves the real Google Fonts
+// from a local cache (tests/fonts.mjs) for screenshots; otherwise the page runs on its offline fallback faces.
+export async function open(browser, { width = 390, height = 844, save = null, fonts = false, reducedMotion = 'no-preference' } = {}) {
+  const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2, hasTouch: true, isMobile: width < height, reducedMotion });
   const page = await ctx.newPage();
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push('pageerror: ' + e.message));
   page.on('console', (m) => { if (m.type() === 'error') page.errors.push('console: ' + m.text()); });
-  // Fonts come from Google; offline runs just use the fallback faces.
-  await page.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
+  if (fonts) await (await import('./fonts.mjs')).routeFonts(page);
+  else await page.route('https://fonts.googleapis.com/**', (r) => r.fulfill({ body: '', contentType: 'text/css' }));
   // The single-file build loads three.js from jsDelivr; serve the installed copy so tests run offline.
   await page.route('https://cdn.jsdelivr.net/npm/three@*/build/three.module.js', (r) => r.fulfill({ path: path.join(ROOT, 'node_modules/three/build/three.module.js'), contentType: 'application/javascript', headers: { 'Access-Control-Allow-Origin': '*' } }));
   await page.addInitScript((s) => {
@@ -36,8 +37,8 @@ export async function open(browser, { width = 390, height = 844, save = null } =
   return page;
 }
 
-// Software WebGL renders slowly on a busy machine, so screenshots get longer than Playwright's default 30s.
-export const shot = (page, name) => page.screenshot({ path: path.join(OUT, name + '.png'), timeout: 120000 });
+// Generous timeout: on a busy machine a WebGL page can take minutes to hand over a frame.
+export const shot = (page, name) => page.screenshot({ path: path.join(OUT, name + '.png'), timeout: 240000 });
 
 // Runs the bot captain for up to `secs` of game time; returns the battle result or null.
 export async function botPlay(page, secs = 240) {

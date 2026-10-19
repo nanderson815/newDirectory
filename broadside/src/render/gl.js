@@ -42,6 +42,8 @@ export function initGL() {
     flash: new THREE.Color('#ffd65a'), fire: new THREE.Color('#ff8a2a'),
     splinter: new THREE.Color('#c48a4a'), plank: new THREE.Color('#9a6233'), sand: new THREE.Color('#e3c27e'),
     stone: new THREE.Color('#a39b8d'), minePlayer: new THREE.Color('#6fc0ff'), mineEnemy: new THREE.Color('#ff4a3a'),
+    gold: new THREE.Color('#ffd84a'), glint: new THREE.Color('#fff8d0'), flame: new THREE.Color('#ffb83a'),
+    ember: new THREE.Color('#ff5a1e'), shellSmoke: new THREE.Color('#d9d6d0'),
   };
   const scene = R.scene;
   // Weather (render/weather.js) recolours and re-aims these per battle.
@@ -85,7 +87,13 @@ export function initGL() {
   P.shipShadow.renderOrder = 1;
   P.foam = mkPool(foamCollarGeometry(), new THREE.MeshBasicMaterial({ color: 0xf2fbff, transparent: true, opacity: 0.8, depthWrite: false }), 32);
   P.foam.renderOrder = 2;
+  // Treasure chests (pools are built on first use by scene.js).
+  P.chest = P.chestInk = P.chestShadow = null;
+  P.mk = mkPool;
+  P.flatShadow = flatShadow;
   R.pools = P;
   R.vcToon = toon('#ffffff', { vertexColors: true });
+  // For screenshots and debugging from tests.
+  if (typeof window !== 'undefined') window.__broadsideR = R;
   return true;
 }

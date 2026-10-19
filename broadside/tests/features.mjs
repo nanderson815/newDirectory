@@ -21,14 +21,16 @@ await B(() => { const b = window.__broadside; b.S.selected = b.G.ships[0]; b.ste
 
 // ---------- Shot selector ----------
 console.log('Shot types');
-const chips = await B(() => window.__broadside.S.hud.ammo);
-check(chips.length === 3, 'Resolute shows Round, Chain and Grape chips', failures);
-const grape = chips.find((c) => c.kind === 'grape');
-if (grape) await tapRect(grape);
-check((await B(() => window.__broadside.G.ships[0].ammo)) === 'grape', 'tapping Grape loads grapeshot', failures);
-const chain = chips.find((c) => c.kind === 'chain');
-if (chain) await tapRect(chain);
-check((await B(() => window.__broadside.G.ships[0].ammo)) === 'chain', 'tapping Chain loads chain shot', failures);
+// One Shot button on the action bar cycles Round -> Chain -> Grape -> Round.
+const shotBtn = await B(() => window.__broadside.S.hud.actions.find((a) => a.kind === 'ammo'));
+check(!!shotBtn && shotBtn.w >= 44 && shotBtn.h >= 44, 'Resolute shows a Shot button on the action bar', failures);
+const ammoAfterTap = async () => { await tapRect(shotBtn); await B(() => window.__broadside.step(1)); return B(() => window.__broadside.G.ships[0].ammo); };
+check((await ammoAfterTap()) === 'chain', 'tapping Shot loads chain shot', failures);
+check((await ammoAfterTap()) === 'grape', 'tapping it again loads grapeshot', failures);
+check((await ammoAfterTap()) === 'round', 'and again goes back to round shot', failures);
+check((await ammoAfterTap()) === 'chain', 'chain shot loaded for the test below', failures);
+check(await B(() => { const b = window.__broadside; b.S.selected = b.G.ships.find((s) => s.ammoKinds.length === 1); b.step(1); return !b.S.hud.actions.some((a) => a.kind === 'ammo'); }), 'a ship with only round shot has no Shot button', failures);
+await B(() => { const b = window.__broadside; b.S.selected = b.G.ships[0]; b.step(1); });
 
 // Park an enemy brig on Resolute's beam and let the gun crews fire chain shot at it.
 await B(() => {
@@ -90,6 +92,9 @@ await B(() => {
   ev('pointerdown', pts[0]); for (const q of pts.slice(1)) ev('pointermove', q); ev('pointerup', pts[pts.length - 1]);
 });
 const withPaths = await B(() => window.__broadside.G.ships.filter((s) => s.team === 'player' && s.state === 'afloat' && !s.boarding && s.path.length).length);
+// The preview ribbons for the whole squadron are each ship's own real track.
+const previews = await B(() => window.__broadside.G.ships.filter((s) => s.team === 'player' && s.state === 'afloat' && s.path.length).map((s) => { const p = window.__broadside.preview(s.id); return p && p.n > 5; }));
+check(previews.length >= 3 && previews.every(Boolean), 'every ship in the squadron gets a course preview', failures);
 const fleetSize = await B(() => window.__broadside.G.ships.filter((s) => s.team === 'player' && s.state === 'afloat' && !s.boarding).length);
 check(withPaths === fleetSize && fleetSize >= 3, `one drawn course moves every ship (${withPaths}/${fleetSize})`, failures);
 await B(() => window.__broadside.step(30));

@@ -249,6 +249,7 @@ export function validateContent(C) {
     else for (const k of AI_FIELDS) if (!(isNum(B.ai[k]) && B.ai[k] >= 0)) bad(where, `ai.${k} must be a number of at least 0, got ${q(B.ai[k])}`);
     if (B.hat !== undefined && !HATS[B.hat]) bad(where, `hat ${q(B.hat)} is not in HATS (known: ${list(HATS)})`);
     if (B.fog !== undefined && !(isNum(B.fog) && B.fog >= 0)) bad(where, `fog must be a sight distance, got ${q(B.fog)}`);
+    if (B.sea !== undefined && !(isNum(B.sea) && B.sea >= 0.5 && B.sea <= 2.5)) bad(where, `sea must be a size multiplier between 0.5 and 2.5, got ${q(B.sea)}`);
 
     if (C.TERRAIN) {
       for (const [key, R] of Object.entries(C.TERRAIN)) {

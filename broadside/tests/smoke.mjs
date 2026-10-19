@@ -7,18 +7,19 @@ const browser = await launch();
 const allErrors = [];
 const finish = (page) => allErrors.push(...page.errors);
 
-// A quick finger drag along map points (map coords), sent as one gesture so slow test machines
-// can't mistake it for a press-and-hold.
+// A quick finger gesture along map points (map coords), sent as one burst of pointer events so slow test
+// machines can't split it. A single point is a tap.
 async function dragAlong(page, pts) {
   await page.evaluate((pts) => {
     const cv = document.getElementById('hud'), r = cv.getBoundingClientRect();
     const scr = pts.map((p) => window.__broadside.proj(p.x, p.y, p.z || 0));
     const ev = (type, q) => cv.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: r.left + q.x, clientY: r.top + q.y }));
     ev('pointerdown', scr[0]);
-    for (const q of scr.slice(2)) ev('pointermove', q);
+    for (const q of scr.slice(1)) ev('pointermove', q);
     ev('pointerup', scr[scr.length - 1]);
   }, pts);
 }
+const tutStep = (page) => page.evaluate(() => window.__broadside.G.tut.step);
 
 // ---------- Fresh campaign: menu -> tutorial ----------
 console.log('Tutorial');
@@ -32,40 +33,62 @@ console.log('Tutorial');
   await shot(page, '02-tutorial-brief');
   await page.click('#sailBtn');
   check(await page.isVisible('#coach'), 'coach panel appears', failures);
-  await page.evaluate(() => window.__broadside.step(20));
+  await page.evaluate(() => { window.__broadside.step(20); window.__broadside.settle(); });
   await shot(page, '03-tutorial-step1');
 
-  // Step 1: drag Swift to the buoy.
-  const g = await page.evaluate(() => { const G = window.__broadside.G, s = G.ships[0]; return { s: { x: s.x, y: s.y, z: 8 }, b: G.buoy }; });
-  const pts = [g.s]; for (let i = 1; i <= 12; i++) pts.push({ x: g.s.x + (g.b.x - g.s.x) * i / 12, y: g.s.y + (g.b.y - g.s.y) * i / 12 });
+  // Step 1: drag a course across open sea (not starting on Swift) to the buoy.
+  const g = await page.evaluate(() => { const G = window.__broadside.G, s = G.ships[0]; return { s: { x: s.x, y: s.y }, b: G.buoy }; });
+  const from = { x: g.s.x + (g.b.x - g.s.x) * 0.25 + 30, y: g.s.y + (g.b.y - g.s.y) * 0.25 };
+  const pts = [from]; for (let i = 1; i <= 10; i++) pts.push({ x: from.x + (g.b.x - from.x) * i / 10, y: from.y + (g.b.y - from.y) * i / 10 });
   await dragAlong(page, pts);
-  for (let i = 0; i < 20 && (await page.evaluate(() => window.__broadside.G.tut.step)) === 0; i++) await page.evaluate(() => window.__broadside.sim(30));
-  check((await page.evaluate(() => window.__broadside.G.tut.step)) === 1, 'reaching the buoy advances to step 2', failures);
+  const plotted = await page.evaluate(() => window.__broadside.G.ships[0].path.length);
+  check(plotted > 3, `a drag on open sea plots Swift's course (${plotted} points)`, failures);
+  for (let i = 0; i < 20 && (await tutStep(page)) === 0; i++) await page.evaluate(() => window.__broadside.sim(30));
+  check((await tutStep(page)) === 1, 'reaching the buoy advances to step 2', failures);
 
-  // Step 2: press and hold, then drag around.
-  const at = await page.evaluate(() => { const s = window.__broadside.G.ships[0]; return { c: window.__broadside.proj(s.x, s.y, 8), e: window.__broadside.proj(s.x + 90, s.y, 0) }; });
-  await page.mouse.move(at.c.x, at.c.y); await page.mouse.down();
-  await page.waitForTimeout(450);
-  await page.mouse.move(at.e.x, at.e.y, { steps: 4 });
+  // Step 2: tap the open sea to sail straight there.
+  await page.evaluate(() => window.__broadside.settle());
+  const tapAt = await page.evaluate(() => { const B = window.__broadside, s = B.G.ships[0]; return { x: Math.min(B.G.W - 60, s.x + 160), y: s.y - 60 }; });
+  await dragAlong(page, [tapAt]);
+  const tapped = await page.evaluate((t) => { const p = window.__broadside.G.ships[0].path; return p.length === 1 && Math.hypot(p[0].x - t.x, p[0].y - t.y) < 6; }, tapAt);
+  check(tapped, 'a tap on the sea sets a straight course to that point', failures);
+  await page.evaluate(() => window.__broadside.sim(5));
+  check((await tutStep(page)) === 2, 'tapping the sea advances to step 3', failures);
+
+  // Step 3: Anchor on the action bar, then drag around Swift to turn her on the spot.
+  await page.evaluate(() => window.__broadside.step(1));
+  const anchorBtn = await page.evaluate(() => window.__broadside.S.hud.actions.find((a) => a.kind === 'anchor'));
+  check(!!anchorBtn && anchorBtn.w >= 44 && anchorBtn.h >= 44, 'the action bar has an Anchor button (44px or more)', failures);
+  if (anchorBtn) await page.mouse.click(anchorBtn.x + anchorBtn.w / 2, anchorBtn.y + anchorBtn.h / 2);
+  check(await page.evaluate(() => window.__broadside.G.ships[0].pivot != null), 'tapping Anchor anchors Swift', failures);
+  const sw = await page.evaluate(() => { const s = window.__broadside.G.ships[0]; return { x: s.x, y: s.y, h: s.h }; });
+  const arc = []; for (let i = 0; i <= 8; i++) { const a = sw.h + 0.4 + i * 0.25; arc.push({ x: sw.x + Math.cos(a) * 110, y: sw.y + Math.sin(a) * 110 }); }
+  await dragAlong(page, arc);
+  const piv = await page.evaluate(() => window.__broadside.G.ships[0].pivot);
+  const want = Math.atan2(arc[8].y - sw.y, arc[8].x - sw.x);
+  check(piv != null && Math.abs(Math.atan2(Math.sin(piv - want), Math.cos(piv - want))) < 0.15, 'dragging around an anchored ship turns her toward the finger', failures);
   await page.evaluate(() => window.__broadside.step(10));
   await shot(page, '04-tutorial-anchor');
-  await page.mouse.up();
   await page.evaluate(() => window.__broadside.sim(5));
-  check((await page.evaluate(() => window.__broadside.G.tut.step)) === 2, 'hold-and-turn advances to step 3', failures);
+  check((await tutStep(page)) === 3, 'anchor-and-turn advances to step 4', failures);
 
-  // Step 3: tap to raise the anchor.
-  const c2 = await page.evaluate(() => { const s = window.__broadside.G.ships[0]; return window.__broadside.proj(s.x, s.y, 8); });
-  await page.mouse.click(c2.x, c2.y);
+  // Step 4: tap the hulk to engage her.
+  await page.evaluate(() => window.__broadside.settle());
+  const hulk = await page.evaluate(() => { const h = window.__broadside.G.ships.find((s) => s.team === 'enemy'); return { x: h.x, y: h.y, z: 8, id: h.id }; });
+  await dragAlong(page, [hulk]);
+  const ord = await page.evaluate(() => { const s = window.__broadside.G.ships[0]; return { o: s.order, pivot: s.pivot }; });
+  check(ord.o && ord.o.kind === 'engage' && ord.o.targetId === hulk.id && ord.pivot == null, 'tapping the hulk gives an engage order (and weighs anchor)', failures);
   await page.evaluate(() => window.__broadside.sim(5));
-  check((await page.evaluate(() => window.__broadside.G.tut.step)) === 3, 'tapping raises the anchor and advances to step 4', failures);
+  check((await tutStep(page)) === 4, 'engaging advances to step 5', failures);
   await page.evaluate(() => window.__broadside.step(5));
   await shot(page, '05-tutorial-step4');
 
-  // Step 4: sink the hulk (bot steers).
-  const r = await botPlay(page, 120);
+  // Step 5: Swift sinks the hulk on her own engage order (no bot at the helm).
+  let r = null;
+  for (let i = 0; i < 150 && !r; i++) r = await page.evaluate(() => { window.__broadside.sim(60); const G = window.__broadside.G; return G.endAt != null ? G.result : null; });
   await page.waitForTimeout(100);
   await page.evaluate(() => window.__broadside.sim(200));
-  check(r === 'win', 'tutorial is won by sinking the hulk', failures);
+  check(r === 'win', 'tutorial is won: Swift sinks the hulk on her engage order', failures);
   check(await page.isVisible('#endScreen'), 'results screen shows', failures);
   const sv = await page.evaluate(() => window.__broadside.save);
   check(sv.hats.includes('cabin'), "cabin boy's cap is awarded", failures);
@@ -168,7 +191,7 @@ console.log('Boss');
   const r = await botPlay(page, 120);
   await page.evaluate(() => window.__broadside.sim(200));
   const sv = await page.evaluate(() => window.__broadside.save);
-  check(r === 'win' && sv.hats.includes('oro'), "sinking the Almirante wins the admiral's hat", failures);
+  check(r === 'win' && sv.hats.includes('oro'), `sinking the Almirante wins the admiral's hat (${r}; hats: ${sv.hats.join(', ') || 'none'})`, failures);
   await shot(page, '15-boss-won');
   await page.click('#endChart'); await page.click('#hatsBtn');
   await shot(page, '16-hats');

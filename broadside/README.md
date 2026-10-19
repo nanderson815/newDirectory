@@ -15,11 +15,15 @@ npm run build      # production build in dist/
 
 ## How it plays
 
-- **Drag from a ship** to draw its course. **Press and hold** a ship, then drag around it, to anchor and turn on
-  the spot. **Tap** a ship to clear its course or raise the anchor.
+- A ship is always selected; **tap** one of yours to select her. **Drag anywhere on the sea** to plot her course
+  (the pale ribbon is the track she will really sail), **tap the sea** to sail straight there, **tap an enemy** to
+  engage (she keeps it on the beam by herself). The **action bar** has Anchor (then drag to turn on the spot), the
+  manual Fire buttons, shot type, Mine, Board and Land. **Whole fleet** sends one order to every ship.
+- **Camera**: the sea is bigger than the screen and a director camera follows the action. Pinch to zoom, two
+  fingers to pan; double-tap the sea (or the recentre button) to hand the camera back.
 - **Broadsides**: cannons are on the sides. Auto fire (crews fire when an enemy is in arc) or manual fire buttons.
 - **Wind** sets your speed; sailing straight into it is slow. Islands block hulls and shot.
-- **Forts** fire in every direction. Shoot one silent, stop a ship beside it and tap **Land troops** to garrison
+- **Forts** fire in every direction. Shoot one silent, stop a ship beside it and tap **Land** to garrison
   it; a captured fort fires for you.
 - **Campaign**: a tutorial plus nine battles across three regions, each region ending in a boss. Wins pay gold and
   stars (3 stars = no ships lost); bosses drop their captain's hat.

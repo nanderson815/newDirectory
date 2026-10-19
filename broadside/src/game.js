@@ -3,7 +3,8 @@ import { save } from './save.js';
 import { createBattle } from './sim/battle.js';
 import { clearParticles } from './sim/particles.js';
 import { R } from './render/gl.js';
-import { worldSize, fitCamera, isLandscape } from './render/camera.js';
+import { worldSize, fitCamera, isLandscape, cam } from './render/camera.js';
+import { battleDef } from './config/endless.js';
 import { buildScene, addShipMesh } from './render/scene.js';
 import { sizeHud, resetTip } from './hud/hud.js';
 
@@ -11,7 +12,7 @@ S.hooks.onSpawn = addShipMesh;
 
 // Sets up a battle (idle, in the 'title' phase) and builds its scene.
 export function loadBattle(idx) {
-  S.G = createBattle(idx, worldSize(), save.fleet);
+  S.G = createBattle(idx, worldSize((battleDef(idx) || {}).sea), save.fleet);
   resetTransient();
   buildScene();
 }
@@ -30,6 +31,7 @@ function resetTransient() {
   S.selected = S.G.ships.find((s) => s.team === 'player') || null;
   S.drag = null; S.toast = null; S.banner = null;
   S.floaters.length = 0; S.kick = 0; S.slowmo = null; S.selectAll = false;
+  cam.ready = false; // the next fitCamera frames the new battle from scratch
   resetTip();
 }
 

@@ -1,7 +1,12 @@
-import { S, afloat, shipById, selfSailing } from '../state.js';
+import { S, afloat, shipById, unitById, selfSailing } from '../state.js';
 import { COL, FONT, PI, TAU, clamp } from '../util.js';
 import { CAPTURE_TIME } from '../config/ships.js';
-import { projTo, proj, pxPerUnit, scratchA, scratchB } from '../render/camera.js';
+import { projTo, proj, pxPerUnit, scratchA, scratchB, cam } from '../render/camera.js';
+import { previewFor } from './preview.js';
+import { commandable, haptic, tapFx } from './orders.js';
+import { panel, text as kitText, edgeChevron, HUD as KIT } from './style.js';
+import { drawIcon } from '../ui/icons.js';
+import { COLOR as TOK, PALETTE as PAL } from '../ui/tokens.js';
 import { shipMeshes, fortTopZ } from '../render/scene.js';
 import { sideDir } from '../sim/combat.js';
 import { goalLines, eachGoal } from '../sim/goals/index.js';
@@ -42,60 +47,137 @@ function seaCircle(cx, cy, rr, n) {
   for (let i = 0; i <= n; i++) { const a = (i / n) * TAU; seaTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, i === 0); }
 }
 
-function wedge(s, dir, rad) {
-  ctx.beginPath();
-  seaTo(s.x, s.y, true);
-  for (let i = 0; i <= 16; i++) { const a = dir - 0.62 + (1.24 * i) / 16; seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, false); }
-  ctx.closePath();
-}
-
-// Broadside arcs for the selected ship; they fill up as the guns reload.
+// Broadside arcs for the selected ship as thin lines: the arc's edges, its rim, and a gold sweep along the rim
+// as the guns reload (solid gold when they're ready). The camera is close now, so no filled wedges.
 function drawArcs(s) {
+  const SPREAD = 0.62;
   for (let side = 0; side < 2; side++) {
-    const dir = sideDir(s, side);
+    const dir = sideDir(s, side), rad = s.range;
     const prog = clamp(1 - s.reload[side] / s.reloadTime, 0, 1);
-    wedge(s, dir, s.range);
-    ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fill();
-    ctx.setLineDash([6, 8]); ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath();
+    seaTo(s.x + Math.cos(dir - SPREAD) * s.L * 0.45, s.y + Math.sin(dir - SPREAD) * s.L * 0.45, true);
+    for (let i = 0; i <= 20; i++) { const a = dir - SPREAD + (2 * SPREAD * i) / 20; seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, false); }
+    seaTo(s.x + Math.cos(dir + SPREAD) * s.L * 0.45, s.y + Math.sin(dir + SPREAD) * s.L * 0.45, false);
+    ctx.setLineDash([3, 7]); ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.32)'; ctx.stroke(); ctx.setLineDash([]);
     if (prog > 0.02) {
-      wedge(s, dir, s.range * prog);
-      ctx.fillStyle = prog >= 1 ? 'rgba(242,182,50,0.22)' : 'rgba(255,255,255,0.1)'; ctx.fill();
+      ctx.beginPath();
+      const n = Math.max(2, Math.round(20 * prog));
+      for (let i = 0; i <= n; i++) { const a = dir - SPREAD + (2 * SPREAD * prog * i) / n; seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, i === 0); }
+      ctx.lineCap = 'round'; ctx.lineWidth = prog >= 1 ? 2 : 1.4;
+      ctx.strokeStyle = prog >= 1 ? 'rgba(242,182,50,0.75)' : 'rgba(255,255,255,0.4)'; ctx.stroke();
     }
   }
 }
 
-function drawPath(s, pts, active) {
-  if (!pts.length) return;
+// The course preview: the track she will really sail, as a soft ribbon on the water with a small end marker.
+// Past the preview's horizon the rest of the drawn course shows as a faint dotted line.
+const CREAM = '255,248,230';
+function drawCourse(s, pts, selected, live) {
+  const pv = previewFor(s, pts, live);
+  if (!pv || pv.n < 2) return;
+  const xy = pv.xy, k = pxPerUnit(s.x, s.y);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.beginPath();
   seaTo(s.x, s.y, true);
-  for (let i = 0; i < pts.length; i++) seaTo(pts[i].x, pts[i].y, false);
-  ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(20,52,82,0.35)'; ctx.stroke();
-  ctx.setLineDash([2, 11]); ctx.lineWidth = 4;
-  ctx.strokeStyle = active ? COL.gold : 'rgba(255,255,255,0.85)'; ctx.stroke(); ctx.setLineDash([]);
-  const last = pts[pts.length - 1], e = projTo(last.x, last.y, 0.5);
-  ctx.strokeStyle = active ? COL.gold : COL.white; ctx.lineWidth = 3;
-  ctx.beginPath(); ctx.moveTo(e.x - 6, e.y - 6); ctx.lineTo(e.x + 6, e.y + 6); ctx.moveTo(e.x + 6, e.y - 6); ctx.lineTo(e.x - 6, e.y + 6); ctx.stroke();
+  for (let i = pv.idx + 1; i < pv.n; i++) seaTo(xy[i * 2], xy[i * 2 + 1], false);
+  ctx.lineWidth = Math.max(7, s.B * 0.85 * k); ctx.strokeStyle = `rgba(${CREAM},${selected ? 0.17 : 0.09})`; ctx.stroke();
+  ctx.lineWidth = selected ? 1.6 : 1.2; ctx.strokeStyle = `rgba(${CREAM},${selected ? 0.8 : 0.4})`; ctx.stroke();
+  let ex = xy[(pv.n - 1) * 2], ey = xy[(pv.n - 1) * 2 + 1];
+  const rest = Math.min(pv.rest, pts.length);
+  if (!pv.done && rest > 0) {
+    ctx.beginPath();
+    seaTo(ex, ey, true);
+    for (let i = pts.length - rest; i < pts.length; i++) seaTo(pts[i].x, pts[i].y, false);
+    ctx.setLineDash([1.5, 7]); ctx.lineWidth = 2; ctx.strokeStyle = `rgba(${CREAM},${selected ? 0.55 : 0.28})`; ctx.stroke(); ctx.setLineDash([]);
+    ex = pts[pts.length - 1].x; ey = pts[pts.length - 1].y;
+  }
+  seaCircle(ex, ey, 9, 18);
+  ctx.lineWidth = 1.5; ctx.strokeStyle = `rgba(${CREAM},${selected ? 0.9 : 0.45})`; ctx.stroke();
+  const q = projTo(ex, ey, 0.5);
+  ctx.beginPath(); ctx.arc(q.x, q.y, selected ? 2.6 : 2, 0, TAU); ctx.fillStyle = `rgba(${CREAM},${selected ? 0.95 : 0.5})`; ctx.fill();
 }
 
-// Heading dial for an anchored ship: a ring plus an arrow toward where it's turning.
+// The finger's own line while drawing, faint, so you can see how the ship will round it off.
+function drawStroke(pts) {
+  ctx.beginPath();
+  for (let i = 0; i < pts.length; i++) seaTo(pts[i].x, pts[i].y, i === 0);
+  ctx.setLineDash([1, 9]); ctx.lineCap = 'round'; ctx.lineWidth = 2.5; ctx.strokeStyle = `rgba(${CREAM},0.45)`; ctx.stroke(); ctx.setLineDash([]);
+}
+
+// Engage orders: a thin red ring under each target, with ticks for the selected ship's own.
+function drawEngage(sel) {
+  for (const s of S.G.ships) {
+    if (!commandable(s) || !s.order || s.order.kind !== 'engage') continue;
+    const t = unitById(s.order.targetId);
+    if (!t) continue;
+    const mine = s === sel, rr = t.kind === 'fort' ? S.G.islands[t.island].r * 1.15 : t.L * 0.72;
+    seaCircle(t.x, t.y, rr, 40);
+    ctx.lineWidth = mine ? 1.8 : 1.2; ctx.strokeStyle = mine ? 'rgba(255,120,100,0.9)' : 'rgba(255,120,100,0.45)'; ctx.stroke();
+    if (!mine) continue;
+    const a0 = S.clock * 0.6;
+    ctx.beginPath();
+    for (let i = 0; i < 4; i++) {
+      const a = a0 + i * PI / 2;
+      seaTo(t.x + Math.cos(a) * rr * 1.1, t.y + Math.sin(a) * rr * 1.1, true);
+      seaTo(t.x + Math.cos(a) * rr * 1.35, t.y + Math.sin(a) * rr * 1.35, false);
+    }
+    ctx.lineWidth = 2; ctx.stroke();
+  }
+}
+
+// A ripple where a tap gave an order.
+function drawTapFx() {
+  const age = S.clock - tapFx.t;
+  if (age < 0 || age > 0.6) return;
+  const k = age / 0.6;
+  seaCircle(tapFx.x, tapFx.y, (tapFx.kind === 'engage' ? 30 : 8) + k * 26, 24);
+  ctx.lineWidth = 2 * (1 - k) + 0.5;
+  ctx.strokeStyle = tapFx.kind === 'engage' ? `rgba(255,120,100,${1 - k})` : `rgba(${CREAM},${1 - k})`;
+  ctx.stroke();
+}
+
+// Enemies off screen: small red chevrons on the screen edge, pointing at them.
+const bar = { x: 0, y: 0, w: 0 };
+function drawChevrons() {
+  const { cw, ch } = S.view, G = S.G;
+  const m = 16, cx = cw / 2, cy = ch / 2;
+  S.hud.chevrons = 0;
+  for (const s of G.ships) {
+    if (s.team === 'player' || !afloat(s) || s.hidden) continue;
+    const q = projTo(s.x, s.y, 8);
+    if (q.x > -4 && q.x < cw + 4 && q.y > -4 && q.y < ch + 4) continue;
+    const dx = q.x - cx, dy = q.y - cy;
+    const k = Math.min((cw / 2 - m) / Math.max(1e-3, Math.abs(dx)), (ch / 2 - m) / Math.max(1e-3, Math.abs(dy)));
+    let x = cx + dx * k, y = cy + dy * k;
+    const a = Math.atan2(dy, dx), r = s.boss ? 8 : 6.5;
+    // Keep clear of the action bar along the bottom edge.
+    if (bar.w && y > bar.y - 10 && x > bar.x - 12 && x < bar.x + bar.w + 12) x = x < bar.x + bar.w / 2 ? bar.x - 12 : bar.x + bar.w + 12;
+    S.hud.chevrons++;
+    const far = Math.hypot(dx, dy) / Math.hypot(cw, ch);
+    edgeChevron(ctx, x, y, a, { size: r * 2, alpha: clamp(1.25 - far * 0.6, 0.5, 1) });
+  }
+}
+
+// Heading dial for an anchored ship: a thin ring plus an arrow toward where she's turning.
 function drawPivot(s, active) {
-  const rr = s.L * 0.85;
+  const rr = s.L * 0.8;
   seaCircle(s.x, s.y, rr, 40);
-  ctx.lineWidth = active ? 4 : 2.5; ctx.strokeStyle = active ? COL.gold : 'rgba(255,255,255,0.7)'; ctx.stroke();
-  const a = s.pivot, tip = s.L * 1.7, c = Math.cos(a), sn = Math.sin(a);
-  const at = (d, side) => proj(s.x + c * d - sn * side, s.y + sn * d + c * side, 0.5);
-  const t = at(tip, 0), b1 = at(tip - 20, -11), b2 = at(tip - 20, 11), r0 = at(rr, 0);
-  ctx.beginPath(); ctx.moveTo(r0.x, r0.y); ctx.lineTo(t.x, t.y);
-  ctx.lineWidth = 5; ctx.strokeStyle = active ? COL.gold : COL.white; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(t.x, t.y); ctx.lineTo(b1.x, b1.y); ctx.lineTo(b2.x, b2.y); ctx.closePath();
-  ctx.fillStyle = active ? COL.gold : COL.white; ctx.fill();
-  ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(20,52,82,0.6)'; ctx.stroke();
+  ctx.lineWidth = active ? 2 : 1.4; ctx.strokeStyle = active ? COL.gold : `rgba(${CREAM},0.65)`; ctx.stroke();
+  const a = s.pivot, tip = s.L * 1.45, c = Math.cos(a), sn = Math.sin(a);
+  const at = (d, side, o) => projTo(s.x + c * d - sn * side, s.y + sn * d + c * side, 0.5, o);
+  const r0 = at(rr, 0, scratchA);
+  ctx.beginPath(); ctx.moveTo(r0.x, r0.y);
+  const t = at(tip, 0, scratchB); ctx.lineTo(t.x, t.y);
+  ctx.lineWidth = active ? 2.5 : 1.8; ctx.strokeStyle = active ? COL.gold : `rgba(${CREAM},0.85)`; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(t.x, t.y);
+  const b1 = at(tip - 14, -8, scratchA); ctx.lineTo(b1.x, b1.y);
+  const b2 = at(tip - 14, 8, scratchA); ctx.lineTo(b2.x, b2.y);
+  ctx.closePath(); ctx.fillStyle = active ? COL.gold : `rgba(${CREAM},0.9)`; ctx.fill();
 }
 
 function drawRing(s) {
   seaCircle(s.x, s.y, s.L * 0.62, 40);
-  ctx.setLineDash([10, 8]); ctx.lineDashOffset = -S.clock * 20; ctx.lineWidth = 3; ctx.strokeStyle = COL.gold; ctx.stroke();
+  ctx.setLineDash([10, 8]); ctx.lineDashOffset = -S.clock * 20; ctx.lineWidth = 2.2; ctx.strokeStyle = COL.gold; ctx.stroke();
   ctx.setLineDash([]); ctx.lineDashOffset = 0;
 }
 
@@ -177,17 +259,6 @@ function outlinedText(text, x, y, size, color, align) {
   ctx.fillStyle = color; ctx.fillText(text, x, y);
 }
 
-function pill(x, y, w, h, label, ready, prog) {
-  ctx.fillStyle = COL.hud; roundRect(x, y, w, h, 14); ctx.fill();
-  ctx.save(); roundRect(x, y, w, h, 14); ctx.clip();
-  ctx.fillStyle = ready ? 'rgba(242,182,50,0.95)' : 'rgba(242,182,50,0.35)';
-  ctx.fillRect(x, y, w * (prog == null ? (ready ? 1 : 0) : prog), h); ctx.restore();
-  ctx.lineWidth = 3; ctx.strokeStyle = COL.ink; roundRect(x, y, w, h, 14); ctx.stroke();
-  ctx.font = `${w < 130 ? 15 : 17}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = ready ? COL.ink : COL.white;
-  ctx.fillText(label, x + w / 2, y + h / 2 + 1);
-}
-
 function drawBoss() {
   const b = S.G.ships.find((s) => s.boss && s.state !== 'sunk');
   if (!b) return;
@@ -207,11 +278,11 @@ function drawBoss() {
 
 // One-time tips: the first time a mechanic shows up in battle, say how to use it. Remembered in the save.
 const TIPS = {
-  fleet: 'Tap Whole fleet, then draw one course to move every ship together.',
-  ammo: 'This ship carries special shot. Chain cuts rigging; Grape thins the crew before you board.',
-  mine: 'Tap Drop mine to leave a mine astern. Lure an enemy across it.',
-  land: 'Tap Land troops: your ship anchors and the boats row ashore.',
-  board: 'She’s crippled! Tap Board! to send your marines across. More marines than defenders wins.',
+  fleet: 'Tap Whole fleet, then drag one course (or tap an enemy) to order every ship at once.',
+  ammo: 'This ship carries special shot: tap Shot to switch. Chain cuts rigging; Grape thins the crew before you board.',
+  mine: 'Tap Mine to leave a mine astern. Lure an enemy across it.',
+  land: 'Tap Land: your ship anchors and the boats row ashore.',
+  board: 'She’s crippled! Tap Board to send your marines across. More marines than defenders wins.',
   fireship: 'A fireship! She explodes when she touches you. Sink her at range or steer clear.',
   mortar: 'A red ring marks where a mortar shell will land. Sail out of it!',
   exit: 'Get through the green dashed line at the top of the chart.',
@@ -237,11 +308,12 @@ function drawTip() {
   if (!tip) return;
   if (S.clock > tip.until) { tip = null; return; }
   const { cw, ch } = S.view;
-  const w = Math.min(cw - 32, 360), x = (cw - w) / 2, y = Math.round(ch * 0.62);
+  const w = Math.min(cw - 32, 360), x = (cw - w) / 2;
   ctx.globalAlpha = clamp(Math.min((tip.until - S.clock) * 2, 1), 0, 1);
   ctx.font = `600 14px "Nunito", "Trebuchet MS", sans-serif`;
   const lines = wrap(tip.text, w - 28);
   const h = 22 + lines.length * 19;
+  const y = Math.round((S.hud.actions.length ? S.hud.actions[0].y : ch) - 14 - h); // just above the action bar
   ctx.fillStyle = COL.parchment; roundRect(x, y, w, h, 14); ctx.fill();
   ctx.lineWidth = 3; ctx.strokeStyle = COL.ink; ctx.stroke();
   ctx.fillStyle = COL.ink; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
@@ -291,10 +363,13 @@ export function drawHUD() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, cw, ch);
   const hud = S.hud;
-  hud.cards = []; hud.pause = null; hud.fire = []; hud.actions = []; hud.ammo = [];
+  hud.cards = []; hud.pause = null; hud.recentre = null; hud.actions.length = 0;
   const G = S.G;
   if (!G || !R.renderer) return;
-  const sel = S.selected && afloat(S.selected) && S.selected.team === 'player' ? S.selected : null;
+  // A ship is always selected: if yours goes down (or is taken), the next one in the line steps up.
+  if (!commandable(S.selected)) S.selected = G.ships.find(commandable) || S.selected;
+  const sel = commandable(S.selected) ? S.selected : null;
+  if (G.phase === 'play') feel(sel);
 
   if (G.phase !== 'title') {
     // Tutorial buoy
@@ -307,12 +382,16 @@ export function drawHUD() {
       outlinedText('Sail here', q.x, q.y, 15, '#ffe08a', 'center');
     }
     if (sel) drawArcs(sel);
+    const dr = S.drag;
     for (const s of G.ships) {
       if (s.team !== 'player' || !afloat(s)) continue;
-      const live = S.drag && S.drag.ship === s && S.drag.pts.length;
-      drawPath(s, live ? S.drag.pts : s.path, s === sel);
+      const live = !!(dr && dr.ship === s && dr.mode === 'course' && dr.pts.length);
+      if (live) drawStroke(dr.pts);
+      drawCourse(s, live ? dr.pts : s.path, s === sel || S.selectAll, live);
     }
-    for (const s of G.ships) if (s.team === 'player' && afloat(s) && s.pivot != null) drawPivot(s, S.drag && S.drag.ship === s && S.drag.mode === 'rotate');
+    drawEngage(sel);
+    drawTapFx();
+    for (const s of G.ships) if (s.team === 'player' && afloat(s) && s.pivot != null) drawPivot(s, dr && dr.mode === 'rotate' && (dr.ship === s || (dr.fleet && commandable(s))));
     if (S.selectAll) { for (const s of G.ships) if (s.team === 'player' && afloat(s) && !selfSailing(s)) drawRing(s); }
     else if (sel) drawRing(sel);
     for (const s of G.ships) if (s.boarding && s.boarding.attacker) drawBoarding(s);
@@ -331,6 +410,7 @@ export function drawHUD() {
   for (const f of G.forts) drawFort(f);
   if (G.phase === 'title') return;
   drawFloaters();
+
 
   // Fleet cards (tap to select)
   let y = 10;
@@ -384,55 +464,20 @@ export function drawHUD() {
   goalLines(G).forEach((t, i) => outlinedText(t, wxs + wr, wys + wr + 28 + i * 18, 14, '#ffd6cf', 'right'));
 
   const playing = G.phase === 'play';
-  // Manual fire buttons for the selected ship
-  if (S.fireMode === 'manual' && sel && playing) {
-    const bw = Math.min(150, (cw - 48) / 2), bh = 54, by = ch - 14 - bh;
-    for (const b of [{ side: 0, label: 'Fire port', x: 16 }, { side: 1, label: 'Fire starboard', x: cw - 16 - bw }]) {
-      const ready = sel.reload[b.side] <= 0;
-      pill(b.x, by, bw, bh, ready ? b.label : 'Reloading', ready, clamp(1 - sel.reload[b.side] / sel.reloadTime, 0, 1));
-      hud.fire.push({ x: b.x, y: by, w: bw, h: bh, side: b.side });
-    }
-  }
-
-  // Action buttons for the selected ship: drop a mine, land troops at a silenced fort.
-  if (sel && playing) {
-    const acts = [];
-    if (sel.mines > 0) { acts.push({ kind: 'mine', label: `Drop mine ×${sel.mines}`, ready: true }); offerTip('mine'); }
-    const prey = boardingTarget(sel);
-    if (prey) {
-      const d = defence(prey);
-      acts.push({ kind: 'board', shipId: prey.id, ready: sel.marines > d, label: `Board! ${sel.marines} vs ${d}` });
-      offerTip('board');
-    }
-    const fort = landingFor(sel);
-    if (fort) {
-      const busy = !!fort.capture, ok = sel.marines >= fort.need && !busy;
-      offerTip('land');
-      acts.push({ kind: 'land', fortId: fort.id, ready: ok, label: busy ? 'Landing…' : ok ? `Land troops (${fort.need})` : `Need ${fort.need} marines` });
-    }
-    const bw = 158, bh = 46, ax = cw - 16 - bw;
-    let ay = ch - 14 - bh - (S.fireMode === 'manual' ? 64 : 0);
-    for (const a of acts) {
-      pill(ax, ay, bw, bh, a.label, a.ready);
-      hud.actions.push({ x: ax, y: ay, w: bw, h: bh, ...a });
-      ay -= bh + 10;
-    }
-    // Shot selector, bottom left, for ships that carry more than round shot.
-    if (sel.ammoKinds.length > 1 && !S.selectAll) {
-      offerTip('ammo');
-      const cwid = 62, chh = 38, cy = ch - 14 - chh - (S.fireMode === 'manual' ? 64 : 0);
-      let cx = 16;
-      outlinedText('Shot', cx + 2, cy - 12, 12, COL.white, 'left');
-      for (const kind of sel.ammoKinds) {
-        const on = sel.ammo === kind;
-        ctx.fillStyle = on ? 'rgba(242,182,50,0.95)' : COL.hud; roundRect(cx, cy, cwid, chh, 12); ctx.fill();
-        ctx.lineWidth = on ? 3 : 2; ctx.strokeStyle = on ? COL.ink : 'rgba(255,255,255,0.4)'; roundRect(cx, cy, cwid, chh, 12); ctx.stroke();
-        ctx.font = `14px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillStyle = on ? COL.ink : COL.white; ctx.fillText(AMMO[kind].short, cx + cwid / 2, cy + chh / 2 + 1);
-        hud.ammo.push({ x: cx, y: cy, w: cwid, h: chh, kind });
-        cx += cwid + 6;
-      }
-    }
+  if (sel && playing) drawActionBar(sel);
+  bar.w = 0;
+  if (hud.actions.length) { const a = hud.actions[0], b = hud.actions[hud.actions.length - 1]; bar.x = a.x; bar.y = a.y; bar.w = b.x + b.w - a.x; }
+  if (playing) drawChevrons();
+  // The camera is in your hands: a small button (or a double-tap on the sea) gives it back to the director.
+  if (playing && cam.mode === 'manual') {
+    const r = 19, x = cw - 14 - r, y = (hud.actions.length ? hud.actions[0].y : ch - 14) - 14 - r;
+    panel(ctx, x - r, y - r, r * 2, r * 2, { tone: 'glass', r, elevation: 2 });
+    ctx.strokeStyle = TOK.onGlass; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(x, y, 7, 0, TAU); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, y - 12); ctx.lineTo(x, y - 9); ctx.moveTo(x, y + 9); ctx.lineTo(x, y + 12);
+    ctx.moveTo(x - 12, y); ctx.lineTo(x - 9, y); ctx.moveTo(x + 9, y); ctx.lineTo(x + 12, y); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fillStyle = TOK.onGlass; ctx.fill();
+    hud.recentre = { x, y, r: r + 6 };
   }
 
   // Small label over a ship (course cleared, anchored, landing party away)
@@ -466,9 +511,85 @@ export function drawHUD() {
   // First-time hint (the tutorial has its own coach)
   if (playing && !G.tut && !G.dragged && G.t < 14) {
     ctx.globalAlpha = clamp(Math.min(G.t * 2, 14 - G.t), 0, 1);
-    const raised = S.fireMode === 'manual' || hud.ammo.length || hud.actions.length;
-    const hy = raised ? ch - 100 : ch - 34;
-    outlinedText('Drag from a ship to draw its course', cw / 2, hy, 18, COL.white, 'center');
+    const hy = (hud.actions.length ? hud.actions[0].y : ch) - 22;
+    outlinedText('Drag on the sea to set a course · tap an enemy to engage', cw / 2, hy, Math.min(14, cw / 28), COL.white, 'center');
     ctx.globalAlpha = 1;
   }
+}
+
+// ---------- Action bar ----------
+// A compact row of buttons for the selected ship, bottom centre: Anchor, Fire port / starboard (manual
+// gunnery), shot type, Mine, Board and Land, each only when it applies. Hit targets are at least 50 x 50.
+const pool = [];
+function act(kind, label, w) {
+  const a = pool[S.hud.actions.length] || (pool[S.hud.actions.length] = {});
+  a.kind = kind; a.label = label; a.w = w; a.h = 50; a.x = 0; a.y = 0; a.on = false; a.ready = true; a.prog = -1;
+  a.side = 0; a.shipId = null; a.fortId = null; a.sub = null;
+  S.hud.actions.push(a);
+  return a;
+}
+
+function drawActionBar(sel) {
+  const { cw, ch } = S.view, hud = S.hud, manual = S.fireMode === 'manual';
+  if (manual) {
+    const a = act('fire', 'Port', 62); a.side = 0;
+    a.ready = sel.reload[0] <= 0; a.prog = clamp(1 - sel.reload[0] / sel.reloadTime, 0, 1);
+  }
+  const an = act('anchor', sel.pivot != null ? 'Weigh' : 'Anchor', 54); an.on = sel.pivot != null;
+  if (sel.ammoKinds.length > 1 && !S.selectAll) { act('ammo', AMMO[sel.ammo].short, 54); offerTip('ammo'); }
+  if (sel.mines > 0) { act('mine', `Mine ×${sel.mines}`, 58); offerTip('mine'); }
+  const prey = boardingTarget(sel);
+  if (prey) {
+    const d = defence(prey), a = act('board', 'Board', 58);
+    a.shipId = prey.id; a.ready = sel.marines > d; a.sub = `${sel.marines} v ${d}`; a.on = a.ready;
+    offerTip('board');
+  }
+  const fort = landingFor(sel);
+  if (fort) {
+    const busy = !!fort.capture, ok = sel.marines >= fort.need && !busy, a = act('land', busy ? 'Landing' : 'Land', 58);
+    a.fortId = fort.id; a.ready = ok; a.on = ok; a.sub = busy ? null : ok ? `${fort.need} men` : `need ${fort.need}`;
+    offerTip('land');
+  }
+  if (manual) {
+    const a = act('fire', 'Starboard', 62); a.side = 1;
+    a.ready = sel.reload[1] <= 0; a.prog = clamp(1 - sel.reload[1] / sel.reloadTime, 0, 1);
+  }
+  const gap = 8, list = hud.actions;
+  let total = -gap;
+  for (const a of list) total += a.w + gap;
+  let x = Math.round((cw - total) / 2);
+  const y = ch - 14 - 50;
+  for (const a of list) { a.x = x; a.y = y; x += a.w + gap; drawAction(a, sel); }
+}
+
+// One action-bar button in the HUD kit's language: a glass tile (gold when it's the thing to press), the
+// kit's icon over a small label, and a reload line filling along the bottom edge.
+const ICON_OF = { anchor: 'anchor', mine: 'mine', board: 'board', land: 'land' };
+function drawAction(a, sel) {
+  const { x, y, w, h } = a;
+  const lit = a.on || a.prog >= 1;
+  ctx.save();
+  if (!a.ready && !lit) ctx.globalAlpha = 0.62;
+  panel(ctx, x, y, w, h, { tone: lit ? 'gold' : 'glass', r: 14, elevation: 2 });
+  if (a.prog >= 0 && a.prog < 1) {
+    ctx.save(); roundRect(x, y, w, h, 14); ctx.clip();
+    ctx.fillStyle = PAL.gold; ctx.fillRect(x, y + h - 3, w * a.prog, 3);
+    ctx.restore();
+  }
+  const ink = lit ? PAL.ink : TOK.onGlass;
+  const icon = a.kind === 'fire' ? (a.side === 0 ? 'firePort' : 'fireStarboard') : a.kind === 'ammo' ? sel.ammo : ICON_OF[a.kind];
+  drawIcon(ctx, icon, x + w / 2, y + 19, KIT.icon, ink);
+  kitText(ctx, a.sub || a.label, x + w / 2, y + 38.5, { size: a.label.length > 7 && !a.sub ? 9.5 : 10.5, weight: 700, color: ink, align: 'center', halo: 'none', maxWidth: w - 6 });
+  ctx.restore();
+}
+
+// Haptic ticks for the selected ship: a tiny one when she fires, a firmer one when she's hit.
+const fb = { id: -1, hp: 0, r0: 0, r1: 0, hitT: -9 };
+function feel(sel) {
+  if (!sel) { fb.id = -1; return; }
+  if (fb.id === sel.id) {
+    if (sel.hp < fb.hp - 0.5 && S.clock - fb.hitT > 0.25) { haptic(18); fb.hitT = S.clock; }
+    else if (sel.reload[0] > fb.r0 + 0.5 || sel.reload[1] > fb.r1 + 0.5) haptic(7);
+  }
+  fb.id = sel.id; fb.hp = sel.hp; fb.r0 = sel.reload[0]; fb.r1 = sel.reload[1];
 }

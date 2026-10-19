@@ -93,16 +93,15 @@ export function applyCrit(e, kind) {
   sfx.crit(kind, e.x, e.y);
 }
 
-// Every tick for each ship afloat: crits wear off or burn, shoals and reefs bite. Returns her speed and helm
-// factors (a shared object: read it straight away).
-const K = { speed: 1, turn: 1 };
+// Her speed and helm factors from what has befallen her (pure, so the course preview can use it too).
+export const hazardSpeed = (s) => (s.mastsDown ? Math.max(CRIT.mastMin, 1 - CRIT.mastSlow * s.mastsDown) : 1) * (s.aground ? SHOAL.slow : 1) * (s.onReef ? REEF.slow : 1);
+export const hazardTurn = (s) => (s.rudderT > 0 ? CRIT.rudderTurn : 1) * (s.aground ? SHOAL.turn : 1);
+
+// Every tick for each ship afloat: crits wear off or burn, shoals and reefs bite (setting s.aground, s.onReef).
 export function updateHazards(s, dt) {
   const G = S.G;
-  K.speed = 1; K.turn = 1;
-  if (s.mastsDown) K.speed *= Math.max(CRIT.mastMin, 1 - CRIT.mastSlow * s.mastsDown);
   if (s.rudderT > 0) {
     s.rudderT = Math.max(0, s.rudderT - dt);
-    K.turn *= CRIT.rudderTurn;
     if (Math.random() < dt * 3) spawn('smoke', s.x - Math.cos(s.h) * s.L * 0.5, s.y - Math.sin(s.h) * s.L * 0.5, rand(-6, 6), rand(-6, 6), rand(0.8, 1.3), rand(3, 5), 6, rand(6, 12));
   }
   if (s.fireT > 0) {
@@ -121,7 +120,6 @@ export function updateHazards(s, dt) {
       for (let k = 0; k < 10; k++) spawn('sand', s.x + rand(-s.L / 3, s.L / 3), s.y + rand(-s.B / 2, s.B / 2), rand(-30, 30), rand(-30, 30), rand(0.4, 0.8), rand(1.5, 3), 3, rand(20, 50));
       if (s.team === 'player') askTip('shoal');
     }
-    K.speed *= SHOAL.slow; K.turn *= SHOAL.turn;
     if (s.v > 3) tick(s, 'groundAcc', SHOAL.dps * dt);
   }
   s.aground = aground;
@@ -134,12 +132,10 @@ export function updateHazards(s, dt) {
       sfx.crit('reef', s.x, s.y);
       if (s.team === 'player') askTip('reef');
     }
-    K.speed *= REEF.slow;
     tick(s, 'reefAcc', REEF.dps * dt * (0.4 + 0.6 * clamp(s.v / s.speed, 0, 1)));
     if (Math.random() < dt * 8) spawn('drop', s.x + rand(-s.L / 3, s.L / 3), s.y + rand(-s.B / 2, s.B / 2), rand(-20, 20), rand(-20, 20), rand(0.4, 0.7), rand(1.6, 2.6), 1, rand(40, 70));
   }
   s.onReef = reef;
-  return K;
 }
 
 // Damage over time lands in small bites, so it shows as a few numbers rather than a blur.

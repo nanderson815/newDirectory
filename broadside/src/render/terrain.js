@@ -11,8 +11,12 @@ import { placer } from '../sim/battle.js';
 // rock and surf, and coastlines with beaches, terraced jungle and palms. Everything is built once per battle and
 // baked (bakeStatic) into one toon mesh, one ink-outline mesh and one translucent mesh: three draw calls in all.
 
-// Which sail sets a ship loses as her masts go down (render/scene.js): the main mast, flying her flag, goes last.
-export const LOST_MASTS = { 2: [1], 3: [2, 0] };
+// Which masts a ship loses as they go down (render/scene.js), aftmost first; the main mast, flying her flag, never.
+const lostCache = {};
+export function lostMasts(n, main) {
+  const k = n * 4 + main;
+  return lostCache[k] || (lostCache[k] = Array.from({ length: n }, (_, i) => n - 1 - i).filter((i) => i !== main));
+}
 
 // A seeded random so a battle's dressing doesn't change when the scene is rebuilt (rotating the phone).
 function rng(seed) {

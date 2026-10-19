@@ -30,7 +30,7 @@ export function makeShip(def, team, place, rot, id, ai) {
     path: [], pivot: null, state: 'afloat', sinkT: 0, flash: 0, yard: 0, bob: rand(0, TAU),
     aiT: 0, targetId: null, ideal: rand(0.5, 0.72), fxT: 0,
     // Some enemy captains work round to rake (src/sim/steering.js); bosses more often.
-    crafty: Math.random() < (def.boss ? 0.5 : 0.3),
+    crafty: team !== 'player' && Math.random() < (def.boss ? 0.5 : 0.3),
     // Critical hits (src/sim/hazards.js): masts shot away, seconds the rudder is out, seconds a fire burns.
     mastsDown: 0, rudderT: 0, fireT: 0,
     rig: T.rig || 'square', escort: !!def.escort, ally: !!def.ally, exits: !!(def.escort || def.exits), flag: false,

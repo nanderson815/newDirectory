@@ -8,8 +8,8 @@ import { R } from './gl.js';
 
 // Weather, time of day and atmosphere. A battle's preset (config/weather.js) sets the sea palette, lights,
 // shadows and a screen grade (tint, far-edge haze, vignette, lightning flash) that the water shader draws, since
-// the sea already fills the screen. Two extras cost one draw call each: seagulls with their shadows, and rain
-// streaks. Rain and wing flaps run in the vertex shader; the CPU only moves a few gull instances.
+// the sea already fills the screen. Three extras cost one draw call each: seagulls with their shadows, rain
+// streaks and a fog veil. Rain and wing flaps run in the vertex shader; the CPU only moves a few gull instances.
 
 // Read by syncScene: swell scales ship and mine bob and roll; lift is the shadow offset per unit of height.
 // name and flash (the current lightning level, 0..1) are for tests.
@@ -52,6 +52,7 @@ export function applyWeather(G) {
   setupScreen(w.screen);
   setupGulls(G, w.gulls || 0, sh);
   setupRain(G, w.rain);
+  setupFog(G, w);
   storm.next = S.clock + rand(2, 5); storm.flashAt = -9; storm.thunderAt = -1;
   lastClock = S.clock;
 }
@@ -92,6 +93,7 @@ export function syncWeather(G, clock) {
     ru.uFall.value.set(Math.cos(G.wind.dir) * sl, -1, Math.sin(G.wind.dir) * sl).normalize();
   }
   if (gulls.length) moveGulls(G, clock, dt);
+  if (fx.veil.visible) moveFog(G, clock);
 }
 
 // ---------- Meshes ----------
@@ -106,7 +108,10 @@ function buildFx() {
   const rain = new THREE.Mesh(new THREE.BufferGeometry(), rainMaterial());
   rain.frustumCulled = false; rain.visible = false; rain.renderOrder = 4;
   scene.add(rain);
-  return { gull, rain };
+  const veil = new THREE.Mesh(veilGeometry(), veilMaterial());
+  veil.frustumCulled = false; veil.visible = false; veil.renderOrder = 3;
+  scene.add(veil);
+  return { gull, rain, veil };
 }
 
 // ---------- Screen grade: tint, far haze and vignette, drawn by the water shader ----------
@@ -281,4 +286,89 @@ function setupRain(G, rain) {
   u.uCol.value.set(...hexRGB(rain.color));
   u.uAlpha.value = rain.alpha * (calm ? 0.8 : 1);
   m.userData.slant = rain.slant * (calm ? 0.5 : 1);
+}
+
+// ---------- Fog ----------
+// A sheet of drifting fog over the whole map, one draw (a single layer: it covers the screen, so fill rate is
+// what it costs). The fragment shader thins the fog to faint
+// wisps inside the lookouts' sight (a clear bubble around each of your ships) and thickens it into banks
+// beyond, so whatever lies out there is lost in it.
+const FOG_EYES = 6;
+function veilGeometry() {
+  const pos = [], layer = [], idx = [];
+  [22].forEach((y, l) => {
+    const b = l * 4;
+    pos.push(-0.5, y, -0.5, 0.5, y, -0.5, -0.5, y, 0.5, 0.5, y, 0.5);
+    layer.push(l, l, l, l);
+    idx.push(b, b + 2, b + 1, b + 1, b + 2, b + 3);
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('aLayer', new THREE.Float32BufferAttribute(layer, 1));
+  g.setIndex(idx);
+  return g;
+}
+
+function veilMaterial() {
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      uT: { value: 0 }, uWind: { value: new THREE.Vector2(1, 0) }, uNoise: { value: null },
+      uCol: { value: new THREE.Vector3(1, 1, 1) }, uAlpha: { value: 0.85 }, uWisp: { value: 0.14 }, uR: { value: 0 },
+      uEye: { value: Array.from({ length: FOG_EYES }, () => new THREE.Vector3()) },
+    },
+    vertexShader: `
+      attribute float aLayer;
+      varying vec3 vP;
+      void main(){
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vP = vec3(wp.xz, aLayer);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: `
+      uniform sampler2D uNoise; uniform float uT, uAlpha, uWisp, uR; uniform vec2 uWind; uniform vec3 uCol;
+      uniform vec3 uEye[${FOG_EYES}];
+      varying vec3 vP;
+      void main(){
+        vec2 p = vP.xy; float L = vP.z;
+        vec2 drift = uWind * uT * (5.0 + L * 4.0);
+        float n = texture2D(uNoise, (p - drift) * (0.0012 + L * 0.0006) + L * 0.37).r * 0.65
+                + texture2D(uNoise, (p - drift * 1.7) * 0.0036 + 0.5 + L * 0.21).r * 0.35;
+        float bank = smoothstep(0.36, 0.7, n);
+        float d = 1e5;
+        for (int i = 0; i < ${FOG_EYES}; i++) if (uEye[i].z > 0.5) d = min(d, distance(p, uEye[i].xy));
+        float far = uR > 0.0 ? smoothstep(uR * 0.6, uR * 1.08, d + (n - 0.5) * uR * 0.4) : 1.0;
+        float a = mix(uWisp * bank, uAlpha * (0.5 + 0.5 * bank), far) * (L > 0.5 ? 0.55 : 1.0);
+        gl_FragColor = vec4(uCol * (0.94 + 0.08 * bank - L * 0.03), a);
+      }`,
+    transparent: true, depthWrite: false,
+  });
+}
+
+function setupFog(G, w) {
+  const m = fx.veil, b = battleDef(G.battle);
+  const cfg = w.fog || (G.fog > 0 ? PRESETS_FOG : null);
+  m.visible = !!cfg;
+  if (!cfg) return;
+  const u = m.material.uniforms;
+  u.uNoise.value = R.water.material.uniforms.uNoise.value;
+  u.uCol.value.set(...hexRGB(cfg.color));
+  u.uAlpha.value = cfg.alpha * (reduceMotion ? 0.9 : 1);
+  u.uWisp.value = cfg.wisp;
+  m.userData.radius = (b && b.fog) || cfg.radius || 0;
+  m.scale.set(G.W + 900, 1, G.H + 900);
+}
+const PRESETS_FOG = { color: '#e7ecec', alpha: 0.85, wisp: 0.16, radius: 230 };
+
+function moveFog(G, clock) {
+  const u = fx.veil.material.uniforms;
+  u.uT.value = reduceMotion ? clock * 0.4 : clock;
+  u.uWind.value.set(Math.cos(G.wind.dir), Math.sin(G.wind.dir));
+  u.uR.value = G.fog > 0 ? G.fog : fx.veil.userData.radius;
+  let k = 0;
+  for (const s of G.ships) {
+    if (k >= FOG_EYES) break;
+    if (s.team !== 'player' || s.state === 'sunk' || s.state === 'escaped') continue;
+    u.uEye.value[k++].set(s.x - G.W / 2, s.y - G.H / 2, 1);
+  }
+  for (; k < FOG_EYES; k++) u.uEye.value[k].z = 0;
 }
