@@ -344,8 +344,9 @@ export function banner(ctx, cx, cy, { title, sub = null, t = 1, maxWidth = 340, 
   const y = cy + (1 - e) * 10;
   const size = Math.min(28, maxWidth / Math.max(6, title.length * 0.46));
   const tw = Math.min(maxWidth, measure(ctx, title, size, 400, 'display'));
-  if (!washG) { washG = ctx.createRadialGradient(0, 0, 0, 0, 0, 1); washG.addColorStop(0, 'rgba(14,11,8,0.46)'); washG.addColorStop(0.55, 'rgba(14,11,8,0.24)'); washG.addColorStop(1, 'rgba(14,11,8,0)'); }
-  ctx.save(); ctx.translate(cx, y + (sub ? 10 : 0)); ctx.scale(tw / 2 + 90, sub ? 58 : 44);
+  if (!washG) { washG = ctx.createRadialGradient(0, 0, 0, 0, 0, 1); washG.addColorStop(0, 'rgba(14,11,8,0.6)'); washG.addColorStop(0.6, 'rgba(14,11,8,0.32)'); washG.addColorStop(1, 'rgba(14,11,8,0)'); }
+  // The wash is deep enough to hold the title over bright land and busy water, never a box.
+  ctx.save(); ctx.translate(cx, y + (sub ? 10 : 0)); ctx.scale(tw / 2 + 100, sub ? 64 : 48);
   ctx.fillStyle = washG; ctx.fillRect(-1, -1, 2, 2); ctx.restore();
   text(ctx, title, cx, y, { size, weight: 400, face: 'display', color: tone === 'red' ? '#f6b5a2' : P.paper, align: 'center', halo: 'strong', maxWidth });
   const half = tw / 2 + 12, len = 30 * e;
