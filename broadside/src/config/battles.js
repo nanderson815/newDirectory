@@ -267,7 +267,7 @@ export const BATTLES = [
         spawn: [{ type: 'xebec', name: 'El Puñal', x: 0.06, y: 0.94, h: -45 }, { type: 'xebec', name: 'La Navaja', x: 0.94, y: 0.94, h: -135 }] },
     ],
     islands: [{ x: 0.3, y: 0.5, r: 30 }, { x: 0.72, y: 0.6, r: 28 }, { x: 0.5, y: 0.3, r: 26 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.42, hpMul: 1.5 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.49, hpMul: 1.5 },
   },
   {
     id: 'siege', region: 'campeche', roman: 'XIV', year: 1662, name: 'The Siege of Port Royal', foe: 'Spanish siege fleet',
