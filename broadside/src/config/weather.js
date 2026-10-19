@@ -70,7 +70,7 @@ export const PRESETS = {
     shadow: { color: '#2c3c44', opacity: 0.17, lift: [0.12, 0.15] },
     swell: 0.7,
     screen: { tint: '#dfe6e6', tintA: 0.1, haze: '#e6ecec', hazeA: 0.4, hazeFrom: 0.4, vignette: 0.16, vignetteColor: '#8fa2a8' },
-    fog: { color: '#e7ecec', alpha: 0.78, wisp: 0.14, radius: 230 },
+    fog: { color: '#e7ecec', alpha: 0.86, wisp: 0.16, radius: 230 },
     boss: { vignette: 0.12, vignetteColor: '#34444a', light: 0.92 },
   },
 };
