@@ -4,6 +4,9 @@ import { CAPTURE_TIME } from '../config/ships.js';
 import { projTo, proj, pxPerUnit, scratchA, scratchB, cam } from '../render/camera.js';
 import { previewFor } from './preview.js';
 import { commandable, haptic, tapFx } from './orders.js';
+import { panel, text as kitText, edgeChevron, HUD as KIT } from './style.js';
+import { drawIcon } from '../ui/icons.js';
+import { COLOR as TOK, PALETTE as PAL } from '../ui/tokens.js';
 import { shipMeshes, fortTopZ } from '../render/scene.js';
 import { sideDir } from '../sim/combat.js';
 import { goalLines, eachGoal } from '../sim/goals/index.js';
@@ -146,19 +149,13 @@ function drawChevrons() {
     const dx = q.x - cx, dy = q.y - cy;
     const k = Math.min((cw / 2 - m) / Math.max(1e-3, Math.abs(dx)), (ch / 2 - m) / Math.max(1e-3, Math.abs(dy)));
     let x = cx + dx * k, y = cy + dy * k;
-    const a = Math.atan2(dy, dx), r = s.boss ? 9 : 7;
+    const a = Math.atan2(dy, dx), r = s.boss ? 8 : 6.5;
     // Keep clear of the action bar along the bottom edge.
     if (bar.w && y > bar.y - 10 && x > bar.x - 12 && x < bar.x + bar.w + 12) x = x < bar.x + bar.w / 2 ? bar.x - 12 : bar.x + bar.w + 12;
     S.hud.chevrons++;
     const far = Math.hypot(dx, dy) / Math.hypot(cw, ch);
-    ctx.save(); ctx.translate(x, y); ctx.rotate(a);
-    ctx.globalAlpha = clamp(1.25 - far * 0.6, 0.5, 1);
-    ctx.beginPath(); ctx.moveTo(r, 0); ctx.lineTo(-r * 0.7, -r * 0.85); ctx.lineTo(-r * 0.25, 0); ctx.lineTo(-r * 0.7, r * 0.85); ctx.closePath();
-    ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 4;
-    ctx.fillStyle = s.boss ? '#ff4636' : '#e2483a'; ctx.fill();
-    ctx.restore();
+    edgeChevron(ctx, x, y, a, { size: r * 2, alpha: clamp(1.25 - far * 0.6, 0.5, 1) });
   }
-  ctx.globalAlpha = 1;
 }
 
 // Heading dial for an anchored ship: a thin ring plus an arrow toward where she's turning.
@@ -466,13 +463,12 @@ export function drawHUD() {
   // The camera is in your hands: a small button (or a double-tap on the sea) gives it back to the director.
   if (playing && cam.mode === 'manual') {
     const r = 19, x = cw - 14 - r, y = (hud.actions.length ? hud.actions[0].y : ch - 14) - 14 - r;
-    ctx.fillStyle = 'rgba(12,30,44,0.58)'; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1; ctx.stroke();
-    ctx.strokeStyle = '#f4ead2'; ctx.lineWidth = 1.6;
+    panel(ctx, x - r, y - r, r * 2, r * 2, { tone: 'glass', r, elevation: 2 });
+    ctx.strokeStyle = TOK.onGlass; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.arc(x, y, 7, 0, TAU); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x, y - 12); ctx.lineTo(x, y - 9); ctx.moveTo(x, y + 9); ctx.lineTo(x, y + 12);
     ctx.moveTo(x - 12, y); ctx.lineTo(x - 9, y); ctx.moveTo(x + 9, y); ctx.lineTo(x + 12, y); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fillStyle = '#f4ead2'; ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, 2, 0, TAU); ctx.fillStyle = TOK.onGlass; ctx.fill();
     hud.recentre = { x, y, r: r + 6 };
   }
 
@@ -516,8 +512,6 @@ export function drawHUD() {
 // ---------- Action bar ----------
 // A compact row of buttons for the selected ship, bottom centre: Anchor, Fire port / starboard (manual
 // gunnery), shot type, Mine, Board and Land, each only when it applies. Hit targets are at least 50 x 50.
-const UI_FONT = '"Nunito", "Trebuchet MS", system-ui, sans-serif';
-const ICON = '#f4ead2';
 const pool = [];
 function act(kind, label, w) {
   const a = pool[S.hud.actions.length] || (pool[S.hud.actions.length] = {});
@@ -560,71 +554,26 @@ function drawActionBar(sel) {
   for (const a of list) { a.x = x; a.y = y; x += a.w + gap; drawAction(a, sel); }
 }
 
+// One action-bar button in the HUD kit's language: a glass tile (gold when it's the thing to press), the
+// kit's icon over a small label, and a reload line filling along the bottom edge.
+const ICON_OF = { anchor: 'anchor', mine: 'mine', board: 'board', land: 'land' };
 function drawAction(a, sel) {
   const { x, y, w, h } = a;
-  ctx.globalAlpha = a.ready ? 1 : 0.6;
-  ctx.fillStyle = a.on ? 'rgba(242,182,50,0.94)' : 'rgba(12,30,44,0.6)';
-  roundRect(x, y, w, h, 14); ctx.fill();
+  const lit = a.on || a.prog >= 1;
+  ctx.save();
+  if (!a.ready && !lit) ctx.globalAlpha = 0.62;
+  panel(ctx, x, y, w, h, { tone: lit ? 'gold' : 'glass', r: 14, elevation: 2 });
   if (a.prog >= 0 && a.prog < 1) {
     ctx.save(); roundRect(x, y, w, h, 14); ctx.clip();
-    ctx.fillStyle = 'rgba(242,182,50,0.3)'; ctx.fillRect(x, y + h * (1 - a.prog), w, h * a.prog);
+    ctx.fillStyle = PAL.gold; ctx.fillRect(x, y + h - 3, w * a.prog, 3);
     ctx.restore();
-  } else if (a.prog >= 1) { ctx.fillStyle = 'rgba(242,182,50,0.94)'; roundRect(x, y, w, h, 14); ctx.fill(); }
-  const lit = a.on || a.prog >= 1;
-  roundRect(x + 0.5, y + 0.5, w - 1, h - 1, 13.5);
-  ctx.lineWidth = 1; ctx.strokeStyle = lit ? 'rgba(255,244,214,0.95)' : 'rgba(255,255,255,0.16)'; ctx.stroke();
-  const c = lit ? COL.ink : ICON;
-  ctx.strokeStyle = c; ctx.fillStyle = c; ctx.lineWidth = 1.7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  drawIcon(a, x + w / 2, y + 19, sel);
-  ctx.font = `700 ${a.label.length > 7 ? 9.5 : 10.5}px ${UI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = c;
-  ctx.fillText(a.sub || a.label, x + w / 2, y + 38);
-  ctx.globalAlpha = 1;
-}
-
-function drawIcon(a, cx, cy, sel) {
-  ctx.beginPath();
-  switch (a.kind) {
-    case 'anchor':
-      ctx.arc(cx, cy - 7, 2.6, 0, TAU);
-      ctx.moveTo(cx, cy - 4.4); ctx.lineTo(cx, cy + 8);
-      ctx.moveTo(cx - 5, cy - 1.5); ctx.lineTo(cx + 5, cy - 1.5);
-      ctx.moveTo(cx - 8, cy + 2); ctx.quadraticCurveTo(cx - 6, cy + 8, cx, cy + 8); ctx.quadraticCurveTo(cx + 6, cy + 8, cx + 8, cy + 2);
-      ctx.stroke(); return;
-    case 'fire': {
-      const d = a.side === 0 ? -1 : 1;
-      ctx.moveTo(cx - 9 * d, cy); ctx.lineTo(cx + 7 * d, cy);
-      ctx.moveTo(cx + 2 * d, cy - 5); ctx.lineTo(cx + 7 * d, cy); ctx.lineTo(cx + 2 * d, cy + 5);
-      ctx.stroke();
-      ctx.beginPath(); ctx.arc(cx - 9 * d, cy, 2.4, 0, TAU); ctx.fill(); return;
-    }
-    case 'ammo':
-      if (sel.ammo === 'chain') {
-        ctx.arc(cx - 6, cy, 3, 0, TAU); ctx.moveTo(cx + 9, cy); ctx.arc(cx + 6, cy, 3, 0, TAU); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(cx - 3, cy); ctx.quadraticCurveTo(cx, cy + 4, cx + 3, cy); ctx.stroke();
-      } else if (sel.ammo === 'grape') {
-        for (const [ox, oy] of GRAPE) { ctx.moveTo(cx + ox + 2, cy + oy); ctx.arc(cx + ox, cy + oy, 2, 0, TAU); }
-        ctx.fill();
-      } else { ctx.arc(cx, cy, 5, 0, TAU); ctx.fill(); }
-      return;
-    case 'mine':
-      ctx.arc(cx, cy, 4.5, 0, TAU); ctx.fill();
-      ctx.beginPath();
-      for (let i = 0; i < 8; i++) { const t = i * PI / 4; ctx.moveTo(cx + Math.cos(t) * 5, cy + Math.sin(t) * 5); ctx.lineTo(cx + Math.cos(t) * 8, cy + Math.sin(t) * 8); }
-      ctx.stroke(); return;
-    case 'board':
-      ctx.moveTo(cx - 7, cy + 7); ctx.lineTo(cx + 7, cy - 7); ctx.moveTo(cx + 7, cy + 7); ctx.lineTo(cx - 7, cy - 7);
-      ctx.moveTo(cx - 7, cy + 2); ctx.lineTo(cx - 2, cy + 7); ctx.moveTo(cx + 7, cy + 2); ctx.lineTo(cx + 2, cy + 7);
-      ctx.stroke(); return;
-    case 'land':
-      ctx.moveTo(cx - 5, cy + 8); ctx.lineTo(cx - 5, cy - 8);
-      ctx.moveTo(cx - 9, cy + 8); ctx.lineTo(cx + 3, cy + 8);
-      ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx - 5, cy - 8); ctx.lineTo(cx + 7, cy - 4.5); ctx.lineTo(cx - 5, cy - 1); ctx.closePath(); ctx.fill();
-      return;
   }
+  const ink = lit ? PAL.ink : TOK.onGlass;
+  const icon = a.kind === 'fire' ? (a.side === 0 ? 'firePort' : 'fireStarboard') : a.kind === 'ammo' ? sel.ammo : ICON_OF[a.kind];
+  drawIcon(ctx, icon, x + w / 2, y + 19, KIT.icon, ink);
+  kitText(ctx, a.sub || a.label, x + w / 2, y + 38.5, { size: a.label.length > 7 && !a.sub ? 9.5 : 10.5, weight: 700, color: ink, align: 'center', halo: 'none', maxWidth: w - 6 });
+  ctx.restore();
 }
-const GRAPE = [[-4, -3], [2, -4], [5, 1], [-1, 1], [-5, 3], [1, 5]];
 
 // Haptic ticks for the selected ship: a tiny one when she fires, a firmer one when she's hit.
 const fb = { id: -1, hp: 0, r0: 0, r1: 0, hitT: -9 };

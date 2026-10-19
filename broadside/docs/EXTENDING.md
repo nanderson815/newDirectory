@@ -47,7 +47,7 @@ With no `goal`/`goals` the goal is `sink`. Optional fields:
 - `player: [shipDefs]` replaces the campaign fleet.
 - `forts: [{ island, name, hp, guns, need, team? }]`: `island` indexes `islands`, `need` is the marines it
   takes to capture, and `team: 'player'` makes it your fort.
-- `events`, `hat`, `fog` (how far your lookouts see).
+- `events`, `hat`, `fog` (how far your lookouts see), `sea` (size multiplier for the battle's sea on top of the camera's `SEA_SCALE`: 1.2 for a wide-open chase, 0.85 for a tight harbour).
 
 Ship defs take `type`, `name`, `x`, `y` and `h`, plus optional `hp` (fixed hull; otherwise the type's hull ×
 `ai.hpMul`), `chasers`, `reloadMul`, `passive`, `boss` and `abilities`.
