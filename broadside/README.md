@@ -44,12 +44,20 @@ src/
 ```
 
 The simulation runs in 2D map space; the renderer copies it into a tilted 3D scene each frame.
-To add a battle, append an entry to `BATTLES` in `src/config/battles.js`.
+
+## Making content
+
+Battles are data (`src/config/battles.js`) built from primitives: goals, ship abilities, scripted events and
+ship types. [docs/EXTENDING.md](docs/EXTENDING.md) has copy-paste recipes for new battles and new primitives;
+[docs/PRIMITIVES.md](docs/PRIMITIVES.md) lists every primitive (generated with `npm run docs`).
+`npm run check` validates all content in a second or two, and `?battle=<id>` in the URL jumps straight into
+a battle.
 
 ## Tests
 
 ```sh
-npm test   # builds the single-file page, then runs the Playwright smoke and island-steering tests
+npm run check   # content validation + docs freshness, no browser
+npm test        # the check, then builds the single-file page and runs the Playwright tests
 ```
 
 `tests/smoke.mjs` plays the tutorial with touch input, buys shipyard upgrades, captures a fort, fights a boss

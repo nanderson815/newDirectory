@@ -31,12 +31,17 @@ export const alive = (u) => (u.kind === 'fort' ? u.state === 'active' : u.state 
 export const shipById = (id) => S.G.ships.find((s) => s.id === id);
 export const fortById = (id) => S.G.forts.find((f) => f.id === id);
 export const unitById = (id) => shipById(id) || fortById(id);
+// Battle data names ships; a name may also be given as a list of names.
+export const names = (v) => (v == null ? [] : Array.isArray(v) ? v : [v]);
+export const shipNamed = (G, name) => G.ships.find((s) => s.name === name);
+// Merchantmen under escort and allied captains sail themselves: they take no orders and aren't your fleet.
+export const selfSailing = (s) => !!(s.escort || s.ally);
 
 export function showBanner(text, sub, secs = 2.6) {
   S.banner = { text, sub, until: S.clock + secs };
 }
 export function showToast(text, ship, secs = 1.2) {
-  S.toast = { text, shipId: ship.id, until: S.clock + secs };
+  S.toast = { text, shipId: ship.id, until: S.clock + secs, secs };
 }
 
 // Damage numbers: hits on the same target within a moment add up into one number instead of a pile.

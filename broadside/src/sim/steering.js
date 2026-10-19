@@ -1,5 +1,6 @@
 import { S, afloat, shipById, unitById } from '../state.js';
 import { upChart } from './battle.js';
+import { edgeHeading } from './exit.js';
 import { abilitySteer } from './abilities/index.js';
 import { eachGoal, hasGoalFlag } from './goals/index.js';
 import { PI, clamp, angDiff } from '../util.js';
@@ -81,10 +82,12 @@ function weigh(s, t, d) {
 }
 
 // Enemy captains: close on the nearest English ship, then hold it on the beam at a comfortable range.
-// Abilities (a fireship's run) and goals (salvaging treasure) can take the helm first.
+// A runner makes for the edge; abilities (a fireship's run) and goals (salvaging treasure) can take the helm next.
 export function aiSteer(s, dt) {
   const G = S.G;
   if (s.passive) return null;
+  // A ship that has broken off runs straight for the nearest edge of the chart, whatever else is going on.
+  if (s.fleeing) return avoidIslands(s, edgeHeading(G, s), 160);
   const own = abilitySteer(s);
   if (own != null) return own;
   let goal = null;
@@ -111,7 +114,7 @@ export function aiSteer(s, dt) {
   }
   if (!t) return null;
   // A crippled English ship close by, with too few marines to hold her: run alongside and board.
-  if (!s.boss && s.marines > 0) {
+  if (!s.boss && !s.ally && s.marines > 0) {
     for (const o of G.ships) {
       if (o.team === s.team || !afloat(o) || o.hp > o.maxHp * 0.4 || Math.hypot(o.x - s.x, o.y - s.y) > 220) continue;
       if (s.marines > Math.round(o.marines * (0.6 + 0.4 * o.hp / o.maxHp)) * 1.2) {

@@ -6,12 +6,14 @@
 // Everything here is built from primitives; see docs/EXTENDING.md.
 // goals: what wins the battle, a list of { kind, ...params } from src/sim/goals/ (all must be met), or the
 //   shorthand goal: 'boss'. Without either the goal is 'sink'. Kinds: sink, boss, capture, treasure, escort,
-//   hold, breakthrough, timer.
+//   hold, breakthrough, timer, protect, hunt, reach, survive.
 // Ships: { type (src/config/ships.js), name, x, y, h, hp?, chasers?, passive?, boss?, abilities? }. Boss ships
 //   carry boss: { captain, title, hat } and win you that captain's hat. abilities: { id: config } from
-//   src/sim/abilities/ (mortar, fireship, launcher, mineLayer, oars), merged over the ship type's own.
+//   src/sim/abilities/ (mortar, fireship, launcher, mineLayer, oars, repair, ram, flee, rally), merged over the
+//   ship type's own.
 // forts: [{ island, name, hp, guns, need, team? }] (team: 'player' for your own forts).
-// events: scripted moments from src/sim/events.js, e.g. { at: 40, banner: [...], spawn: [...ships] }.
+// events: scripted moments from src/sim/events.js, e.g. { at: 40, banner: [...], spawn: [...ships] } or
+//   { shipSunk: 'San Juan', retreat: 'La Paga', say: ['La Paga', '¡Huid!'] }.
 // faction: 'pirate' gives the enemy black sails and pirate flags. fog: how far (map units) your lookouts see.
 // sea: optional size multiplier (linear) for the battle's sea on top of the camera's SEA_SCALE, e.g. 1.2 for a
 //   wide-open chase or 0.85 for a tight harbour. Positions are fractions, so the layout scales with it.

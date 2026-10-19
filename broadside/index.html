@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#2a8cc4">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b252c">
 <title>Broadside!</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,500..800,60;1,9..144,400..600,60&family=Source+Sans+3:wght@400..700&family=Lilita+One&display=swap">
 </head>
 <body>
 
@@ -21,71 +21,74 @@
   <p class="coach-text" id="coachText"></p>
 </div>
 
-<!-- Main menu -->
-<div class="overlay" id="menuScreen">
-  <div class="panel">
-    <p class="eyebrow">The Caribbean · 1655</p>
-    <h1>Broadside!</h1>
-    <p class="lede">Command a small English squadron against the might of Spain. Beat three Spanish captains and take their hats.</p>
-    <div class="hat-strip" id="menuHats"></div>
-    <div class="setting">
-      <span class="setting-label" id="fireLabelA">Gunnery</span>
-      <div class="toggle" role="group" aria-labelledby="fireLabelA">
-        <button type="button" id="fireAutoA" data-fire="auto">Auto fire</button>
-        <button type="button" id="fireManualA" data-fire="manual">Manual fire</button>
-      </div>
-      <p class="setting-note" id="fireNoteA"></p>
+<!-- Main menu: the battle behind it is the hero; the menu sits low over a soft scrim -->
+<div class="overlay menu-screen" id="menuScreen">
+  <div class="menu">
+    <header class="menu-head">
+      <p class="eyebrow">The Caribbean · 1655</p>
+      <h1 class="wordmark">Broadside<span aria-hidden="true">!</span></h1>
+      <p class="lede">Command a small English squadron against Spain, the pirates of the Brethren and, at last, La Gran Armada. Beat their captains and take their hats.</p>
+    </header>
+    <div class="menu-hats">
+      <p class="caption"><span>Hats won</span><span id="menuHatCount"></span></p>
+      <div class="hat-strip" id="menuHats"></div>
     </div>
-    <div class="setting-pair">
+    <div class="menu-actions">
+      <p class="error-text" id="glError" hidden>This game needs WebGL, and your browser didn't provide it. Try a recent Chrome or Safari.</p>
+      <button type="button" class="btn big" id="startBtn">Set sail</button>
+      <button type="button" class="btn text small" id="resetBtn">New campaign</button>
+    </div>
+    <section class="settings" aria-label="Settings">
       <div class="setting">
+        <div class="setting-row">
+          <span class="setting-label" id="fireLabelA">Gunnery</span>
+          <div class="toggle" role="group" aria-labelledby="fireLabelA">
+            <button type="button" id="fireAutoA" data-fire="auto">Auto</button>
+            <button type="button" id="fireManualA" data-fire="manual">Manual</button>
+          </div>
+        </div>
+        <p class="setting-note" id="fireNoteA"></p>
+      </div>
+      <div class="setting-row">
         <span class="setting-label" id="musicLabelA">Music</span>
         <div class="toggle" role="group" aria-labelledby="musicLabelA">
           <button type="button" id="musicOnA" data-music="on">On</button>
           <button type="button" id="musicOffA" data-music="off">Off</button>
         </div>
       </div>
-      <div class="setting">
+      <div class="setting-row">
         <span class="setting-label" id="soundLabelA">Sound</span>
         <div class="toggle" role="group" aria-labelledby="soundLabelA">
           <button type="button" id="soundOnA" data-sound="on">On</button>
           <button type="button" id="soundOffA" data-sound="off">Off</button>
         </div>
       </div>
-    </div>
-    <p class="error-text" id="glError" hidden>This game needs WebGL, and your browser didn't provide it. Try a recent Chrome or Safari.</p>
-    <div class="row">
-      <button type="button" class="btn" id="startBtn">Set sail</button>
-    </div>
-    <div class="row">
-      <button type="button" class="btn quiet small" id="resetBtn">New campaign</button>
-    </div>
+    </section>
   </div>
 </div>
 
 <!-- Sea chart: pick a battle -->
-<div class="overlay" id="chartScreen" hidden>
-  <div class="panel wide">
-    <div class="panel-head">
-      <div>
-        <p class="eyebrow">Sea chart</p>
-        <h2>Choose your next battle</h2>
-      </div>
-      <p class="purse" id="chartGold"></p>
+<div class="overlay chart-screen" id="chartScreen" hidden>
+  <div class="chart-frame">
+    <button type="button" class="btn icon-btn chart-back" id="chartBack" aria-label="Menu" data-icon="back"><span class="btn-label">Menu</span></button>
+    <div class="chart-title">
+      <p class="eyebrow">Sea chart</p>
+      <h2>Choose a battle</h2>
     </div>
-    <div class="chart" id="chartList"></div>
-    <div class="row">
-      <button type="button" class="btn quiet" id="yardBtn">Shipyard</button>
-      <button type="button" class="btn quiet" id="hatsBtn">Hats</button>
+    <p class="purse" id="chartGold"></p>
+    <div class="chart-view">
+      <div class="chart" id="chartList" role="group" aria-label="Sea chart of the Caribbean. Each battle is a button; scroll or drag to pan."></div>
     </div>
-    <div class="row">
-      <button type="button" class="btn quiet small" id="chartBack">Main menu</button>
+    <div class="chart-nav">
+      <button type="button" class="btn quiet" id="yardBtn" data-icon="ship">Shipyard</button>
+      <button type="button" class="btn quiet" id="hatsBtn" data-icon="hat">Hats</button>
     </div>
   </div>
 </div>
 
 <!-- Shipyard -->
 <div class="overlay" id="yardScreen" hidden>
-  <div class="panel wide">
+  <div class="panel glass wide">
     <div class="panel-head">
       <div>
         <p class="eyebrow">Port Royal</p>
@@ -97,74 +100,97 @@
     <div class="ship-card" id="yardShip" role="tabpanel"></div>
     <div class="hire" id="yardHire"></div>
     <div class="row">
-      <button type="button" class="btn" id="yardBack">Back to the chart</button>
+      <button type="button" class="btn quiet" id="yardBack" data-icon="map">Back to the chart</button>
     </div>
   </div>
 </div>
 
 <!-- Hat collection -->
 <div class="overlay" id="hatsScreen" hidden>
-  <div class="panel wide">
-    <p class="eyebrow">Captain's cabin</p>
-    <h2>Hat collection</h2>
+  <div class="panel glass wide">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Captain's cabin</p>
+        <h2>Hat collection</h2>
+      </div>
+      <p class="tally" id="hatsTally"></p>
+    </div>
     <div class="hat-grid" id="hatGrid"></div>
     <div class="row">
-      <button type="button" class="btn" id="hatsBack">Back to the chart</button>
+      <button type="button" class="btn quiet" id="hatsBack" data-icon="map">Back to the chart</button>
     </div>
   </div>
 </div>
 
 <!-- Battle briefing -->
 <div class="overlay" id="briefScreen" hidden>
-  <div class="panel">
-    <p class="eyebrow" id="briefEyebrow"></p>
-    <h1 class="title-sm" id="briefTitle"></h1>
-    <p class="lede" id="briefText"></p>
+  <div class="panel paper split">
+    <div class="col">
+      <p class="eyebrow" id="briefEyebrow"></p>
+      <h1 class="title-sm" id="briefTitle"></h1>
+      <div class="log" id="briefLog" hidden>
+        <p class="log-date" id="briefLogDate"></p>
+        <p class="log-text" id="briefLogText"></p>
+      </div>
+      <p class="lede" id="briefText"></p>
+    </div>
+    <div class="col">
     <div class="boss-card" id="briefBoss" hidden></div>
     <ul class="orders" id="briefOrders"></ul>
-    <div class="row">
+    <div class="row actions">
       <button type="button" class="btn" id="sailBtn">Set sail</button>
-      <button type="button" class="btn quiet" id="briefBack">Chart</button>
+      <button type="button" class="btn quiet" id="briefBack" data-icon="map">Chart</button>
+    </div>
     </div>
   </div>
 </div>
 
 <!-- Pause -->
 <div class="overlay" id="pauseScreen" hidden>
-  <div class="panel">
-    <p class="eyebrow">Paused</p>
-    <h2>Captain's cabin</h2>
-    <ul class="orders" id="pauseOrders"></ul>
-    <div class="setting">
-      <span class="setting-label" id="fireLabelB">Gunnery</span>
-      <div class="toggle" role="group" aria-labelledby="fireLabelB">
-        <button type="button" id="fireAutoB" data-fire="auto">Auto fire</button>
-        <button type="button" id="fireManualB" data-fire="manual">Manual fire</button>
+  <div class="panel glass split">
+    <div class="col">
+    <div class="panel-head">
+      <div>
+        <p class="eyebrow">Paused</p>
+        <h2>Captain's cabin</h2>
       </div>
-      <p class="setting-note" id="fireNoteB"></p>
     </div>
-    <div class="setting-pair">
+    <ul class="orders" id="pauseOrders"></ul>
+    </div>
+    <div class="col">
+    <section class="settings" aria-label="Settings">
       <div class="setting">
+        <div class="setting-row">
+          <span class="setting-label" id="fireLabelB">Gunnery</span>
+          <div class="toggle" role="group" aria-labelledby="fireLabelB">
+            <button type="button" id="fireAutoB" data-fire="auto">Auto</button>
+            <button type="button" id="fireManualB" data-fire="manual">Manual</button>
+          </div>
+        </div>
+        <p class="setting-note" id="fireNoteB"></p>
+      </div>
+      <div class="setting-row">
         <span class="setting-label" id="musicLabel">Music</span>
         <div class="toggle" role="group" aria-labelledby="musicLabel">
           <button type="button" id="musicOn" data-music="on">On</button>
           <button type="button" id="musicOff" data-music="off">Off</button>
         </div>
       </div>
-      <div class="setting">
+      <div class="setting-row">
         <span class="setting-label" id="soundLabel">Sound</span>
         <div class="toggle" role="group" aria-labelledby="soundLabel">
           <button type="button" id="soundOn" data-sound="on">On</button>
           <button type="button" id="soundOff" data-sound="off">Off</button>
         </div>
       </div>
+    </section>
+    <div class="row actions">
+      <button type="button" class="btn" id="resumeBtn" data-icon="play">Resume</button>
+      <button type="button" class="btn quiet" id="restartBtn" data-icon="restart">Restart</button>
     </div>
     <div class="row">
-      <button type="button" class="btn" id="resumeBtn">Resume</button>
-      <button type="button" class="btn quiet" id="restartBtn">Restart</button>
+      <button type="button" class="btn text small" id="retreatBtn">Retreat to the chart</button>
     </div>
-    <div class="row">
-      <button type="button" class="btn quiet small" id="retreatBtn">Retreat to the chart</button>
     </div>
   </div>
 </div>
@@ -172,24 +198,35 @@
 <!-- Battle over -->
 <div class="overlay" id="endScreen" hidden>
   <div class="coin-layer" id="coinLayer" aria-hidden="true"></div>
-  <div class="panel">
-    <p class="eyebrow" id="endEyebrow"></p>
-    <h1 id="endTitle">Victory!</h1>
-    <div class="stars big" id="endStars" aria-hidden="true"></div>
-    <p class="lede" id="endText"></p>
-    <p class="reward" id="endReward" hidden></p>
-    <div class="hat-won" id="endHat" hidden></div>
+  <div class="panel paper end split">
+    <div class="col">
+      <p class="eyebrow" id="endEyebrow"></p>
+      <h1 id="endTitle">Victory!</h1>
+      <div class="stars big" id="endStars" aria-hidden="true"></div>
+      <p class="lede" id="endText"></p>
+      <p class="reward" id="endReward" hidden></p>
+      <div class="hat-won" id="endHat" hidden></div>
+    </div>
+    <div class="col">
+    <div class="log" id="endLog" hidden>
+      <p class="log-date" id="endLogDate"></p>
+      <p class="log-text" id="endLogText"></p>
+    </div>
     <dl class="stats">
       <div><dt>Time</dt><dd id="statTime">0:00</dd></div>
       <div><dt>Hit rate</dt><dd id="statHits">0%</dd></div>
       <div><dt>Ships lost</dt><dd id="statLost">0</dd></div>
     </dl>
-    <div class="row">
+    <div class="row actions">
       <button type="button" class="btn" id="endPrimary">Next battle</button>
-      <button type="button" class="btn quiet" id="endChart">Sea chart</button>
+      <button type="button" class="btn quiet" id="endChart" data-icon="map">Sea chart</button>
+    </div>
     </div>
   </div>
 </div>
+
+<!-- Boss intro card: shown for a moment when a boss battle begins; tap to skip -->
+<div class="boss-intro" id="bossIntro" hidden role="dialog" aria-label="Boss battle" aria-live="assertive"></div>
 
 <script type="module" src="/src/main.js"></script>
 </body>

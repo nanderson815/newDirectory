@@ -28,7 +28,7 @@ export function makeShip(def, team, place, rot, id, ai) {
     hp, maxHp: hp, reload: [rand(0.6, 1.6), rand(0.6, 1.6)],
     path: [], pivot: null, state: 'afloat', sinkT: 0, flash: 0, yard: 0, bob: rand(0, TAU),
     aiT: 0, targetId: null, ideal: rand(0.5, 0.72), fxT: 0,
-    rig: T.rig || 'square', escort: !!def.escort, exits: !!(def.escort || def.exits), flag: false,
+    rig: T.rig || 'square', escort: !!def.escort, ally: !!def.ally, exits: !!(def.escort || def.exits), flag: false,
     faction: def.faction || null, hidden: false,
   };
   initAbilities(s, { ...T.abilities, ...def.abilities });
@@ -40,6 +40,8 @@ export const nextId = (G) => Math.max(0, ...G.ships.map((s) => s.id), ...G.forts
 
 // Map placement for fractions of the portrait layout (landscape rotates it 90°: "up" the chart is to the right).
 export const placer = (G) => (G.land ? (x, y) => [(1 - y) * G.W, x * G.H] : (x, y) => [x * G.W, y * G.H]);
+// The width of the portrait chart in map units: radii given as portrait fractions are fractions of this.
+export const chartWidth = (G) => (G.land ? G.H : G.W);
 
 // Ships leave the map through the exit band at the top of the chart (the right edge in landscape).
 export const EXIT_BAND = 70;

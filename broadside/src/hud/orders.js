@@ -1,11 +1,11 @@
-import { S, afloat, showToast } from '../state.js';
+import { S, afloat, showToast, selfSailing } from '../state.js';
 import { clamp, reduceMotion, store } from '../util.js';
 
 // The orders a captain can give: sail a course, sail straight to a point, engage a target, anchor.
 // Input and the action bar call these; with the whole fleet selected they go to every ship.
 
 export const clampWorld = (w) => ({ x: clamp(w.x, 30, S.G.W - 30), y: clamp(w.y, 30, S.G.H - 30) });
-export const commandable = (s) => s && s.team === 'player' && afloat(s) && !s.escort; // merchantmen sail themselves
+export const commandable = (s) => !!s && s.team === 'player' && afloat(s) && !selfSailing(s); // merchantmen and allies sail themselves
 
 // Ripple where a tap gave an order (drawn by the HUD).
 export const tapFx = { x: 0, y: 0, t: -9, kind: 'sail' };

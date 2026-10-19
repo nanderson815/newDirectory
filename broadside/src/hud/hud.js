@@ -1,4 +1,4 @@
-import { S, afloat, shipById, unitById } from '../state.js';
+import { S, afloat, shipById, unitById, selfSailing } from '../state.js';
 import { COL, FONT, PI, TAU, clamp } from '../util.js';
 import { CAPTURE_TIME } from '../config/ships.js';
 import { projTo, proj, pxPerUnit, scratchA, scratchB, cam } from '../render/camera.js';
@@ -6,8 +6,8 @@ import { previewFor } from './preview.js';
 import { commandable, haptic, tapFx } from './orders.js';
 import { shipMeshes, fortTopZ } from '../render/scene.js';
 import { sideDir } from '../sim/combat.js';
-import { EXIT_BAND } from '../sim/battle.js';
-import { goalLines, eachGoal, hasGoalFlag } from '../sim/goals/index.js';
+import { goalLines, eachGoal } from '../sim/goals/index.js';
+import { eachAbility } from '../sim/abilities/index.js';
 import { landingFor } from '../sim/forts.js';
 import { boardingTarget, defence } from '../sim/boarding.js';
 import { AMMO, BOARDING } from '../config/ammo.js';
@@ -199,6 +199,8 @@ function drawBars(s) {
   if (s.fireship) outlinedText('Fireship!', tx, y + 15, 11, '#ffb27a', 'center');
   else if (s.flag) outlinedText('★ Flagship', tx, y + 15, 11, '#ffe08a', 'center');
   else if (s.escort) outlinedText('Escort', tx, y + 15, 11, '#f4e3b8', 'center');
+  else if (s.fleeing) outlinedText('Fleeing!', tx, y + 15, 11, '#ffe08a', 'center');
+  else if (s.ally) outlinedText('Ally', tx, y + 15, 11, '#bfe3ff', 'center');
   else if (s.slowT > 0) outlinedText('Rigging cut', tx, y + 15, 11, '#ffd6cf', 'center');
   else if (s.prize) outlinedText('Prize', tx, y + 15, 11, '#bfe3ff', 'center');
 }
@@ -286,6 +288,9 @@ const TIPS = {
   mortar: 'A red ring marks where a mortar shell will land. Sail out of it!',
   exit: 'Get through the green dashed line at the top of the chart.',
   chest: 'Sail over the gold rings to haul the treasure chests aboard.',
+  reach: 'Sail into the gold ring marked on the chart.',
+  protect: 'Keep the ships and forts ringed in blue safe. Lose one and the battle is lost.',
+  hunt: 'Sink the ships ringed in red. The rest don’t matter.',
   fog: 'Fog! You only see ships near your own. Keep the fleet together.',
 };
 let tip = null;
@@ -324,21 +329,6 @@ function wrap(text, maxW) {
 }
 export const resetTip = () => { tip = null; };
 
-// The exit band at the top of the chart (the right edge in landscape) for escorts and breakthroughs.
-function drawExit() {
-  const G = S.G, n = 24, pulse = 0.55 + 0.25 * Math.sin(S.clock * 3);
-  ctx.beginPath();
-  for (let i = 0; i <= n; i++) {
-    const k = i / n;
-    if (G.land) seaTo(G.W - EXIT_BAND, k * G.H, i === 0); else seaTo(k * G.W, EXIT_BAND, i === 0);
-  }
-  ctx.setLineDash([14, 10]); ctx.lineDashOffset = S.clock * 24;
-  ctx.lineWidth = 4; ctx.strokeStyle = `rgba(140,230,130,${pulse})`; ctx.stroke();
-  ctx.setLineDash([]); ctx.lineDashOffset = 0;
-  const q = G.land ? projTo(G.W - EXIT_BAND * 0.45, G.H * 0.5, 4) : projTo(G.W * 0.5, EXIT_BAND * 0.45, 4);
-  outlinedText(G.land ? 'EXIT ›' : '︿ EXIT ︿', q.x, q.y, 14, '#c6f5b8', 'center');
-}
-
 // Mortar shells in flight: a pulsing red ring where each will land.
 function drawShellTargets() {
   for (const b of S.balls) {
@@ -350,13 +340,19 @@ function drawShellTargets() {
   }
 }
 
-// Floating treasure: a gold marker over each chest still in the water.
-function drawChests() {
-  for (const c of S.G.chests) {
-    if (c.taken) continue;
-    seaCircle(c.x, c.y, 15 + Math.sin(S.clock * 4 + c.x) * 2.5, 20);
-    ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(255,214,90,0.85)'; ctx.stroke();
-  }
+// The kit goals and abilities draw their chart markers with: draw(o, G, api) on a goal, draw(s, a, api) on an
+// ability. above(s) is the point over a ship's health bar; once(key) is true the first time a key is asked for
+// in a frame, so markers several goals share (the exit band) are drawn once.
+const drawn = new Set();
+const api = {
+  ctx, seaTo, seaCircle, outlinedText, projTo, proj, COL,
+  above(s) { const m = shipMeshes.get(s.id); return proj(s.x, s.y, (m ? m.top : 40) + 12); },
+  once(key) { if (drawn.has(key)) return false; drawn.add(key); return true; },
+};
+function drawMarkers(G) {
+  drawn.clear();
+  eachGoal(G, 'draw', (g, o) => g.draw(o, G, api));
+  for (const s of G.ships) if (afloat(s) && !s.hidden) eachAbility(s, 'draw', (A, a) => A.draw(s, a, api));
 }
 
 export function drawHUD() {
@@ -393,12 +389,11 @@ export function drawHUD() {
     drawEngage(sel);
     drawTapFx();
     for (const s of G.ships) if (s.team === 'player' && afloat(s) && s.pivot != null) drawPivot(s, dr && dr.mode === 'rotate' && (dr.ship === s || (dr.fleet && commandable(s))));
-    if (S.selectAll) { for (const s of G.ships) if (s.team === 'player' && afloat(s) && !s.escort) drawRing(s); }
+    if (S.selectAll) { for (const s of G.ships) if (s.team === 'player' && afloat(s) && !selfSailing(s)) drawRing(s); }
     else if (sel) drawRing(sel);
     for (const s of G.ships) if (s.boarding && s.boarding.attacker) drawBoarding(s);
   }
-  if (hasGoalFlag(G, 'exit')) drawExit();
-  if (G.chests && G.chests.length) drawChests();
+  drawMarkers(G);
   drawShellTargets();
   if (G.phase === 'play' && G.t > 1.5) {
     eachGoal(G, 'tip', (g) => offerTip(g.tip));
@@ -419,22 +414,22 @@ export function drawHUD() {
     if (s.team !== 'player' && s.origTeam !== 'player') continue;
     const alive = afloat(s) && s.team === 'player'; // a ship taken by Spanish boarders is lost to you
     const safe = s.state === 'escaped';
-    ctx.fillStyle = s.escort ? 'rgba(92,70,40,0.78)' : COL.hud; roundRect(x, y, w, h, 10); ctx.fill();
+    ctx.fillStyle = s.escort ? 'rgba(92,70,40,0.78)' : s.ally ? 'rgba(40,82,92,0.78)' : COL.hud; roundRect(x, y, w, h, 10); ctx.fill();
     if (s === sel || (S.selectAll && alive)) { ctx.lineWidth = 2.5; ctx.strokeStyle = COL.gold; ctx.stroke(); }
     ctx.font = `15px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillStyle = alive || safe ? COL.white : 'rgba(255,255,255,0.45)';
     ctx.fillText(s.flag ? `★ ${s.name}` : s.name, x + 10, y + 12);
     ctx.font = `11px ${FONT}`; ctx.textAlign = 'right';
     ctx.fillStyle = safe ? '#9fe08a' : alive ? 'rgba(255,255,255,0.7)' : '#ff8a7a';
-    ctx.fillText(safe ? 'Through!' : alive ? (s.escort ? 'Escort' : s.label) : afloat(s) ? 'Captured' : 'Sunk', x + w - 10, y + 12);
+    ctx.fillText(safe ? 'Through!' : alive ? (s.escort ? 'Escort' : s.ally ? 'Ally' : s.label) : afloat(s) ? 'Captured' : 'Sunk', x + w - 10, y + 12);
     ctx.fillStyle = 'rgba(0,0,0,0.35)'; roundRect(x + 10, y + 21, w - 20, 5, 2.5); ctx.fill();
     const k = s.hp / s.maxHp;
     if (k > 0) { ctx.fillStyle = hpColour(k); roundRect(x + 10, y + 21, Math.max(3, (w - 20) * k), 5, 2.5); ctx.fill(); }
-    if (!s.escort) hud.cards.push({ x, y, w, h, ship: s }); // merchantmen can't be given orders
+    if (!selfSailing(s)) hud.cards.push({ x, y, w, h, ship: s }); // merchantmen and allies can't be given orders
     y += h + 6;
   }
   // Fleet orders: select every ship, then one drawn course moves the whole squadron.
-  if (G.ships.filter((s) => s.team === 'player' && afloat(s) && !s.escort).length > 1) {
+  if (G.ships.filter((s) => s.team === 'player' && afloat(s) && !selfSailing(s)).length > 1) {
     if (G.phase === 'play' && G.t > 3) offerTip('fleet');
     ctx.fillStyle = S.selectAll ? 'rgba(242,182,50,0.92)' : COL.hud; roundRect(x, y, w, 26, 10); ctx.fill();
     ctx.lineWidth = 2; ctx.strokeStyle = S.selectAll ? COL.ink : 'rgba(255,255,255,0.35)'; ctx.stroke();
@@ -488,7 +483,8 @@ export function drawHUD() {
     if (ts && afloat(ts)) {
       const m = shipMeshes.get(ts.id), q = projTo(ts.x, ts.y, (m ? m.top : 40) + 30);
       ctx.globalAlpha = clamp((toast.until - S.clock) * 3, 0, 1);
-      outlinedText(toast.text, q.x, q.y - (1.2 - (toast.until - S.clock)) * 14, 15, COL.white, 'center');
+      const age = (toast.secs || 1.2) - (toast.until - S.clock); // longer toasts (event speech) stop rising
+      outlinedText(toast.text, q.x, q.y - Math.min(age, 1.2) * 14, 15, COL.white, 'center');
       ctx.globalAlpha = 1;
     }
   }

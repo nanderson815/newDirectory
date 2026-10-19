@@ -1,61 +1,108 @@
-import { briefText, winText, loseText } from '../sim/goals/index.js';
-import { S, afloat } from '../state.js';
+import { briefText, winText, loseText, mainGoal } from '../sim/goals/index.js';
+import { S, afloat, selfSailing } from '../state.js';
 import { $, store } from '../util.js';
-import { BATTLES, REGIONS } from '../config/battles.js';
+import { BATTLES } from '../config/battles.js';
 import { TYPES } from '../config/ships.js';
 import { UPGRADES, MAX_FLEET } from '../config/upgrades.js';
 import { HATS, HAT_ORDER, hatSVG } from '../config/hats.js';
 import { AMMO, AMMO_COSTS, BOARDING } from '../config/ammo.js';
 import { battleDef, ENDLESS_ID, ENDLESS, WAVE_GOLD } from '../config/endless.js';
+import { LAB_ID } from '../config/lab.js';
 import {
-  save, resetSave, recordSkirmish, fleetStats, refitOffer, upgradeOffer, buyUpgrade, buyRefit, buyAmmo, nextHire, buyHire, isUnlocked, recordWin, lvl,
+  save, resetSave, recordSkirmish, starsFor, fleetStats, refitOffer, upgradeOffer, buyUpgrade, buyRefit, buyAmmo, nextHire, buyHire, isUnlocked, recordWin, lvl,
 } from '../save.js';
 import { loadBattle } from '../game.js';
 import { R } from '../render/gl.js';
 import { sfx } from '../audio/sfx.js';
 import { music } from '../audio/music.js';
 import { TUTORIAL_STEPS } from '../sim/update.js';
+import { STORY, logDate } from '../config/story.js';
+import { renderChart, enablePan } from './chart.js';
+import { DURATION, EASE } from './tokens.js';
+import { iconSVG } from './icons.js';
 
 // DOM screens around the battle: menu, sea chart, shipyard, hats, briefing, pause, results, tutorial coach.
 const SCREENS = ['menuScreen', 'chartScreen', 'yardScreen', 'hatsScreen', 'briefScreen', 'pauseScreen', 'endScreen'];
 export const ui = { screen: 'menuScreen', yardSel: 0 };
 
-const COIN = '<svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#f2b632" stroke="#3a2414" stroke-width="2.5"/><circle cx="10" cy="10" r="4" fill="none" stroke="#c98a17" stroke-width="2"/></svg>';
+// A struck gold coin: a bright face with a highlight, a fine rim and a soft inner ring.
+const COIN = '<svg class="coin" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.6" fill="#e4ab45" stroke="#7a4f12" stroke-width="1.1"/>' +
+  '<path d="M4.4 8.6A6 6 0 0 1 11.4 4.2" fill="none" stroke="#fbe3a0" stroke-width="1.6" stroke-linecap="round" opacity="0.85"/>' +
+  '<circle cx="10" cy="10" r="5.4" fill="none" stroke="#a5711f" stroke-width="0.9" opacity="0.8"/><path d="M10 7.4V12.6" stroke="#a5711f" stroke-width="1.3" stroke-linecap="round"/></svg>';
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 const starsHTML = (n, big) => `<span class="stars${big ? ' big' : ''}" role="img" aria-label="${n} of 3 stars">` +
-  [0, 1, 2].map((i) => `<span class="${i < n ? 'on' : ''}">★</span>`).join('') + '</span>';
+  [0, 1, 2].map((i) => iconSVG('star', { cls: 'star' + (i < n ? ' on' : '') })).join('') + '</span>';
 
+// Shows one screen (or none, for the battle). A screen opened from the battle, or at boot, fades its scrim in;
+// moving between menus only the content rises in, so the backdrop never flashes.
+let booted = false;
 export function showScreen(id) {
+  if (id !== null) hideIntro();
+  const prev = ui.screen;
   ui.screen = id;
-  for (const s of SCREENS) $(s).hidden = s !== id;
+  for (const s of SCREENS) {
+    const el = $(s), show = s === id;
+    if (show && (el.hidden || !booted)) el.classList.toggle('enter-fade', prev === null || !booted);
+    el.hidden = !show;
+  }
+  booted = true;
   renderCoach();
+}
+
+// Counts a number up from zero (gold won, for one): eased, and instant when motion is reduced.
+function countUp(el, to, { prefix = '', suffix = '', delay = 0, ms = DURATION.count } = {}) {
+  const set = (v) => { el.textContent = prefix + Math.round(v) + suffix; };
+  cancelAnimationFrame(el._count);
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches || !to) { set(to); return; }
+  set(0);
+  const t0 = performance.now() + delay;
+  const tick = (now) => {
+    const k = Math.min(1, Math.max(0, (now - t0) / ms));
+    set(to * EASE.out(k));
+    if (k < 1) el._count = requestAnimationFrame(tick);
+  };
+  el._count = requestAnimationFrame(tick);
 }
 
 // Menus keep the battle behind them idle, so nothing sails or fires while you browse.
 function idle() { if (S.G) S.G.phase = 'title'; }
 
 // ---------- Battle descriptions ----------
-const PLURAL = { sloop: 'sloops', brig: 'brigs', frigate: 'frigates', galleon: 'galleons', manowar: "men-o'-war" };
+const PLURAL = {
+  sloop: 'sloops', brig: 'brigs', frigate: 'frigates', galleon: 'galleons', manowar: "men-o'-war",
+  schooner: 'schooners', xebec: 'xebecs', bomb: 'bomb ketches', fireship: 'fireships', merchant: 'merchantmen',
+};
+const enemyForts = (B) => (B.forts || []).filter((f) => f.team !== 'player');
+const ownForts = (B) => (B.forts || []).filter((f) => f.team === 'player');
+const isPirate = (B) => B.faction === 'pirate';
+const bossOf = (B) => { const e = B.enemy.find((x) => x.boss); return e ? e.boss : null; };
+// Calico Kate is the one boss who isn’t a "he".
+const his = (B) => (STORY[B.id] && STORY[B.id].her ? 'her' : 'his');
 function rosterText(B) {
   const counts = {};
   for (const e of B.enemy) counts[e.type] = (counts[e.type] || 0) + 1;
-  const parts = Object.entries(counts).map(([t, n]) => `${n} ${n === 1 ? TYPES[t].label.toLowerCase() : PLURAL[t]}`);
-  if (B.forts) parts.push(`${B.forts.length} fort${B.forts.length > 1 ? 's' : ''}`);
+  const parts = Object.entries(counts).map(([t, n]) => `${n} ${n === 1 ? TYPES[t].label.toLowerCase() : PLURAL[t] || TYPES[t].label.toLowerCase() + 's'}`);
+  const forts = enemyForts(B).length;
+  if (forts) parts.push(`${forts} fort${forts > 1 ? 's' : ''}`);
+  const waves = (B.events || []).filter((e) => e.spawn).length;
+  if (waves) parts.push(`then ${waves} wave${waves > 1 ? 's' : ''} of reinforcements`);
   return parts.join(', ');
 }
 // Each goal writes its own orders (src/sim/goals/).
 function goalText(B) {
   if (B.tutorial) return 'Follow your bosun’s orders, then sink the old hulk.';
-  return briefText(B) + (B.fog ? ' Fog limits what your lookouts can see.' : '');
+  return briefText(B);
 }
 function ordersHTML(B) {
   const li = [`<li><b>Orders:</b> ${esc(goalText(B))}</li>`];
-  if (B.goal === 'waves') li.push(`<li>Between waves your ships patch ${Math.round(0.25 * 100)}% of their hull and restock mines. Each wave beaten pays ${WAVE_GOLD} gold.${save.best ? ` Your best: wave ${save.best}.` : ''}</li>`);
-  else if (!B.tutorial) li.push(`<li><b>Enemy:</b> ${esc(rosterText(B))}.</li>`);
-  if (B.forts) li.push('<li>Forts fire in every direction. Once one is silenced, stop a ship beside it and tap <b>Land</b>.</li>');
+  if (mainGoal(B) === 'waves') li.push(`<li>Between waves your ships patch ${Math.round(0.25 * 100)}% of their hull and restock mines. Each wave beaten pays ${WAVE_GOLD} gold.${save.best ? ` Your best: wave ${save.best}.` : ''}</li>`);
+  else if (!B.tutorial) li.push(`<li><b>${isPirate(B) ? 'Pirates' : 'Enemy'}:</b> ${esc(rosterText(B))}.</li>`);
+  if (B.fog) li.push('<li><b>Fog:</b> your lookouts only see ships close to your own. Keep the fleet together and watch the edges of the murk.</li>');
+  if (ownForts(B).length) li.push('<li>Your fort’s guns fire on anything in range, but it can’t dodge. Hunt down the bomb ketches before they wear it down.</li>');
+  if (enemyForts(B).length) li.push('<li>Forts fire in every direction. Once one is silenced, stop a ship beside it and tap <b>Land</b>.</li>');
   if (S.G && S.G.ships.some((s) => s.team === 'player' && s.mines > 0)) li.push('<li>Select a ship with mines and tap <b>Mine</b> to leave one astern.</li>');
-  if (!B.tutorial && B.goal !== 'boss') li.push(`<li>Batter an enemy below ${Math.round(BOARDING.hpFrac * 100)}% hull, sail alongside and tap <b>Board</b> to take her as a prize (+${BOARDING.prizeGold} gold).</li>`);
+  if (!B.tutorial && mainGoal(B) !== 'boss' && mainGoal(B) !== 'breakthrough') li.push(`<li>Batter an enemy below ${Math.round(BOARDING.hpFrac * 100)}% hull, sail alongside and tap <b>Board</b> to take her as a prize (+${BOARDING.prizeGold} gold).</li>`);
   if (!B.tutorial) li.push('<li class="note">Drag on the sea to set the selected ship’s course, or tap to sail straight there. Tap an enemy to engage. Pinch to zoom; double-tap the sea to recentre.</li>');
   return li.join('');
 }
@@ -65,6 +112,7 @@ let resetArmed = null;
 export function openMenu() {
   idle();
   $('menuHats').innerHTML = HAT_ORDER.map((id) => hatSVG(id, !save.hats.includes(id))).join('');
+  $('menuHatCount').textContent = `${HAT_ORDER.filter((id) => save.hats.includes(id)).length} of ${HAT_ORDER.length}`;
   $('startBtn').textContent = Object.keys(save.stars).length ? 'Continue' : 'Set sail';
   disarmReset();
   music.mood('menu');
@@ -80,35 +128,9 @@ function disarmReset() {
 export function openChart() {
   idle();
   $('chartGold').innerHTML = `${COIN}<span>${save.gold}</span>`;
-  const next = BATTLES.findIndex((b, i) => isUnlocked(i) && !save.stars[b.id]);
-  let html = '';
-  for (const reg of REGIONS) {
-    html += `<section class="region"><h3>${esc(reg.name)}</h3><ol class="route">`;
-    BATTLES.forEach((b, i) => {
-      if (b.region !== reg.id) return;
-      const open = isUnlocked(i), stars = save.stars[b.id] || 0;
-      const boss = b.goal === 'boss';
-      const cls = ['node', boss ? 'boss' : '', i === next ? 'next' : ''].filter(Boolean).join(' ');
-      const num = boss ? hatSVG(b.hat, !save.hats.includes(b.hat)) : esc(b.roman);
-      const tags = (b.tutorial ? '<span class="tag">Tutorial</span>' : '') + (boss ? '<span class="tag boss">Boss</span>' : '') + (b.forts ? '<span class="tag fort">Fort</span>' : '');
-      const meta = `${tags}${b.year} · ${esc(rosterText(b))}`;
-      const right = open ? starsHTML(stars) : '<span class="lock">Locked</span>';
-      html += `<li><button type="button" class="${cls}" data-battle="${i}"${open ? '' : ' disabled'}>` +
-        `<span class="node-num">${num}</span><span class="node-body"><span class="node-name">${esc(b.name)}</span>` +
-        `<span class="node-meta">${meta}</span></span>${right}</button></li>`;
-    });
-    html += '</ol></section>';
-  }
-  // Endless Skirmish opens once the first campaign battle is won.
-  const skirmishOpen = isUnlocked(2);
-  html += `<section class="region"><h3>Endless Skirmish</h3><ol class="route"><li>` +
-    `<button type="button" class="node endless" data-battle="${ENDLESS_ID}"${skirmishOpen ? '' : ' disabled'}>` +
-    `<span class="node-num">∞</span><span class="node-body"><span class="node-name">${esc(ENDLESS.name)}</span>` +
-    `<span class="node-meta"><span class="tag">Waves</span>${skirmishOpen ? (save.best ? `Best: wave ${save.best}` : 'How long can you last?') : 'Win the Tortuga Narrows to open'}</span></span>` +
-    `${skirmishOpen ? '' : '<span class="lock">Locked</span>'}</button></li></ol></section>`;
-  $('chartList').innerHTML = html;
   music.mood('calm');
   showScreen('chartScreen');
+  renderChart($('chartList'));
 }
 
 // ---------- Shipyard ----------
@@ -123,10 +145,10 @@ function buyRow(cls, name, desc, pips, cost, id) {
   const pipHTML = pips
     ? `<span class="pips" role="img" aria-label="Level ${pips[0]} of ${pips[1]}">${Array.from({ length: pips[1] }, (_, k) => `<i class="${k < pips[0] ? 'on' : ''}"></i>`).join('')}</span>`
     : '';
-  const label = cost == null ? 'Maxed' : `${COIN}${cost}`;
+  const label = cost == null ? (pips && pips[1] === 1 ? 'Owned' : 'Maxed') : `${COIN}${cost}`;
   const aria = cost == null ? `${name}: fully upgraded` : `Buy ${name} for ${cost} gold`;
   return `<div class="up-row ${cls}"><div><div class="up-name">${esc(name)}</div><div class="up-desc">${esc(desc)}</div>${pipHTML}</div>` +
-    `<button type="button" class="buy" data-buy="${id}"${can ? '' : ' disabled'} aria-label="${esc(aria)}">${label}</button></div>`;
+    `<button type="button" class="buy${cost == null ? ' maxed' : ''}" data-buy="${id}"${can ? '' : ' disabled'} aria-label="${esc(aria)}">${label}</button></div>`;
 }
 function renderYard() {
   $('yardGold').innerHTML = `${COIN}<span>${save.gold}</span>`;
@@ -154,6 +176,7 @@ function renderYard() {
     html += buyRow('', AMMO[kind].name, AMMO[kind].desc, [have, 1], have ? null : AMMO_COSTS[kind], 'ammo:' + kind);
   }
   $('yardShip').innerHTML = html + '</div>';
+  if (!renderYard.quiet) $('yardShip').querySelector('.up-list').classList.add('stagger');
   const h = nextHire();
   $('yardHire').innerHTML = h
     ? buyRow('', `Hire the ${TYPES[h.cls].label.toLowerCase()} ${h.name}`, `Joins your squadron. Up to ${MAX_FLEET} ships.`, null, h.cost, 'hire')
@@ -165,12 +188,28 @@ function onYardClick(e) {
   const b = e.target.closest('[data-buy]');
   if (!b || b.disabled) return;
   const id = b.dataset.buy, i = ui.yardSel;
+  const what = b.closest('.up-row').querySelector('.up-name').textContent;
   const ok = id === 'refit' ? buyRefit(i) : id === 'hire' ? buyHire() : id.startsWith('ammo:') ? buyAmmo(i, id.slice(5)) : buyUpgrade(i, id);
   if (ok) {
     sfx.init(); sfx.coin();
     if (id === 'hire') ui.yardSel = save.fleet.length - 1;
-    renderYard();
+    renderYard.quiet = true; renderYard(); renderYard.quiet = false; // a purchase updates in place
+    toast(id === 'hire' ? `${save.fleet[save.fleet.length - 1].name} joins the squadron` : id === 'refit' ? 'Refit complete'
+      : id.startsWith('ammo:') ? `${what} stowed aboard` : `${what} fitted`, id === 'hire' ? 'ship' : 'check');
   }
+}
+
+// A short confirmation that drops in at the top of the screen and fades away by itself.
+let toastTimer = null;
+export function toast(text, icon = 'check') {
+  let el = document.getElementById('toast');
+  if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; el.setAttribute('role', 'status'); document.body.appendChild(el); }
+  el.innerHTML = iconSVG(icon) + `<span>${esc(text)}</span>`;
+  el.hidden = false;
+  el.classList.remove('out');
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.add('out'); toastTimer = setTimeout(() => { el.hidden = true; }, 260); }, 1800);
 }
 
 // ---------- Hats ----------
@@ -179,8 +218,10 @@ export function openHats() {
   $('hatGrid').innerHTML = HAT_ORDER.map((id) => {
     const won = save.hats.includes(id);
     return `<div class="hat-card${won ? '' : ' locked'}">${hatSVG(id, !won)}<h3>${esc(HATS[id].name)}</h3>` +
-      `<p>${esc(HATS[id].from)}</p><p><b>${won ? 'In your cabin' : 'Not won yet'}</b></p></div>`;
+      `<p>${esc(HATS[id].from)}</p><p class="won-tag">${won ? 'In your cabin' : iconSVG('lock') + 'Not won yet'}</p></div>`;
   }).join('');
+  $('hatGrid').classList.add('stagger');
+  $('hatsTally').innerHTML = `<b>${HAT_ORDER.filter((id) => save.hats.includes(id)).length}</b> of ${HAT_ORDER.length}`;
   showScreen('hatsScreen');
 }
 
@@ -188,17 +229,24 @@ export function openHats() {
 export function openBrief(i) {
   loadBattle(i);
   const B = battleDef(i);
-  $('briefEyebrow').textContent = B.goal === 'waves' ? `Skirmish · ${B.year}` : B.tutorial ? `Tutorial · ${B.year}` : `Battle ${B.roman} · ${B.year}`;
+  $('briefEyebrow').textContent = i === LAB_ID ? `Battle lab · ${B.year}` : mainGoal(B) === 'waves' ? `Skirmish · ${B.year}` : B.tutorial ? `Tutorial · ${B.year}` : `Battle ${B.roman} · ${B.year}`;
   $('briefTitle').textContent = B.name;
   $('briefText').textContent = B.brief;
-  const boss = B.goal === 'boss' ? B.enemy.find((e) => e.boss).boss : null;
+  const log = STORY[B.id];
+  $('briefLog').hidden = !log;
+  if (log) {
+    $('briefLogDate').textContent = `Captain’s log · ${logDate(B.id, B.year)}`;
+    $('briefLogText').textContent = log.before;
+  }
+  const boss = mainGoal(B) === 'boss' ? bossOf(B) : null;
   $('briefBoss').hidden = !boss;
   if (boss) {
-    const have = save.hats.includes(boss.hat);
+    const have = save.hats.includes(boss.hat), hatName = HATS[boss.hat].name.replace(/^Calico Kate's /, '').toLowerCase();
     $('briefBoss').innerHTML = hatSVG(boss.hat, false) +
-      `<p><b>${esc(boss.captain)}</b>${have ? 'You already have this hat. Beat him again for gold.' : `Sink ${esc(boss.title)} to win his ${esc(HATS[boss.hat].name.toLowerCase())}.`}</p>`;
+      `<p><b>${esc(boss.captain)}</b>${have ? `You already have this hat. Beat ${his(B) === 'her' ? 'her' : 'him'} again for gold.` : `Sink ${esc(boss.title)} to win ${his(B)} ${esc(hatName)}.`}</p>`;
   }
   $('briefOrders').innerHTML = ordersHTML(B);
+  $('briefOrders').classList.add('stagger');
   music.mood('calm');
   showScreen('briefScreen');
 }
@@ -209,6 +257,46 @@ export function startPlay() {
   S.G.phase = 'play';
   music.mood(S.G.goal === 'boss' ? 'boss' : 'battle');
   showScreen(null);
+  if (S.G.goal === 'boss' && S.G.t === 0) showIntro();
+}
+
+// ---------- Boss intro card ----------
+// When a boss battle begins, the boss's card swings in for a few seconds (tap to skip) while the battle waits.
+// Automated browsers skip it so scripted tests run straight on, unless they set window.__broadsideIntro = true.
+const INTRO_SECS = 2.8;
+let introTimer = null;
+function showIntro() {
+  if (navigator.webdriver && !window.__broadsideIntro) return;
+  const G = S.G, B = battleDef(G.battle), ship = B.enemy.find((e) => e.boss);
+  if (!ship) return;
+  const boss = ship.boss, story = STORY[B.id] || {};
+  const el = $('bossIntro');
+  el.innerHTML = '<div class="bi-burst" aria-hidden="true"></div><div class="bi-card">' +
+    `<p class="bi-eyebrow">${isPirate(B) ? 'Pirate queen' : 'Enemy flagship'} sighted</p>` +
+    `<div class="bi-hat">${hatSVG(boss.hat, false)}</div>` +
+    `<h2 class="bi-name">${esc(boss.captain)}</h2>` +
+    `<p class="bi-ship">${esc(TYPES[ship.type].label)} <i>${esc(boss.title)}</i></p>` +
+    (story.taunt ? `<p class="bi-taunt">“${esc(story.taunt)}”</p>` : '') +
+    '<p class="bi-tap">Tap to fight</p></div>';
+  el.hidden = false;
+  el.classList.remove('out');
+  G.phase = 'paused';
+  clearTimeout(introTimer);
+  introTimer = setTimeout(dismissIntro, INTRO_SECS * 1000);
+}
+function hideIntro() {
+  clearTimeout(introTimer);
+  $('bossIntro').hidden = true;
+}
+// Ends the intro card and lets the battle run.
+export function dismissIntro() {
+  const el = $('bossIntro');
+  if (el.hidden || el.classList.contains('out')) return;
+  clearTimeout(introTimer);
+  if (S.G && S.G.phase === 'paused' && ui.screen === null) S.G.phase = 'play';
+  el.classList.add('out');
+  introTimer = setTimeout(() => { el.hidden = true; el.classList.remove('out'); }, 300);
+  renderCoach();
 }
 
 // ---------- Pause ----------
@@ -218,6 +306,7 @@ export function pauseGame() {
   S.G.phase = 'paused';
   S.drag = null;
   $('pauseOrders').innerHTML = ordersHTML(battleDef(S.G.battle));
+  $('pauseOrders').classList.add('stagger');
   showScreen('pauseScreen');
 }
 
@@ -226,14 +315,16 @@ export function endBattle() {
   const G = S.G;
   if (!G || G.phase === 'over') return;
   G.phase = 'over';
-  if (G.goal === 'waves' && !G.award) G.award = recordSkirmish(G.wavesCleared, G.wavesCleared * WAVE_GOLD);
+  // A battle from the lab is played for its own sake: nothing is written to the save.
+  if (G.battle === LAB_ID && !G.award) G.award = { lab: true, gold: 0, stars: starsFor(shipsLost(G)), hat: null, first: false, prizes: 0, prizeGold: 0, waves: G.wavesCleared, best: save.best || 0, record: false };
+  else if (G.goal === 'waves' && !G.award) G.award = recordSkirmish(G.wavesCleared, G.wavesCleared * WAVE_GOLD);
   else if (G.result === 'win' && !G.award) G.award = recordWin(G.battle, shipsLost(G), prizesTaken(G));
   renderEnd();
   showScreen('endScreen');
   music.stinger(G.result === 'win' || !!(G.goal === 'waves' && G.award && G.award.record && G.award.waves));
 }
 // Your own ships sunk or captured; prizes taken in the battle don't count against you if they sink.
-const shipsLost = (G) => G.ships.filter((s) => s.origTeam === 'player' && !s.escort && s.state !== 'escaped' && (s.team !== 'player' || !afloat(s))).length;
+const shipsLost = (G) => G.ships.filter((s) => s.origTeam === 'player' && !selfSailing(s) && s.state !== 'escaped' && (s.team !== 'player' || !afloat(s))).length;
 const prizesTaken = (G) => G.ships.filter((s) => s.prize && afloat(s)).length;
 
 function renderSkirmishEnd() {
@@ -245,48 +336,69 @@ function renderSkirmishEnd() {
     ? `You held out until wave ${G.wave} and beat ${a.waves} wave${a.waves > 1 ? 's' : ''}. Your best is wave ${a.best}.`
     : 'The first wave was too much. Refit at the shipyard and come back.';
   $('endReward').hidden = !a.gold;
-  $('endReward').innerHTML = `${COIN}<span>+${a.gold} gold</span>`;
+  $('endReward').innerHTML = `<span class="gold-num">${COIN}<span class="gold-count">+${a.gold}</span></span><span>gold</span>`;
+  if (a.gold) countUp($('endReward').querySelector('.gold-count'), a.gold, { prefix: '+', delay: 450 });
   if (a.gold) coinShower(Math.min(28, 8 + Math.round(a.gold / 25)));
   $('endHat').hidden = true;
+  $('endLog').hidden = true;
   const sec = Math.floor(G.t);
   $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   $('statHits').textContent = G.stats.shots ? `${Math.round((100 * G.stats.hits) / G.stats.shots)}%` : '–';
   $('statLost').textContent = String(shipsLost(G));
   const primary = $('endPrimary');
-  primary.hidden = false; primary.textContent = 'Try again'; primary.dataset.go = ENDLESS_ID;
+  primary.hidden = false; primary.textContent = 'Try again'; primary.dataset.go = G.battle;
+}
+
+// The goal modules (src/sim/goals/) say how a battle was won or lost; the fleet's fate is added here.
+function victoryText(B, lost) {
+  if (B.tutorial) return 'Swift handles like a dream. You’re ready for the Spanish.';
+  return `${winText(B)} ${lost ? 'The fleet limps home to refit.' : 'Not a single ship lost. The Admiral will hear of this.'}`;
+}
+function defeatText(G, B) {
+  if (G.reason && G.reason !== 'fleet') return loseText(B, G.reason);
+  const boss = mainGoal(B) === 'boss' ? bossOf(B) : null;
+  const foe = boss ? (STORY[B.id] && STORY[B.id].who) || boss.captain : isPirate(B) ? 'the pirates' : `the ${B.foe}`;
+  return `Your fleet is sunk and the sea belongs to ${foe}. Refit at the shipyard and try again.`;
 }
 
 function renderEnd() {
   const G = S.G;
   if (G.goal === 'waves') return renderSkirmishEnd();
-  const B = BATTLES[G.battle], win = G.result === 'win', a = G.award;
+  const B = battleDef(G.battle), win = G.result === 'win', a = G.award;
   const lost = shipsLost(G);
-  $('endEyebrow').textContent = B.tutorial ? 'Shakedown Cruise' : `Battle ${B.roman} · ${B.name}`;
-  $('endTitle').textContent = win ? 'Victory!' : 'Defeat';
+  $('endEyebrow').textContent = a && a.lab ? `Battle lab · ${B.name}` : B.tutorial ? 'Shakedown Cruise' : `Battle ${B.roman} · ${B.name}`;
+  $('endTitle').textContent = win ? (G.battle === BATTLES.length - 1 && !a.lab ? 'The sea is England’s!' : 'Victory!') : 'Defeat';
   $('endStars').hidden = !win;
   $('endStars').innerHTML = win ? starsHTML(a.stars, true) : '';
-  let text;
-  if (!win) text = loseText(B, G.reason);
-  else if (B.tutorial) text = 'Swift handles like a dream. You’re ready for the Spanish.';
-  else text = `${winText(B)} ${lost ? 'The fleet limps home to refit.' : 'Not a single ship lost. The admiral will hear of this.'}`;
-  $('endText').textContent = text;
-  $('endReward').hidden = !win;
-  if (win) {
-    const notes = [a.stars === 3 ? 'flawless bonus' : '', a.prizes ? `${a.prizes} prize${a.prizes > 1 ? 's' : ''} +${a.prizeGold}` : '', a.first ? '' : 'replay'].filter(Boolean).join(' · ');
-    $('endReward').innerHTML = `${COIN}<span>+${a.gold} gold</span>${notes ? `<span class="up-desc">${notes}</span>` : ''}`;
+  $('endText').textContent = win ? victoryText(B, lost) : defeatText(G, B);
+  const log = win && STORY[B.id];
+  $('endLog').hidden = !log;
+  if (log) {
+    $('endLogDate').textContent = `Captain’s log · ${logDate(B.id, B.year)}`;
+    $('endLogText').textContent = log.after;
   }
-  if (win) coinShower(Math.min(28, 8 + Math.round(a.gold / 25)));
+  $('endReward').hidden = !win || a.lab;
+  if (win && !a.lab) {
+    const notes = [a.stars === 3 ? 'flawless bonus' : '', a.prizes ? `${a.prizes} prize${a.prizes > 1 ? 's' : ''} +${a.prizeGold}` : '', a.first ? '' : 'replay'].filter(Boolean).join(' · ');
+    $('endReward').innerHTML = `<span class="gold-num">${COIN}<span class="gold-count">+${a.gold}</span></span><span>gold</span>${notes ? `<span class="up-desc">${notes}</span>` : ''}`;
+    countUp($('endReward').querySelector('.gold-count'), a.gold, { prefix: '+', delay: 700 });
+  }
+  if (win && !a.lab) coinShower(Math.min(28, 8 + Math.round(a.gold / 25)));
   $('endHat').hidden = !(win && a.hat);
-  if (win && a.hat) $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p>You won the <b>${esc(HATS[a.hat].name.toLowerCase())}</b>! It’s in your hat collection.</p>`;
+  if (win && a.hat) {
+    // "the red tricorne", but "Calico Kate's skull hat": a hat named after its owner keeps the name.
+    const n = HATS[a.hat].name, named = /^[A-Z][a-z]+ [A-Z]/.test(n);
+    $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p>You won ${named ? '' : 'the '}<b>${esc(named ? n : n.toLowerCase())}</b>! It’s in your hat collection.</p>`;
+  }
   const sec = Math.floor(G.t);
   $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   $('statHits').textContent = G.stats.shots ? `${Math.round((100 * G.stats.hits) / G.stats.shots)}%` : '–';
   $('statLost').textContent = String(lost);
-  const next = G.battle + 1 < BATTLES.length ? G.battle + 1 : null;
-  const primary = $('endPrimary');
-  primary.hidden = win && next == null;
-  primary.textContent = win ? 'Next battle' : 'Try again';
-  primary.dataset.go = win ? String(next) : String(G.battle);
+  const next = typeof G.battle === 'number' && G.battle + 1 < BATTLES.length ? G.battle + 1 : null;
+  const primary = $('endPrimary'), again = !win || a.lab; // a lab battle has no next battle, only another go
+  primary.hidden = !again && next == null;
+  primary.textContent = again ? (win ? 'Play again' : 'Try again') : 'Next battle';
+  primary.dataset.go = again ? String(G.battle) : String(next);
 }
 
 // Gold coins tumble down the results screen after a win.
@@ -314,6 +426,12 @@ export function renderCoach() {
   $('coach').hidden = !show;
   if (!show) return;
   const step = G.tut.step;
+  // Each new step pops the bubble in again.
+  if (renderCoach.step !== step) {
+    renderCoach.step = step;
+    const el = $('coach');
+    el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  }
   $('coachStep').textContent = `Step ${step + 1} of ${TUTORIAL_STEPS}`;
   $('coachText').textContent = step < COACH.length ? COACH[step]
     : S.fireMode === 'manual'
@@ -337,7 +455,15 @@ export function syncSettings() {
   document.querySelectorAll('[data-music]').forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.music === 'off') === S.musicMuted)));
 }
 
+// Buttons marked data-icon="name" in index.html get that icon in front of their label.
+function decorateButtons() {
+  document.querySelectorAll('[data-icon]').forEach((b) => {
+    if (!b.querySelector('.icon')) b.insertAdjacentHTML('afterbegin', iconSVG(b.dataset.icon));
+  });
+}
+
 export function initUI() {
+  decorateButtons();
   S.hooks.onEnd = endBattle;
   S.hooks.onTutorialStep = renderCoach;
   document.querySelectorAll('[data-fire]').forEach((b) => b.addEventListener('click', () => {
@@ -364,6 +490,8 @@ export function initUI() {
     resetSave();
     openMenu();
   });
+  enablePan($('chartList'));
+  $('bossIntro').addEventListener('click', dismissIntro);
   $('chartList').addEventListener('click', (e) => {
     const b = e.target.closest('[data-battle]');
     if (b && !b.disabled) openBrief(b.dataset.battle === ENDLESS_ID ? ENDLESS_ID : +b.dataset.battle);
@@ -379,7 +507,7 @@ export function initUI() {
   $('resumeBtn').addEventListener('click', startPlay);
   $('restartBtn').addEventListener('click', () => { loadBattle(S.G.battle); startPlay(); });
   $('retreatBtn').addEventListener('click', openChart);
-  $('endPrimary').addEventListener('click', (e) => { const go = e.currentTarget.dataset.go; openBrief(go === ENDLESS_ID ? go : +go); });
+  $('endPrimary').addEventListener('click', (e) => { const go = e.currentTarget.dataset.go; openBrief(go === ENDLESS_ID || go === LAB_ID ? go : +go); });
   $('endChart').addEventListener('click', openChart);
   syncSettings();
 }

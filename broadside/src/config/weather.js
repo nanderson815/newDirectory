@@ -9,6 +9,8 @@
 // swell   multiplies ship and mine bob and roll.
 // screen  screen grade drawn over the sea: tint, haze toward the far (top) edge, vignette. Omit for none.
 // gulls, rain, lightning: ambient extras. Omit for none.
+// fog     low-lying fog banks drawn over the map (colour, alpha far from your ships, wisp = alpha of the thin
+//         wisps inside your lookouts' sight, radius = sight radius when the battle doesn't set G.fog).
 // boss    boss battles (goal 'boss'): vignette added, its colour, and a multiplier on both lights.
 
 export const PRESETS = {
@@ -56,16 +58,31 @@ export const PRESETS = {
     lightning: { every: [7, 15], thunder: [0.5, 1.6] },
     boss: { vignette: 0.14, vignetteColor: '#04141e', light: 0.9 },
   },
+
+  // Sea fog: a pale, flat light, muted grey-green water and banks of fog everywhere your lookouts can't see.
+  fog: {
+    clear: '#c3cdcf',
+    water: {
+      deep: '#4f6f7a', mid: '#5f808b', light: '#7495a0', crest: '#b4c9cd', foam: '#eef3f2', glint: '#f2f6f6',
+      clouds: 0, cloudScale: 1, caps: 0, flow: 0.55,
+    },
+    light: { sky: '#f3f5f3', ground: '#7d8f96', hemi: 2.0, sun: '#f2eee6', sunI: 1.15, dir: [-0.3, 1, 0.25] },
+    shadow: { color: '#2c3c44', opacity: 0.17, lift: [0.12, 0.15] },
+    swell: 0.7,
+    screen: { tint: '#dfe6e6', tintA: 0.1, haze: '#e6ecec', hazeA: 0.4, hazeFrom: 0.4, vignette: 0.16, vignetteColor: '#8fa2a8' },
+    fog: { color: '#e7ecec', alpha: 0.86, wisp: 0.16, radius: 230 },
+    boss: { vignette: 0.12, vignetteColor: '#34444a', light: 0.92 },
+  },
 };
 
 export const REGION_WEATHER = { port: 'sunny', windward: 'sunny', main: 'sunset', golden: 'storm', pirate: 'sunny', campeche: 'sunset', armada: 'storm' };
 
-// Per-battle overrides by battle id, e.g. { tortuga: 'storm' }.
-export const BATTLE_WEATHER = {};
+// Per-battle overrides by battle id, e.g. { tortuga: 'storm' }. A battle def's own `weather` wins over both.
+export const BATTLE_WEATHER = { fog: 'fog' };
 
 // The resolved preset for a battle definition: a fresh object, with the boss mood applied.
 export function weatherFor(battle) {
-  const name = (battle && BATTLE_WEATHER[battle.id]) || (battle && REGION_WEATHER[battle.region]) || 'sunny';
+  const name = (battle && (battle.weather || BATTLE_WEATHER[battle.id] || REGION_WEATHER[battle.region])) || 'sunny';
   const p = PRESETS[name] || PRESETS.sunny;
   const w = { ...p, name, light: { ...p.light }, screen: { ...(p.screen || {}) }, isBoss: !!battle && battle.goal === 'boss' };
   if (w.isBoss && p.boss) {

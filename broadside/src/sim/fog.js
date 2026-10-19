@@ -1,10 +1,10 @@
 import { S, afloat } from '../state.js';
 
 // Fog (a battle's `fog`: how far your lookouts see): enemy ships beyond every lookout's sight are hidden,
-// so they aren't drawn, aren't shown on the HUD and can't be aimed at.
+// so they aren't drawn, aren't shown on the HUD and can't be aimed at. A reveal event lifts it for a while.
 export function updateFog() {
   const G = S.G;
-  if (!G.fog) { for (const s of G.ships) s.hidden = false; return; }
+  if (!G.fog || G.t < (G.revealUntil || 0)) { for (const s of G.ships) s.hidden = false; return; }
   const eyes = [];
   for (const s of G.ships) if (s.team === 'player' && afloat(s)) eyes.push(s);
   for (const f of G.forts) if (f.team === 'player' && f.state === 'active') eyes.push(f);

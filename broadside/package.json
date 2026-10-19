@@ -10,7 +10,9 @@
     "build:single": "vite build --mode single",
     "build:artifact": "vite build --mode single && node scripts/artifact.mjs",
     "preview": "vite preview --host",
-    "test": "vite build --mode single && node tests/smoke.mjs && node tests/features.mjs && node tests/regressions.mjs && node tests/islands.mjs && node tests/expansion.mjs && node tests/feel.mjs"
+    "check": "node tests/content.mjs",
+    "docs": "node scripts/primitives.mjs",
+    "test": "node tests/content.mjs && vite build --mode single && node tests/smoke.mjs && node tests/features.mjs && node tests/regressions.mjs && node tests/islands.mjs && node tests/expansion.mjs && node tests/primitives.mjs && node tests/feel.mjs"
   },
   "dependencies": {
     "three": "0.158.0"
