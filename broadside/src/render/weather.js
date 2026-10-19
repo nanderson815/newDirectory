@@ -344,7 +344,7 @@ function veilMaterial() {
 }
 
 function setupFog(G, w) {
-  const m = fx.veil, b = BATTLES[G.battle];
+  const m = fx.veil, b = battleDef(G.battle);
   const cfg = w.fog || (G.fog > 0 ? PRESETS_FOG : null);
   m.visible = !!cfg;
   if (!cfg) return;
