@@ -962,6 +962,7 @@ export function syncLand(G, clock, dt, np, ng) {
     _E.set(0, i * 1.7, 0); _Q.setFromEuler(_E);
     let gy = scorchY.get(sc[i]);
     if (gy == null) { gy = L.groundAt(mx, my); scorchY.set(sc[i], gy); }
+    if (gy < 0.3) continue; // came down at the water's edge: no mark on the sea
     sp.setMatrixAt(ns++, _M.compose(_P.set(wx(mx), gy + 0.1, wz(my)), _Q, _S.set(r, 0.35, r * 0.8)));
   }
   sp.count = ns; sp.visible = ns > 0;
