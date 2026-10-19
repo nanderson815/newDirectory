@@ -127,8 +127,9 @@ await B(() => { window.__broadside.startBattle('tortuga'); window.__broadside.st
 await park();
 const fleet = await B(() => window.__broadside.G.ships.filter((s) => s.team === 'player').map((s) => ({ id: s.id, x: s.x, y: s.y })));
 const flag = fleet[0];
-// A stroke on open sea well ahead of the flagship, away from every ship.
-const seaStroke = []; for (let i = 0; i <= 8; i++) seaStroke.push({ x: flag.x + 60 + i * 12, y: flag.y - 170 - i * 22 });
+// A stroke on open sea well ahead of the flagship, away from every ship. Ahead and to her left: the Tortuga
+// refit put a small island ahead and to her right, and a course's waypoints on land are (rightly) skipped.
+const seaStroke = []; for (let i = 0; i <= 8; i++) seaStroke.push({ x: flag.x - 60 - i * 12, y: flag.y - 170 - i * 22 });
 await gesture([await mapStroke(seaStroke)]);
 const c1 = await B((id) => { const b = window.__broadside, G = b.G; return { sel: b.S.selected.id, path: G.ships.find((s) => s.id === id).path.map((p) => [p.x, p.y]), others: G.ships.filter((s) => s.team === 'player' && s.id !== id).map((s) => s.path.length) }; }, flag.id);
 check(c1.sel === flag.id && c1.path.length >= 5, `a drag on open sea plots the selected ship's course (${c1.path.length} points)`, failures);
