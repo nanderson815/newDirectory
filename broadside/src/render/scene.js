@@ -8,7 +8,7 @@ import { wx, wz, fitCamera } from './camera.js';
 import { buildShipMesh, buildFortMesh, chestGeometries, setShipFading, setShipTorn, FORT_BASE_Y, FORT_SCALE } from './models.js';
 import { WX, applyWeather, syncWeather } from './weather.js';
 import { lostMasts } from './terrain.js';
-import { buildLand, syncLand, landStats } from './land.js';
+import { buildLand, syncLand, landStats, fortLook } from './land.js';
 
 let worldObjs = [];
 export let shipMeshes = new Map();
@@ -50,7 +50,7 @@ export function buildScene() {
   worldObjs.push(land);
 
   for (const f of G.forts) {
-    const m = buildFortMesh(f, wx, wz);
+    const m = buildFortMesh(f, wx, wz, fortLook(G));
     scene.add(m.g);
     fortMeshes.set(f.id, m);
   }

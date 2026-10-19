@@ -213,7 +213,7 @@ const LOOK = {
   spanish: { walls: ['#f6f1e6', '#f2ead8', '#efe2c8'], roofs: ['#c8643c', '#b85a36', '#d27448'], foot: '#c9b48c' },
   city: { walls: ['#f2c6c2', '#f4e1a1', '#a9d6e5', '#f7f1e3', '#c9e4b4', '#f0b98d'], roofs: ['#c8643c', '#b85a36', '#d27448'], foot: '#c9b48c' },
   shanty: { walls: ['#8b6a4a', '#a08060', '#7a5d40'], roofs: ['#c9b48a', '#9a8466', '#7f3b2e', '#5f6b5a'], foot: '#6b4f36' },
-  village: { walls: ['#c9a66b', '#bf9b62'], roofs: ['#d9b25f', '#cfa752'], foot: '#b8996a' },
+  village: { walls: ['#e2cfa8', '#d8c29a'], roofs: ['#c9a254', '#b8914a', '#d1ad62'], foot: '#b8996a' },
 };
 const pick = (list, rnd) => list[Math.floor(rnd(0, list.length))];
 
@@ -227,8 +227,9 @@ function building(g, look, x, z, yaw, rnd, ctx, big) {
   if (look === 'village') {
     const r = rnd(4, 5.2);
     add(b, cyl(r, r, 5, 8), wall, 0, 2.5, 0, 0.05);
-    const thatch = add(b, new THREE.ConeGeometry(r + 1.6, 6, 8), roof, 0, 7.6, 0, 0.05);
+    const thatch = add(b, new THREE.ConeGeometry(r + 1.6, 6, 9), roof, 0, 7.6, 0, 0.05);
     thatch.rotation.y = rnd(0, 1);
+    add(b, new THREE.ConeGeometry(1.2, 2.2, 5), '#8a6a3a', 0, 11.2, 0);
     add(b, box(0.6, 3.2, 1.8), '#5a3d26', r - 0.1, 1.6, 0);
     ctx.house(b, 0, 6, 0);
     return b;

@@ -58,7 +58,7 @@ export const LANDS = {
   rojo: {
     relief: [{ island: 0, height: 1.2, cliffs: 0.4, at: 200 }, { island: 1, cliffs: 0.5, at: -30 }],
     landmarks: [
-      { kind: 'volcano', island: 0, at: 200, d: 0.12, height: 70 },
+      { kind: 'volcano', island: 0, at: 200, d: 0.1, height: 58, size: 0.85 },
       { kind: 'ruin', island: 1, at: 160, d: 0.45 },
       { kind: 'stacks', island: 1, at: -40, count: 4 },
       { kind: 'wreck', island: 0, at: 60, d: 0.8 },
@@ -117,7 +117,7 @@ export const LANDS = {
     landmarks: [
       { kind: 'town', island: 0, at: 200, d: 0.72, houses: 5, name: 'Santa Marta' },
       { kind: 'windmill', island: 1, at: 330, d: 0.73 },
-      { kind: 'volcano', island: 2, at: 0, d: 0.05, height: 70, size: 0.7, lee: 3 },
+      { kind: 'volcano', island: 2, at: 0, d: 0.05, height: 52, size: 0.85, lee: 3 },
     ],
   },
   // The Almirante's golden isles: a temple of gold in the jungle and a mountain whose lee steals the wind.
@@ -158,7 +158,7 @@ export const LANDS = {
   kate: {
     relief: [{ island: 0, height: 1.2 }, { island: 1, height: 1.0, cliffs: 0.3, at: 0 }, { island: 2, height: 0.8 }],
     landmarks: [
-      { kind: 'volcano', island: 0, at: 180, d: 0.15, height: 80 },
+      { kind: 'volcano', island: 0, at: 180, d: 0.1, height: 60, size: 0.8 },
       { kind: 'town', island: 1, at: 150, d: 0.42, houses: 6, name: 'Kate’s Landing', loot: 150 },
       { kind: 'skull', island: 1, at: -40, d: 0.55 },
       { kind: 'wreck', island: 2, at: 90, d: 0.78 },

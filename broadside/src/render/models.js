@@ -668,13 +668,14 @@ export function chestGeometries() {
 // A round stone tower with crenellations, a swivelling gun on top and a flag for whoever holds it.
 export const FORT_BASE_Y = 12;
 export const FORT_SCALE = 1.35; // towers read as landmarks next to the ships
-export function buildFortMesh(f, wx, wz) {
+// look: optional stone colours for the region (render/land.js fortLook): { stone, dark }.
+export function buildFortMesh(f, wx, wz, look) {
   const g = new THREE.Group();
   g.position.set(wx(f.x), FORT_BASE_Y, wz(f.y));
   g.scale.setScalar(FORT_SCALE);
   const body = new THREE.Group();
   g.add(body);
-  const stone = toon('#cfc6b3'), dark = toon('#968d80');
+  const stone = toon((look && look.stone) || '#cfc6b3'), dark = toon((look && look.dark) || '#968d80');
   const base = new THREE.Mesh(new THREE.CylinderGeometry(15, 17.5, 6, 14), dark);
   base.position.y = 3; withOutline(base, 0.05); body.add(base);
   const tower = new THREE.Mesh(new THREE.CylinderGeometry(11, 13, 20, 14), stone);

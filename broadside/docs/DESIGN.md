@@ -50,6 +50,12 @@ dramatic when ships trade broadsides. Every element earns its place on a phone s
   Firing arcs only when useful, drawn as thin lines, not grey wedges.
 - Motion: everything eases. Banners glide; buttons press; menus transition; numbers tick.
 - Juice where it matters: a heavy broadside lands with a beat of hit-stop, splinters, a camera nudge.
+- Land is a place, not a blob: each region has its own look (English hills and timber towns at Port Royal, cliffs
+  and pines on the Windward Passage, whitewash and terracotta on the Main, jungle and ruins in the Golden Isles,
+  shanties and Skull Rock on the Pirate Coast, mangroves and fishing villages in Campeche, El Morro and a pastel
+  city for the Armada). Detail rewards zooming in: smoke, flags, gulls, people. Zoomed out the land stays quiet.
+- Land that matters reads at a glance: calm water in the lee of high land, buoys round a harbour's anchorage,
+  a town that burns when shot lands on it. Anything ships can't cross is inside the outline they collide with.
 
 ## Style
 The rulebook for everything drawn on screen. Values live in `src/ui/tokens.js` (set on `:root` as CSS custom

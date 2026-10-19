@@ -60,9 +60,22 @@ const STYLES = {
 };
 for (const [id, s] of Object.entries(STYLES)) s.id = id;
 export const styleOf = (G) => STYLES[G.style] || STYLES.port;
+// Fort stone by region: grey English ragstone, honey-coloured Spanish limestone, mossy jungle stone.
+const FORT_LOOK = {
+  main: { stone: '#e2cfa2', dark: '#b39d6e' }, armada: { stone: '#dcc48e', dark: '#ae9563' },
+  golden: { stone: '#bdb8a0', dark: '#8a8a72' }, campeche: { stone: '#d9cba8', dark: '#a8987a' },
+};
+export const fortLook = (G) => FORT_LOOK[G.style] || null;
 const C = (hex) => new THREE.Color(hex);
 
 const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+// Smooth 2D value noise (0-1) and a two-octave sum, for rolling hills and where forests grow.
+const hash2 = (x, y) => { const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return v - Math.floor(v); };
+function noise2(x, y) {
+  const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+  return lerp(lerp(hash2(ix, iy), hash2(ix + 1, iy), sx), lerp(hash2(ix, iy + 1), hash2(ix + 1, iy + 1), sx), sy);
+}
+const fbm = (x, y) => noise2(x, y) * 0.65 + noise2(x * 2.13 + 5.2, y * 2.13 + 1.3) * 0.35;
 const bumpA = (a, at, w) => 1 - smooth(w * 0.5, w, Math.abs(angDiff(a, at)));
 
 // ---------- Island relief ----------
@@ -100,7 +113,7 @@ function islandRelief(G, is, ii, st, pads) {
     const rho = Math.hypot(dx, dy), a = Math.atan2(dy, dx), Rr = shoreR(a), t = rho / Rr, inland = 1 - t;
     let hills = 0;
     for (const [bx, by, sg, bh] of bumps) { const q = ((dx - bx) ** 2 + (dy - by) ** 2) / (2 * sg * sg); if (q < 6) hills += bh * Math.exp(-q); }
-    const land = plateau + hills * smooth(0.04, 0.45, inland);
+    const land = plateau + (hills + st.hill * hk * 0.3 * noise2((is.x + dx) / 45, (is.y + dy) / 45)) * smooth(0.04, 0.45, inland);
     const sand = 0.45 + 2.3 * smooth(0, st.beach, inland);
     const rise = smooth(st.beach * 0.55, st.beach + 0.22, inland);
     let h = sand + land * rise;
@@ -126,7 +139,7 @@ function islandRelief(G, is, ii, st, pads) {
   function h(dx, dy, info) {
     let y = raw(dx, dy, info), pw = 0, pc = null;
     for (const p of flat) {
-      const w = 1 - smooth(p.r * 0.85, p.r * 1.35, Math.hypot(dx - p.x, dy - p.y));
+      const w = 1 - smooth(p.r * 0.85, p.r * 1.8, Math.hypot(dx - p.x, dy - p.y));
       if (w <= 0) continue;
       y = lerp(y, p.h, w);
       if (w > pw) { pw = w; pc = p.color; }
@@ -215,12 +228,13 @@ function paint(geo, info, st, rl) {
   const top = rl.plateau + st.hill * 0.55;
   for (let i = 0; i < n; i++) {
     const f = info[i], y = pos.getY(i), ny = nor.getY(i);
-    const nz = 0.5 + 0.5 * Math.sin(f.dx * 0.09 + rl.s1) * Math.sin(f.dy * 0.11 + rl.s2);
-    _c.copy(g0).lerp(g1, nz);
-    _c.lerp(high, smooth(top * 0.7, top * 1.4, y));
-    const inland = 1 - f.t;
-    const rocky = Math.max(f.cliff * (1 - smooth(0.01, 0.05, inland)) * smooth(1.5, 3, y), smooth(0.8, 0.6, ny), smooth(0.5, 0.7, f.peak));
-    _c.lerp(rock, clamp(rocky, 0, 1));
+    // Lush low ground, drier slopes, darker high ground: the height reads even where the light is flat.
+    const nz = noise2(f.dx * 0.04 + rl.s1, f.dy * 0.04 + rl.s2);
+    _c.copy(g0).lerp(g1, clamp(smooth(rl.plateau, top, y) * 0.75 + (nz - 0.5) * 0.6, 0, 1));
+    _c.lerp(high, smooth(top * 0.9, top * 1.8, y) * 0.85);
+    const inland = 1 - f.t, edge = f.s != null ? 1 - smooth(4, 14, f.s) : 1 - smooth(0.01, 0.05, inland);
+    const rocky = Math.max(f.cliff * edge * smooth(1.5, 3, y), smooth(0.8, 0.6, ny), smooth(0.55, 0.75, f.peak));
+    _c.lerp(rock, clamp(rocky * (1 - smooth(0, 0.25, f.pad)), 0, 1)); // a pad's banks stay green
     if (f.crater && f.peak > 0.8) _c.lerp(ash, smooth(0.8, 0.95, f.peak) * 0.85);
     const sandy = (1 - f.cliff) * (1 - smooth(st.beach * 0.65, st.beach * 1.1, inland));
     _c.lerp(sand, sandy);
@@ -252,23 +266,25 @@ function coastRelief(G, co, ci, st, place) {
   };
   const pads = [];
   const out = { t: 0, cliff: 0, peak: 0, pad: 0, padColor: null, s: 0 };
-  function raw(t, s, info) {
+  // Hills: two octaves of noise about 150 units across, growing inland into a ridge of high ground.
+  const ox = r(0, 100), oy = r(0, 100);
+  function raw(t, s, info, mx, my) {
     const c = cliffT(t);
-    const roll = 0.5 + 0.5 * Math.sin(t * 11 + s1 + s * 0.013) * Math.sin(t * 5.3 + s2 - s * 0.021);
-    const ridge = smooth(70, 260, s) * (0.6 + 0.4 * Math.sin(t * 6.1 + s3));
-    const roll2 = 0.5 + 0.5 * Math.sin(t * 23 + s2 + s * 0.031) * Math.sin(t * 13.7 + s3 - s * 0.017);
-    const land = st.plateau + st.hill * (roll * 1.2 * smooth(20, 90, s) + roll2 * 0.5 * smooth(30, 120, s) + ridge * 1.6);
+    if (mx == null) [mx, my] = point(t, s);
+    const n = fbm(mx / 150 + ox, my / 150 + oy), n2 = noise2(mx / 60 + oy, my / 60 + ox);
+    const ridge = smooth(90, 320, s) * (0.7 + 0.6 * noise2(t * 5 + ox, 3.7));
+    const land = st.plateau + st.hill * (Math.pow(n, 1.6) * 2.4 * smooth(15, 80, s) + n2 * 0.35 * smooth(20, 60, s) + ridge * 1.5);
     const sandH = 0.45 + 2.3 * smooth(0, 13, s);
     let h = sandH + land * smooth(7, 34, s);
-    if (c > 0) h = lerp(h, 0.45 + (3 + land) * smooth(0, 4, s), c);
+    if (c > 0) h = lerp(h, 0.45 + (5 + land * 1.15) * smooth(0, 4, s), c);
     if (s < 0) h = lerp(0.45, -3, clamp(-s / 2.5, 0, 1));
-    if (info) { info.t = 1 - clamp(s / 120, 0, 1); info.cliff = c; info.peak = 0; info.s = s; }
+    if (info) { info.t = 1 - clamp(s / 120, 0, 1); info.cliff = c; info.peak = 0; info.crater = false; info.s = s; }
     return h;
   }
   function h(t, s, info, mx, my) {
-    let y = raw(t, s, info), pw = 0, pc = null;
+    let y = raw(t, s, info, mx, my), pw = 0, pc = null;
     for (const p of pads) {
-      const w = 1 - smooth(p.r * 0.85, p.r * 1.35, Math.hypot(mx - p.x, my - p.y));
+      const w = 1 - smooth(p.r * 0.85, p.r * 1.8, Math.hypot(mx - p.x, my - p.y));
       if (w <= 0) continue;
       y = lerp(y, p.h, w);
       if (w > pw) { pw = w; pc = p.color; }
@@ -278,13 +294,15 @@ function coastRelief(G, co, ci, st, place) {
   }
   // Map point -> (t, s): t from the edge's direction, s straight in from the shore.
   const tsOf = (x, y) => [((x - e0[0]) * ex + (y - e0[1]) * ey) / eL2, -coastGap(co, x, y)];
-  return { co, def, h, raw, point, tsOf, pads, cliffT, out, rnd: r, s1, s2, plateau: st.plateau, across };
+  // Where forests grow (0-1): big patches of woodland with meadows between.
+  const forest = (mx, my) => fbm(mx / 220 + oy * 1.3, my / 220 + ox * 0.7);
+  return { co, def, h, raw, point, tsOf, pads, cliffT, out, rnd: r, s1, s2, plateau: st.plateau, across, forest };
 }
 const bumpT = (t, at, w) => { const k = clamp((w / 2 - Math.abs(t - at)) / (w / 4), 0, 1); return k * k * (3 - 2 * k); };
 
 function coastMesh(cr, st, root, glass) {
   const SS = [-2.5, 0, 2.5, 6, 10.5, 16, 23, 32, 43, 57, 75, 98, 128, 168, 220, 290, 380, 520, 700];
-  const T0 = -0.4, T1 = 1.4, NT = 190;
+  const T0 = -0.25, T1 = 1.25, NT = 160;
   const nS = SS.length, pos = new Float32Array((NT + 1) * nS * 3), info = [];
   for (let i = 0; i <= NT; i++) {
     const t = T0 + ((T1 - T0) * i) / NT;
@@ -462,7 +480,7 @@ export function buildLand(G) {
     vegCtx.rnd = r;
     if (q.kind === 'island') {
       const { is, rl } = q, area = PI * is.r * is.r + 4 * is.hl * is.r;
-      const want = Math.round((area / 420) * st.density * (is.fort ? 0.5 : 1));
+      const want = Math.round((area / 300) * st.density * (is.fort ? 0.5 : 1));
       const g = new THREE.Group();
       g.position.set(wx(is.x), 0, wz(is.y));
       root.add(g);
@@ -498,19 +516,16 @@ export function buildLand(G) {
         const kind = st.trees.palm && r() < 0.7 ? 'palm' : st.trees.cactus && r() < 0.4 ? 'cactus' : st.trees.pine && r() < 0.5 ? 'pine' : 'bush';
         plant(kind, g, wx(mx), cr.h(t, s, null, mx, my), wz(my), r(0.85, 1.15), r, st, vegCtx);
       }
+      // Woods: canopies packed where the forest noise is high, a few lone trees in the meadows between.
       const conifer = !!st.trees.pine;
-      for (let t = -0.12; t < 1.12; t += r(0.03, 0.05) / Math.sqrt(dens)) {
-        for (let row = 0; row < 3; row++) {
-          if (r() < 0.25) continue;
-          const s0 = 60 + row * 60 + r(-15, 15), [cx, cy] = cr.point(t + r(-0.01, 0.01), s0);
-          if (!clear(cx, cy, 12)) continue;
-          const k = 2 + Math.floor(r(0, 3));
-          for (let i = 0; i < k; i++) {
-            const a = r(0, TAU), d = r(0, 12), mx = cx + Math.cos(a) * d, my = cy + Math.sin(a) * d;
-            const [tt, ss] = cr.tsOf(mx, my), y = cr.h(tt, ss, null, mx, my);
-            if (conifer && r() < 0.5) pine(g, wx(mx), y, wz(my), r(0.9, 1.3), r, st.canopy);
-            else canopy(g, wx(mx), y, wz(my), r(0.9, 1.35), r, st.canopy, row === 0 && i === 0);
-          }
+      for (let t = -0.12; t < 1.12; t += 0.011) {
+        for (let s0 = 52; s0 < 330; s0 += 21) {
+          const s = s0 + r(-7, 7), [mx, my] = cr.point(t + r(-0.004, 0.004), s);
+          const f = cr.forest(mx, my), p = f > 0.52 ? 0.75 * dens : 0.05;
+          if (r() > p || !clear(mx, my, 6)) continue;
+          const y = cr.h(t, s, null, mx, my), big = f > 0.6 ? 1.25 : 1;
+          if (conifer && r() < 0.55) pine(g, wx(mx), y, wz(my), r(1, 1.4) * big, r, st.canopy);
+          else canopy(g, wx(mx), y, wz(my), r(1.05, 1.45) * big, r, st.canopy, s0 < 80 || f < 0.56);
         }
       }
     }
@@ -842,12 +857,12 @@ export function syncLand(G, clock, dt, np, ng) {
   }
   // Volcano plumes: a lazy column of grey cloud leaning downwind, always on.
   for (const [x, y, z, H] of life.plumes) {
-    for (let k = 0; k < 9 && np < 990; k++) {
-      const t = (clock * 0.07 + k / 9) % 1, sz = (5 + t * 15) * (t < 0.1 ? t / 0.1 : 1) * (t > 0.85 ? (1 - t) / 0.15 : 1);
-      setInst(P.puff, np, x + wdx * t * 90 + Math.sin(k * 3.1) * 5, y + 4 + t * 70, z + wdz * t * 90 + Math.cos(k * 2.3) * 5, sz, sz * 0.85, sz, k, t, 0);
-      P.puff.setColorAt(np++, k % 3 ? C3.shellSmoke : C3.soot);
+    for (let k = 0; k < 10 && np < 990; k++) {
+      const t = (clock * 0.06 + k / 10) % 1, sz = (2.2 + t * 12) * (t < 0.12 ? t / 0.12 : 1) * (t > 0.8 ? (1 - t) / 0.2 : 1);
+      setInst(P.puff, np, x + wdx * t * t * 110 + Math.sin(k * 3.1) * 3 * t, y + 3 + t * 80, z + wdz * t * t * 110 + Math.cos(k * 2.3) * 3 * t, sz, sz * 0.8, sz, k, t, 0);
+      P.puff.setColorAt(np++, t < 0.3 ? C3.soot : k % 3 ? C3.shellSmoke : C3.soot);
     }
-    if (ng < 398) { const f = 0.7 + 0.3 * Math.sin(clock * 3.1); setInst(P.glow, ng, x, y + 1, z, 5 * f, 2 * f, 5 * f); P.glow.setColorAt(ng++, C3.ember); }
+    if (ng < 398) { const f = 0.75 + 0.25 * Math.sin(clock * 3.1); setInst(P.glow, ng, x, y - 0.5, z, 2.6 * f, 0.8, 2.6 * f); P.glow.setColorAt(ng++, C3.ember); }
   }
   // Lighthouse and castle lamps: a warm light that pulses slowly.
   for (const [x, y, z, ph] of life.lamps) {
