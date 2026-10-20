@@ -25,7 +25,7 @@ export const AVOID = {
   ally: 0.5,         // friends keep (L1 + L2) * ally between centres: a third of a length of open water end to end,
                      // much more abeam (a line ahead keeps its own, wider spacing: src/sim/formation.js)
   // In action (an enemy ship or fort inside her gun range) a captain fights his ship: he only keeps clear of his
-  // friends' hulls (a tighter ring, watched less far ahead) and never shortens sail for them.
+  // friends' hulls (a tighter ring, watched less far ahead), easing sail only when turning won't do.
   allyAction: 0.42, actionHorizon: 2, actionSlow: true, actionTurn: 1.25, // (actionTurn: how far she may bear away)
   foe: 0.36,         // enemies may come to (L1 + L2) * foe: alongside, inside boarding reach (0.45), outside the hulls (0.34)
   fan: [0, 0.18, -0.18, 0.4, -0.4, 0.65, -0.65, 0.95, -0.95, 1.25, -1.25], // heading offsets tried (radians)
