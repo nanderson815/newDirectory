@@ -74,6 +74,9 @@ check(worstEdge <= 105, `the view never strays past the edge of the sea (worst $
 // The spring is frame-rate independent: thirty 1/60 s frames land where one 1/2 s frame does.
 const fr = await B(() => {
   const b = window.__broadside, c = b.cam;
+  // From a fresh start where the goal sits clear of the sea's edges: there the clamp that keeps the view on the
+  // sea bends the path (rightly), and the small frames and the big one part company.
+  b.startBattle('rojo'); b.step(1); b.settle();
   b.camTick(0);
   const s0 = { tx: c.tx + 300, ty: c.ty - 200, d: c.d * 1.4, vx: 0, vy: 0, vd: 0 };
   Object.assign(c, s0); for (let i = 0; i < 30; i++) b.camTick(1 / 60);
