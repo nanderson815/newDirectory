@@ -160,7 +160,7 @@ export const MED_BATTLES = [
     ],
     islands: [{ x: 0.3, y: 0.6, r: 50 }, { x: 0.7, y: 0.58, r: 36, stretch: 1.6, angle: -30 }, { x: 0.46, y: 0.88, r: 30 }],
     shoals: [{ x: 0.5, y: 0.46, r: 46, stretch: 3, angle: -20 }],
-    ai: { spread: 0.1, reloadMul: 0.9, dmgMul: 2.38, hpMul: 3.12 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 2.2, hpMul: 3.12 },
   },
   {
     id: 'bagnio', world: W, region: 'barbary', roman: 'V', year: 1667, name: 'The Bagnio of Algiers', foe: 'the Algiers squadron',
@@ -391,7 +391,7 @@ export const MED_BATTLES = [
     coast: { side: 'right', depth: 0.03, rough: 0.5, seed: 14, capes: [{ at: 0.18, width: 0.24, depth: 0.12 }] },
     islands: [{ x: 0.12, y: 0.32, r: 96, stretch: 2.4, angle: 72 }, { x: 0.78, y: 0.67, r: 94, stretch: 2, angle: -50 }, { x: 0.5, y: 0.48, r: 40 }],
     currents: [{ x: 0.48, y: 0.5, r: 110, stretch: 5, angle: -72, speed: 9 }],
-    ai: { spread: 0.09, reloadMul: 0.8, dmgMul: 2.2, hpMul: 2.53 },
+    ai: { spread: 0.09, reloadMul: 0.9, dmgMul: 2.0, hpMul: 2.53 },
   },
   {
     id: 'navarino', world: W, region: 'morea', roman: 'XII', year: 1669, name: 'Navarino Bay', foe: 'the Ottoman squadron',
@@ -526,7 +526,7 @@ export const MED_BATTLES = [
       { island: 0, name: 'Kilitbahir', hp: 280, guns: 3, need: 15 },
       { island: 1, name: 'Çanakkale', hp: 280, guns: 3, need: 15 },
     ],
-    ai: { spread: 0.09, reloadMul: 1.05, dmgMul: 1.8, hpMul: 2.6 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 2.0, hpMul: 2.6 },
   },
   {
     id: 'kapudan', world: W, region: 'dardanelles', roman: 'XVI', year: 1670, name: 'The Kapudan Pasha', foe: 'Bahri Ömer Pasha',
