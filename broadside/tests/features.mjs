@@ -61,7 +61,7 @@ console.log('Boarding');
 await B(() => {
   const b = window.__broadside, G = b.G, r = G.ships[0], e = G.ships.find((s) => s.team === 'enemy' && s.x > 50);
   e.hp = Math.round(e.maxHp * 0.3); e.marines = 15; e.passive = false; e.pivot = e.h; // a live (anchored) enemy, not a hulk
-  e.x = r.x + Math.cos(r.h + Math.PI / 2) * 60; e.y = r.y + Math.sin(r.h + Math.PI / 2) * 60;
+  e.x = r.x + Math.cos(r.h + Math.PI / 2) * 45; e.y = r.y + Math.sin(r.h + Math.PI / 2) * 45; // alongside (hulls are 3/4 of what they were)
   r.reload = [9, 9]; b.S.selected = r; b.step(1);
 });
 const board = await B(() => window.__broadside.S.hud.actions.find((a) => a.kind === 'board'));
