@@ -21,9 +21,12 @@ import { wayClear } from './steering.js';
 // course for the time it is looking ahead (AV.tau), so the track it draws bends round them as she will.
 export const AVOID = {
   horizon: 3.5,      // seconds ahead she watches friends
-  foeHorizon: 1.4,   // ... and enemies
+  foeHorizon: 1.0,   // ... and enemies
   ally: 0.62,        // friends keep (L1 + L2) * ally between centres: about half a length of open water end to end
-  foe: 0.37,         // enemies may come to (L1 + L2) * foe: alongside, inside boarding reach (0.45), outside the hulls (0.34)
+  // In action (an enemy inside her gun range) a captain fights his ship and only keeps clear of his friends'
+  // hulls: a tighter ring, watched less far ahead.
+  allyAction: 0.45, actionHorizon: 2,
+  foe: 0.36,         // enemies may come to (L1 + L2) * foe: alongside, inside boarding reach (0.45), outside the hulls (0.34)
   fan: [0, 0.18, -0.18, 0.4, -0.4, 0.65, -0.65, 0.95, -0.95, 1.25, -1.25], // heading offsets tried (radians)
   slow: 0.55,        // the reduced-sail candidates: this share of her way
   slowCost: 0.3,     // ... cost the same as bearing away by 0.3 rad
@@ -96,13 +99,16 @@ export function avoidShips(s, desired, dt) {
   if (s.pivot != null || s.passive || s.boarding || s.fled) { s.avoidOff = 0; s.avoidV = 1; return desired; }
   const G = S.G, tau = AV.tau;
   const vs = Math.max(s.v, s.speed * 0.4);
+  // In action: an enemy afloat inside her gun range.
+  let action = false;
+  for (const o of G.ships) if (o.team !== s.team && afloat(o) && Math.abs(o.x - s.x) < s.range && Math.abs(o.y - s.y) < s.range && Math.hypot(o.x - s.x, o.y - s.y) < s.range) { action = true; break; }
   let n = 0;
   for (const o of G.ships) {
     if (o === s || o.id === s.self || !afloat(o) || (o.fled && o.state !== 'afloat')) continue;
     const foe = o.team !== s.team;
     if (foe && prey(s, o)) continue;
     const ov = o.boarding || o.pivot != null ? 0 : o.v;
-    const R = (s.L + o.L) * (foe ? AVOID.foe : AVOID.ally), H = foe ? AVOID.foeHorizon : AVOID.horizon;
+    const R = (s.L + o.L) * (foe ? AVOID.foe : action ? AVOID.allyAction : AVOID.ally), H = foe ? AVOID.foeHorizon : action ? AVOID.actionHorizon : AVOID.horizon;
     const at = aheadOf(o, tau);
     const px = at.x - s.x, py = at.y - s.y;
     if (px * px + py * py > (R + (vs + ov) * H) ** 2) continue; // too far off to meet within the horizon
