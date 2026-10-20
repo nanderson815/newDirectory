@@ -96,14 +96,14 @@ const STYLES = {
   },
   // The Barbary coast: ochre hills, red rock, date palms behind the beaches, olives inland.
   barbary: {
-    sand: '#f1dcaa', wet: '#ccad79', grass: ['#b8a462', '#a39256'], meadow: '#d2b56e', high: '#a8835a', forest: '#6a7342',
+    sand: '#f1dcaa', wet: '#ccad79', grass: ['#a8a25e', '#949453'], meadow: '#cdb06b', high: '#a67f55', forest: '#636f40',
     rock: '#cf9466', strata: '#a86e4a', pad: '#ece0c4',
-    cliffs: 0.25, hill: 18, plateau: 5, beach: 0.16, density: 0.6, veg: { grove: 'olive', orchard: true, palms: 0.55, date: true, forest: 0.4, dry: 'maquis' },
+    cliffs: 0.25, hill: 18, plateau: 5, beach: 0.16, density: 0.8, veg: { grove: 'olive', orchard: true, palms: 0.55, date: true, forest: 0.55, dry: 'maquis' },
     F: { bush: ['#5f7342', '#6a7a46'], scrub: ['#7f8248', '#8a8a4e'], olive: ['#6c8050', '#778a58', '#65784a'] },
   },
   // Malta: honey-coloured limestone, cliffs to the sea, small fields stepped down the slopes.
   malta: {
-    sand: '#efdcaa', wet: '#cbb27d', grass: ['#b2ad68', '#9c9c5c'], meadow: '#cfbd78', high: '#8a8a50', forest: '#5f6c3c',
+    sand: '#efdcaa', wet: '#cbb27d', grass: ['#a6a862', '#929858'], meadow: '#c9bb74', high: '#86884e', forest: '#5c6a3a',
     rock: '#ddc28c', strata: '#bf9f68', pad: '#e8d29e',
     cliffs: 0.5, hill: 12, plateau: 6, beach: 0.07, density: 0.5, veg: { grove: 'olive', orchard: true, palms: 0.06, forest: 0.32, dry: 'maquis', cypress: 0.1 },
     terraces: true, fields: ['#dcc474', '#8ea456', '#bc8c5c'],
@@ -956,7 +956,7 @@ function townCircles(o) {
     out = [];
     const n = Math.max(2, Math.ceil(L.half / 9));
     for (let i = -n; i <= n; i++) {
-      for (const off of L.back ? [-1.5, -21] : [-1.5]) {
+      for (const off of L.back ? [-1.5, -21, ...L.climb.map((c) => c - 1.5)] : [-1.5]) {
         if (off < -2 && Math.abs(i / n) > 0.85) continue;
         const [x, z] = L.at(off, (L.half * i) / n);
         out.push({ x: o.x + c * x - s * z, y: o.y + s * x + c * z, r: 14.5 });

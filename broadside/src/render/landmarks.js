@@ -393,7 +393,9 @@ export function townLayout(o) {
   const dense = DENSE[o.look] || 0;
   const back = o.look !== 'village' && o.look !== 'greek' && (o.houses >= 6 || dense > 0) && (!bend || bend >= 48);
   const count = o.houses + Math.round(o.houses * (dense || (back ? 0.3 : 0)));
-  return { half, ext, at, back, count };
+  // A kasbah town climbs the hill behind: two more lanes of houses above the back lane, where there is room.
+  const climb = back && o.look === 'kasbah' && !bend ? [-35, -50.5] : [];
+  return { half, ext, at, back, count, climb };
 }
 
 // ---------- The Med's buildings ----------
@@ -536,6 +538,7 @@ export const BUILD = {
     // Rows: off = where the fronts are (seaward of the street); dir = which way they face (+1 out to sea).
     const rows = [{ off: 4, dir: -1, used: hasFocal ? [[-5.5, 5.5]] : [] }, { off: -4, dir: 1, used: hasFocal ? [[-5.4, 5.4]] : [] }];
     if (L.back) rows.push({ off: -19.5, dir: 1, used: [], end: 0.82 });
+    for (const [i, off] of L.climb.entries()) rows.push({ off, dir: 1, used: [], end: 0.7 - i * 0.14 });
     let left = (hasFocal ? L.count - 1 : L.count), k = 0, stuck = 0;
     const tryPut = (row, sgn) => {
       const p = plan(look, rnd), gap = rnd(0.5, 1.3);

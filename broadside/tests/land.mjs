@@ -8,7 +8,9 @@ const failures = [];
 const browser = await launch();
 const page = await open(browser, { save: save({ stars: { tutorial: 3 } }) });
 const B = (fn, arg) => page.evaluate(fn, arg);
-const CAMPAIGN = ['tutorial', 'tortuga', 'cayman', 'rojo', 'sanlucas', 'silver', 'comodoro', 'cartagena', 'santamarta', 'oro', 'cove', 'wreck', 'kate', 'convoy', 'siege', 'hierro', 'fog', 'blockade', 'armada'];
+const CAMPAIGN = ['tutorial', 'tortuga', 'cayman', 'rojo', 'sanlucas', 'silver', 'comodoro', 'cartagena', 'santamarta', 'oro', 'cove', 'wreck', 'kate', 'convoy', 'siege', 'hierro', 'fog', 'blockade', 'armada',
+  // The Mediterranean.
+  'tangier', 'gibraltar', 'sale', 'bougie', 'bagnio', 'goletta', 'algiers', 'knights', 'passero', 'tripoli', 'zante', 'navarino', 'candia', 'dia', 'narrows', 'kapudan'];
 
 // ---------- Every battle has its land ----------
 console.log('Every battle');
