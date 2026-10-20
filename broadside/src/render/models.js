@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { TYPES } from '../config/ships.js';
+import { GUNS } from '../config/guns.js';
 import { COL, TAU, lerp } from '../util.js';
 import { R, toon, withOutline } from './gl.js';
 import { hullShape, pearShape, liftedExtrude, sailGeometry, sailPatch } from './shapes.js';
@@ -369,7 +370,9 @@ export function shipTemplate(s, faction) {
   const sp = SPEC[s.type] || {};
   const ab = (k) => (s.abilities && s.abilities[k]) || (T.abilities && T.abilities[k]) || s[k] || T[k];
   const mortar = !!ab('mortar');
-  const key = [s.type, look, s.guns, s.chasers, mortar ? 1 : 0].join(':');
+  // Her guns as built from her batteries (src/sim/guns.js): kind and count per slot.
+  const guns = s.batteries ? s.batteries.map((b) => `${b.slot}=${b.gun}${b.count}`).join(',') : `${s.guns}/${s.chasers}`;
+  const key = [s.type, look, guns, mortar ? 1 : 0].join(':');
   if (templates.has(key)) return templates.get(key);
   const Lk = LOOKS[look];
   const L = T.L / MODEL_SCALE, B = T.B / MODEL_SCALE, d = B * (sp.depth || 0.5);
@@ -403,22 +406,35 @@ export function shipTemplate(s, faction) {
   lantern.position.set(-L * 0.5, deckY + d * ch * 1.2, 0);
   withOutline(lantern, 0.15);
   body.add(lantern);
-  const gunGeo = new THREE.CylinderGeometry(1.5, 1.9, 6, 8).rotateX(PI / 2);
   const gunMat = toon('#2a2522');
-  for (let i = 0; i < s.guns; i++) {
-    const ax = s.guns === 1 ? 0 : lerp(-L * 0.3, L * 0.3, i / (s.guns - 1));
-    for (const side of [-1, 1]) {
-      const gun = new THREE.Mesh(gunGeo, gunMat);
-      gun.position.set(ax, deckY - d * 0.35, side * (B / 2 + 0.5));
-      body.add(gun);
-    }
-  }
-  // Bow chasers: long guns poking forward over the bow.
-  for (let i = 0; i < s.chasers; i++) {
-    const gun = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.9, 9, 8).rotateZ(-PI / 2), gunMat);
-    gun.position.set(L * 0.42, deckY + 0.6, s.chasers === 1 ? 0 : (i ? 1 : -1) * B * 0.18);
-    withOutline(gun, 0.12);
-    body.add(gun);
+  // A gun's barrel from its render hint (src/config/guns.js): length and bore relative to a long gun.
+  const barrelGeo = (rh, len, axis) => {
+    const g = new THREE.CylinderGeometry(1.5 * rh.bore, 1.9 * rh.bore, len * rh.barrel, 8);
+    return axis === 'side' ? g.rotateX(PI / 2) : g.rotateZ(-PI / 2);
+  };
+  const deckMounts = [];
+  for (const bt of s.batteries || []) {
+    const rh = (GUNS[bt.gun] && GUNS[bt.gun].render) || { barrel: 1, bore: 1 }, n = bt.count;
+    const along = (i) => L * (n === 1 ? (bt.at[0] + bt.at[1]) / 2 : lerp(bt.at[0], bt.at[1], i / (n - 1)));
+    if (bt.pos === 'broadside') {
+      // Ports along her side: the lower tier low on the hull, the upper a tier above; swivels sit on the rail.
+      const side = bt.side === 0 ? -1 : 1, geo = barrelGeo(rh, 6, 'side'); // local +z is starboard
+      const y = bt.gun === 'swivel' ? deckY + 1.6 : bt.tier === 'lower' ? deckY - d * 0.45 : bt.tier === 'upper' ? deckY - d * 0.12 : deckY - d * 0.35;
+      for (let i = 0; i < n; i++) {
+        const gun = new THREE.Mesh(geo, gunMat);
+        gun.position.set(along(i), y, side * (B / 2 + 0.5 + (rh.barrel * 6 - 6) * 0.25));
+        body.add(gun);
+      }
+    } else if (bt.pos === 'bow' || bt.pos === 'stern') {
+      // Chase guns poke out over the bow, or from the great cabin's windows astern.
+      const fwd = bt.pos === 'bow' ? 1 : -1, geo = barrelGeo(rh, 6, 'long');
+      for (let i = 0; i < n; i++) {
+        const gun = new THREE.Mesh(geo, gunMat);
+        gun.position.set(fwd * L * (fwd > 0 ? 0.42 : 0.47), fwd > 0 ? deckY + 0.6 : deckY + d * 0.25, n === 1 ? 0 : (i ? 1 : -1) * B * 0.18);
+        withOutline(gun, 0.12);
+        body.add(gun);
+      }
+    } else deckMounts.push(bt);
   }
   const wood = toon('#7a4a22');
   const spritLen = L * (sp.sprit || 0.3);
@@ -460,9 +476,9 @@ export function shipTemplate(s, faction) {
       }
     }
   }
-  if (mortar) {
-    // A squat iron mortar on a round bed, cocked up toward the bow, with a few shells beside it.
-    const mx = L * (sp.mortarX || 0.145), r = Math.min(B * 0.2, 6.5);
+  // A squat iron mortar on a round bed, cocked up toward the bow, with a few shells beside it.
+  const addMortar = (mx) => {
+    const r = Math.min(B * 0.2, 6.5);
     const bed = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.45, r * 1.6, 3, 12), toon('#6b4424'));
     bed.position.set(mx, deckY + 1.5, 0);
     withOutline(bed, 0.06);
@@ -483,6 +499,31 @@ export function shipTemplate(s, faction) {
       const ball = new THREE.Mesh(new THREE.SphereGeometry(1.7, 8, 6), gunMat);
       ball.position.set(mx - r * 1.9, deckY + 1.6 + (k === 2 ? 2.4 : 0), (k === 2 ? 0 : k ? 1.8 : -1.8) + B * 0.18);
       body.add(ball);
+    }
+  };
+  if (mortar) addMortar(L * (sp.mortarX || 0.145));
+  for (const bt of deckMounts) {
+    const mx = L * (bt.at[0] + bt.at[1]) / 2;
+    if (bt.gun === 'mortar') addMortar(mx);
+    else if (bt.gun === 'firepot') {
+      // A fire-pot engine: a timber sling frame with a pot of pitch glowing in its cup.
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(7, 5, 6), toon('#6b4424'));
+      frame.position.set(mx, deckY + 2.5, 0);
+      withOutline(frame, 0.06);
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(12, 1.1, 1.1), toon('#7a4a22'));
+      arm.position.set(mx, deckY + 6.5, 0); arm.rotation.z = 0.55;
+      const pot = new THREE.Mesh(new THREE.SphereGeometry(1.9, 8, 6), toon('#e0573c'));
+      pot.position.set(mx + 5, deckY + 9.6, 0);
+      withOutline(pot, 0.12);
+      body.add(frame, arm, pot);
+    } else {
+      // Swivels on posts at the rail.
+      const rh = (GUNS[bt.gun] && GUNS[bt.gun].render) || { barrel: 0.45, bore: 0.4 }, geo = barrelGeo(rh, 6, 'long');
+      for (let i = 0; i < bt.count; i++) {
+        const gun = new THREE.Mesh(geo, gunMat);
+        gun.position.set(mx, deckY + 2.2, (i % 2 ? 1 : -1) * B * 0.4);
+        body.add(gun);
+      }
     }
   }
   if (sp.faggots) {

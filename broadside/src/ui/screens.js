@@ -6,10 +6,13 @@ import { TYPES } from '../config/ships.js';
 import { UPGRADES, MAX_FLEET } from '../config/upgrades.js';
 import { HATS, HAT_ORDER, hatSVG } from '../config/hats.js';
 import { AMMO, AMMO_COSTS, BOARDING } from '../config/ammo.js';
+import { GUNS } from '../config/guns.js';
+import { slotGroups, fullLoadout, loadoutWeight, accepts, slotCount } from '../config/slots.js';
 import { battleDef, ENDLESS_ID, ENDLESS, WAVE_GOLD } from '../config/endless.js';
 import { LAB_ID } from '../config/lab.js';
 import {
   save, resetSave, recordSkirmish, starsFor, fleetStats, refitOffer, upgradeOffer, buyUpgrade, buyRefit, buyAmmo, nextHire, buyHire, isUnlocked, recordWin, lvl,
+  upgradesFor, greatOffer, buyGreatShip, fitOffer, fitGun,
 } from '../save.js';
 import { loadBattle } from '../game.js';
 import { R } from '../render/gl.js';
@@ -23,7 +26,7 @@ import { iconSVG } from './icons.js';
 
 // DOM screens around the battle: menu, sea chart, shipyard, hats, briefing, pause, results, tutorial coach.
 const SCREENS = ['menuScreen', 'settingsScreen', 'chartScreen', 'yardScreen', 'hatsScreen', 'briefScreen', 'pauseScreen', 'endScreen'];
-export const ui = { screen: 'menuScreen', yardSel: 0 };
+export const ui = { screen: 'menuScreen', yardSel: 0, slotOpen: null };
 
 // Gold as type: a figure in oldstyle numerals and the word in small capitals.
 const fmt = (n) => Number(n).toLocaleString('en-GB');
@@ -87,7 +90,7 @@ function idle() { if (S.G) S.G.phase = 'title'; }
 // ---------- Battle descriptions ----------
 const PLURAL = {
   sloop: 'sloops', brig: 'brigs', frigate: 'frigates', galleon: 'galleons', manowar: "men-o'-war",
-  schooner: 'schooners', xebec: 'xebecs', bomb: 'bomb ketches', fireship: 'fireships', merchant: 'merchantmen',
+  schooner: 'schooners', xebec: 'xebecs', bomb: 'bomb ketches', fireship: 'fireships', merchant: 'merchantmen', greatship: 'great ships',
 };
 const enemyForts = (B) => (B.forts || []).filter((f) => f.team !== 'player');
 const ownForts = (B) => (B.forts || []).filter((f) => f.team === 'player');
@@ -191,25 +194,76 @@ function buyRow(cls, name, desc, pips, cost, id) {
     `<span class="up-price">${cost == null ? '' : fmt(cost)}</span>${btn}</div>`;
 }
 const dash = (n) => (n ? n : '–');
+// Tons as type: a whole number when it is one.
+const tons = (w) => (Math.round(w * 10) / 10).toLocaleString('en-GB');
+const plural = (n, one, many) => `${word(n)} ${n === 1 ? one : many}`;
+
+// The gun decks of a ship with slots (the great ship): one ledger line per slot, grouped by where it sits, saying
+// what is fitted there and how many guns. "Change" opens the slot: a line per gun it takes, with what the gun
+// does, its reach and weight, the price of fitting the whole slot, and one small ruled "fit".
+function gunDecks(f, T) {
+  const full = fullLoadout(T, f.loadout), weight = loadoutWeight(T, f.loadout);
+  let html = `<div class="lo-head"><h4>The gun decks</h4><span class="lo-tons">${tons(weight)} of ${tons(T.tons)} tons</span></div>`;
+  for (const g of slotGroups(T)) {
+    html += `<h5 class="lo-group">${esc(g.label)}</h5>`;
+    for (const id of g.slots) {
+      const slot = T.slots[id], gun = GUNS[full[id]], n = slotCount(slot, full[id]), open = ui.slotOpen === id;
+      html += `<div class="up-row lo-slot${open ? ' open' : ''}" data-slot-row="${id}"><div><div class="up-name">${esc(slot.label)}` +
+        ` <span class="lv">${n === 1 ? 'one piece' : plural(n, 'gun', 'guns')}</span></div><div class="up-desc">${esc(gun.label)}</div></div>` +
+        `<span class="up-price"></span><button type="button" class="buy change" data-slot="${id}" aria-expanded="${open}"` +
+        ` aria-label="${esc(`Change the guns in the ${slot.label.toLowerCase()}`)}">${open ? 'close' : 'change'}</button></div>`;
+      if (open) html += slotOptions(f, id);
+    }
+  }
+  return html;
+}
+function slotOptions(f, id) {
+  let html = '<div class="lo-options">';
+  for (const g of accepts(TYPES[f.cls].slots[id])) {
+    const o = fitOffer(f, id, g), G = o.gun;
+    const stats = [G.fires === 'shell' ? `reach ${G.minRange}–${G.range}` : `reach ${G.range}`, `loads in ${G.reload} s`,
+      G.fires === 'pot' ? `burns ${G.burn} s` : G.fires === 'shell' ? `${G.dmg} a shell` : G.pellets ? `${G.pellets} balls of ${G.dmg}` : `${G.dmg} a ball`,
+      `${tons(G.weight * o.count)} tons`].join(' · ');
+    const can = o.cost != null && !o.over && save.gold >= o.cost;
+    const label = `${G.label}${o.count > 1 ? ` <span class="lv">${word(o.count)}</span>` : ''}`;
+    const btn = o.fitted
+      ? `<button type="button" class="buy maxed" disabled aria-label="${esc(`${G.label}: fitted`)}">fitted</button>`
+      : `<button type="button" class="buy" data-buy="fit:${id}:${g}"${can ? '' : ' disabled'} aria-label="${esc(`Fit ${G.label.toLowerCase()} for ${o.cost} gold`)}">fit</button>`;
+    html += `<div class="up-row lo-gun${o.fitted ? ' fitted' : ''}${!o.fitted && !can ? ' dear' : ''}"><div><div class="up-name">${label}</div>` +
+      `<div class="up-desc">${esc(G.about)}</div><div class="lo-stats">${esc(stats)}${o.over ? ` · <em>too heavy: ${tons(o.weight)} of ${tons(TYPES[f.cls].tons)} tons</em>` : ''}</div></div>` +
+      `<span class="up-price">${o.fitted ? '' : fmt(o.cost)}</span>${btn}</div>`;
+  }
+  return html + '</div>';
+}
+
 function renderYard() {
   $('yardGold').innerHTML = goldHTML(save.gold);
   const i = (ui.yardSel = Math.min(ui.yardSel, save.fleet.length - 1));
   $('yardTabs').innerHTML = save.fleet.map((f, k) =>
     `<button type="button" class="tab" role="tab" aria-selected="${k === i}" data-ship="${k}">${esc(f.name)}</button>`).join('');
-  const f = save.fleet[i], st = fleetStats(f);
+  const f = save.fleet[i], st = fleetStats(f), T = TYPES[f.cls];
   let html = `<div class="ship-head"><h3>${esc(f.name)}, <i>a ${esc(st.label.toLowerCase())}</i></h3></div>` +
     '<dl class="ship-stats">' +
     `<div><dt>Hull</dt><dd>${st.hp}</dd></div><div><dt>Guns a side</dt><dd>${st.guns}</dd></div>` +
     `<div><dt>Speed</dt><dd>${st.speed}</dd></div><div><dt>Marines</dt><dd>${dash(st.marines)}</dd></div>` +
-    `<div><dt>Bow guns</dt><dd>${dash(st.chasers)}</dd></div><div><dt>Mines</dt><dd>${dash(st.mines)}</dd></div>` +
+    // A great ship counts her chase guns fore and aft in one line (her tons are at the head of the gun decks).
+    (T.slots ? `<div><dt>Chase guns</dt><dd>${st.chasers} + ${st.sternGuns}</dd></div>` : `<div><dt>Bow guns</dt><dd>${dash(st.chasers)}</dd></div>`) +
+    `<div><dt>Mines</dt><dd>${dash(st.mines)}</dd></div>` +
     `<div class="wide"><dt>Shot</dt><dd>${st.ammo.map((k) => AMMO[k].short.toLowerCase()).join(', ')}</dd></div>` +
     '</dl><div class="up-list">';
   const rf = refitOffer(f);
   if (rf) {
-    const T = TYPES[rf.next];
-    html += buyRow('refit', `Refit as a ${rf.label.toLowerCase().replace(/-/g, '\u2011')}`, `${T.hp} hull, ${word(T.guns)} guns a side, ${T.marines} marines; fittings carry over`, null, rf.cost, 'refit');
+    const R = TYPES[rf.next];
+    html += buyRow('refit', `Refit as a ${rf.label.toLowerCase().replace(/-/g, '‑')}`, `${R.hp} hull, ${word(R.guns)} guns a side, ${R.marines} marines; fittings carry over`, null, rf.cost, 'refit');
   }
-  for (const U of UPGRADES) {
+  // After La Gran Armada: rebuild her as a great ship, the one class whose guns are fitted slot by slot.
+  const go = greatOffer(f);
+  if (go) {
+    const R = TYPES[go.next];
+    html += buyRow('refit great', `Rebuild as a ${go.label.toLowerCase()}`, `A first rate: ${R.hp} hull, two tiers of guns a side, chase guns fore and aft, every gun to be fitted as you please`, null, go.cost, 'great');
+  }
+  if (T.slots) html += gunDecks(f, T);
+  for (const U of upgradesFor(f)) {
     const o = upgradeOffer(f, U.id);
     html += buyRow('', U.name, U.desc, [o.level, U.max], o.cost, U.id);
   }
@@ -224,23 +278,36 @@ function renderYard() {
     ? buyRow('', `Hire the ${TYPES[h.cls].label.toLowerCase()} ${h.name}`, `Joins the squadron, which tops out at ${word(MAX_FLEET)} ships`, null, h.cost, 'hire')
     : '';
 }
+// Redraws the ledger in place (after a purchase, or opening a slot), keeping the scroll.
+function quietYard() {
+  const list = $('yardShip').querySelector('.up-list'), top = list ? list.scrollTop : 0;
+  renderYard.quiet = true; renderYard(); renderYard.quiet = false;
+  const now = $('yardShip').querySelector('.up-list');
+  if (now) now.scrollTop = top;
+}
 function onYardClick(e) {
   const tab = e.target.closest('[data-ship]');
-  if (tab) { ui.yardSel = +tab.dataset.ship; renderYard(); return; }
+  if (tab) { ui.yardSel = +tab.dataset.ship; ui.slotOpen = null; renderYard(); return; }
+  const sl = e.target.closest('[data-slot]');
+  if (sl) { ui.slotOpen = ui.slotOpen === sl.dataset.slot ? null : sl.dataset.slot; sfx.init(); quietYard(); return; }
   const b = e.target.closest('[data-buy]');
   if (!b || b.disabled) return;
   const id = b.dataset.buy, i = ui.yardSel;
-  const what = b.closest('.up-row').querySelector('.up-name').textContent;
-  const ok = id === 'refit' ? buyRefit(i) : id === 'hire' ? buyHire() : id.startsWith('ammo:') ? buyAmmo(i, id.slice(5)) : buyUpgrade(i, id);
+  const what = b.closest('.up-row').querySelector('.up-name').firstChild.textContent.trim();
+  const [, slotId, gun] = id.startsWith('fit:') ? id.split(':') : [];
+  const ok = id === 'refit' ? buyRefit(i) : id === 'great' ? buyGreatShip(i) : id === 'hire' ? buyHire() : id.startsWith('ammo:') ? buyAmmo(i, id.slice(5))
+    : slotId ? fitGun(i, slotId, gun) : buyUpgrade(i, id);
   if (ok) {
     sfx.init(); sfx.coin();
     if (id === 'hire') ui.yardSel = save.fleet.length - 1;
-    renderYard.quiet = true; renderYard(); renderYard.quiet = false; // a purchase updates in place
+    if (slotId) ui.slotOpen = null;
+    quietYard(); // a purchase updates in place
     toast(id === 'hire' ? `${save.fleet[save.fleet.length - 1].name} joins the squadron` : id === 'refit' ? 'Refit complete'
-      : id.startsWith('ammo:') ? `${what} stowed aboard` : `${what} fitted`, id === 'hire' ? 'ship' : 'check');
+      : id === 'great' ? `${save.fleet[i].name} is rebuilt as a great ship`
+        : slotId ? `${what} fitted in the ${TYPES[save.fleet[i].cls].slots[slotId].label.toLowerCase()}`
+          : id.startsWith('ammo:') ? `${what} stowed aboard` : `${what} fitted`, id === 'hire' ? 'ship' : 'check');
   }
 }
-
 // A short confirmation that drops in at the top of the screen and fades away by itself.
 let toastTimer = null;
 export function toast(text, icon = 'check') {

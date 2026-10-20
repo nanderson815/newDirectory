@@ -73,7 +73,7 @@ export function rollCrit(e, b, end) {
   if (b.team === 'player' || e.team === 'player') askTip('crit');
 }
 
-export function applyCrit(e, kind) {
+export function applyCrit(e, kind, secs = 0) {
   const c = Math.cos(e.h), sn = Math.sin(e.h);
   if (kind === 'mast') {
     e.mastsDown = (e.mastsDown || 0) + 1;
@@ -89,9 +89,12 @@ export function applyCrit(e, kind) {
     const sx = e.x - c * e.L * 0.5, sy = e.y - sn * e.L * 0.5;
     for (let k = 0; k < 10; k++) spawn('splinter', sx, sy, rand(-60, 60), rand(-60, 60), rand(0.6, 1), rand(2, 4), 6, rand(30, 70));
   } else {
-    e.fireT = CRIT.fireSecs;
-    callout(e, 'Fire aboard!', e.team === 'player' ? 'bad' : 'crit');
+    // A fire-pot (src/config/guns.js) passes how long it burns; one landing on a ship already alight feeds the fire.
+    const already = e.fireT > 0;
+    e.fireT = Math.max(e.fireT || 0, secs || CRIT.fireSecs);
     spawn('flash', e.x, e.y, 0, 0, 0.25, 16, 12, 0);
+    if (already) return;
+    callout(e, 'Fire aboard!', e.team === 'player' ? 'bad' : 'crit');
   }
   sfx.crit(kind, e.x, e.y);
 }

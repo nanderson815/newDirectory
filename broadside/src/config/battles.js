@@ -7,7 +7,7 @@
 // goals: what wins the battle, a list of { kind, ...params } from src/sim/goals/ (all must be met), or the
 //   shorthand goal: 'boss'. Without either the goal is 'sink'. Kinds: sink, boss, capture, treasure, escort,
 //   hold, breakthrough, timer, protect, hunt, reach, survive.
-// Ships: { type (src/config/ships.js), name, x, y, h, hp?, chasers?, passive?, boss?, abilities? }. Boss ships
+// Ships: { type (src/config/ships.js), name, x, y, h, hp?, chasers?, passive?, boss?, abilities?, loadout? }. Boss ships
 //   carry boss: { captain, title, hat } and win you that captain's hat. abilities: { id: config } from
 //   src/sim/abilities/ (mortar, fireship, launcher, mineLayer, oars, repair, ram, flee, rally), merged over the
 //   ship type's own.
@@ -225,9 +225,10 @@ export const BATTLES = [
   {
     id: 'kate', region: 'pirate', roman: 'XII', year: 1661, name: 'Black Wyvern', foe: 'Calico Kate',
     faction: 'pirate', goal: 'boss', hat: 'kate', reward: 560, wind: 90,
-    brief: 'Calico Kate, queen of the Brethren, sends burning fireships ahead of her frigate. Sink the fireships before they reach you, then sink her. Hurt her and she will call for help.',
+    brief: 'Calico Kate, queen of the Brethren, sends burning fireships ahead of her frigate. Sink the fireships before they reach you, then sink her. Hurt her and she will call for help. Her larboard guns are carronades: stand off, or keep to her starboard side.',
     enemy: [
-      { type: 'frigate', name: 'Black Wyvern', x: 0.5, y: 0.1, h: 90, hp: 930, chasers: 2, abilities: { launcher: { type: 'fireship', every: 13 } },
+      // Carronades to larboard (src/config/guns.js): she closes to smash with them, so keep off her left side.
+      { type: 'frigate', name: 'Black Wyvern', x: 0.5, y: 0.1, h: 90, hp: 930, chasers: 2, reloadMul: 0.9, abilities: { launcher: { type: 'fireship', every: 13 } }, loadout: { port: 'carronade' },
         boss: { captain: 'Calico Kate', title: 'Black Wyvern', hat: 'kate' } },
       { type: 'schooner', name: 'Viper', x: 0.25, y: 0.16, h: 90 },
       { type: 'schooner', name: 'Adder', x: 0.75, y: 0.16, h: 90 },
@@ -365,8 +366,10 @@ export const BATTLES = [
     goal: 'boss', hat: 'armada', reward: 900, wind: 0,
     brief: 'The Capitán General leads the last great Armada in the Real Felipe: mines astern, mortars aboard, a harbour fort behind her and galleys in reserve. Win this and the sea is England’s.',
     enemy: [
-      { type: 'manowar', name: 'Real Felipe', x: 0.5, y: 0.08, h: 90, hp: 780, chasers: 2,
-        abilities: { mineLayer: { every: 9 }, mortar: { range: 460, reload: 7, dmg: 24, radius: 38 } },
+      // Spain's great ship (src/config/flagship.js): demi-cannon below, swivels above, a sea mortar forward.
+      { type: 'greatship', name: 'Real Felipe', x: 0.5, y: 0.08, h: 90, hp: 780,
+        loadout: { portLower: 'demicannon', starboardLower: 'demicannon', portUpper: 'swivel', starboardUpper: 'swivel', forecastle: 'mortar' },
+        abilities: { mineLayer: { every: 9 } },
         boss: { captain: 'Capitán General', title: 'Real Felipe', hat: 'armada' } },
       { type: 'galleon', name: 'San Felipe', x: 0.26, y: 0.14, h: 90 },
       { type: 'galleon', name: 'Santiago', x: 0.74, y: 0.14, h: 90 },

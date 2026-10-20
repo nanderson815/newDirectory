@@ -73,6 +73,29 @@ expectCaught('ship type missing a stat', () => { const T = clone(C.TYPES); delet
 expectCaught('ship type with an unknown ability', () => { const T = clone(C.TYPES); T[firstType].abilities = { teleport: true }; return { TYPES: T }; }, `TYPES.${firstType} ability 'teleport'`);
 expectCaught('bad endless wave', () => ({ waveEnemies: (n) => C.waveEnemies(n).map((d) => ({ ...d, type: n === 3 ? 'canoe' : d.type })) }), "endless wave 3 ship 0");
 
+// Guns and slots (src/config/guns.js, src/config/slots.js): ship defs' loadouts, the gun table, class slot tables.
+console.log('guns and slots:');
+const slotted = find((B) => B.enemy.some((e) => C.TYPES[e.type] && C.TYPES[e.type].slots));
+const great = (B) => B.enemy.find((e) => C.TYPES[e.type].slots);
+expectCaught('loadout with an unknown gun', (B) => { great(B).loadout = { portUpper: 'basilisk' }; }, "unknown gun 'basilisk' in portUpper", slotted);
+expectCaught('loadout with a gun the slot will not take', (B) => { great(B).loadout = { bow: 'mortar' }; }, "bow is a bow slot and does not take 'mortar'", slotted);
+expectCaught('carronades on the lower tier', (B) => { great(B).loadout = { portLower: 'carronade' }; }, "portLower is a broadside slot and does not take 'carronade'", slotted);
+expectCaught('overweight loadout', (B) => {
+  great(B).loadout = { portLower: 'demicannon', starboardLower: 'demicannon', forecastle: 'mortar', quarterdeck: 'mortar' };
+}, 'loadout: overweight', slotted);
+expectCaught('loadout with an unknown slot', (B) => { great(B).loadout = { orlop: 'long' }; }, "unknown slot 'orlop'", slotted);
+expectCaught('loadout on a simple class names a slot she lacks', (B) => { B.enemy[0].type = 'sloop'; B.enemy[0].loadout = { stern: 'sternChaser' }; }, "unknown slot 'stern'");
+expectCaught('gun with an unknown field', () => ({ GUNS: { ...C.GUNS, long: { ...C.GUNS.long, calibre: 18 } } }), "GUNS.long: unknown field 'calibre'");
+expectCaught('gun that fits nowhere', () => ({ GUNS: { ...C.GUNS, swivel: { ...C.GUNS.swivel, fits: ['masthead'] } } }), 'GUNS.swivel: fits must list positions');
+expectCaught('gun loading a shot that does not exist', () => ({ GUNS: { ...C.GUNS, carronade: { ...C.GUNS.carronade, shot: ['round', 'canister'] } } }), "shot 'canister' is not in AMMO");
+{
+  const id = Object.keys(C.TYPES).find((t) => C.TYPES[t].slots);
+  expectCaught('class slot that takes a gun it cannot mount', () => {
+    const T = clone(C.TYPES); T[id].slots.bow.accepts = ['bowChaser', 'demicannon']; return { TYPES: T };
+  }, `TYPES.${id}: slot 'bow': accepts 'demicannon', which does not fit a bow slot`);
+  expectCaught('class whose default loadout is overweight', () => { const T = clone(C.TYPES); T[id].tons = 20; return { TYPES: T }; }, 'the default loadout weighs');
+}
+
 // Land (src/config/lands.js, src/sim/land.js LANDMARKS): a battle's own `land` is checked like a LANDS entry.
 console.log('land:');
 expectCaught('unknown landmark kind', (B) => { B.land = { landmarks: [{ kind: 'pyramid', island: 0 }] }; }, 'unknown kind "pyramid"');

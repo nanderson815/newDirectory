@@ -4,15 +4,15 @@ import { AMMO } from '../config/ammo.js';
 import { PI, clamp, lerp, rand, angDiff, reduceMotion } from '../util.js';
 import { spawn } from './particles.js';
 import { sfx } from '../audio/sfx.js';
-import { updateShell } from './abilities/mortar.js';
+import { updateShell, lobShell, shellTarget } from './abilities/mortar.js';
+import { GUNS } from '../config/guns.js';
+import { applyReloadWrites, syncReload, handFired, shotFor, batteryRange, gunPoint } from './guns.js';
 import { abilitiesSunk } from './abilities/index.js';
 import { goalsSunk } from './goals/index.js';
-import { RAKE, rakeEnd, raked, rollCrit } from './hazards.js';
+import { RAKE, rakeEnd, raked, rollCrit, applyCrit } from './hazards.js';
 import { coreDist, coastGap } from './terrain.js';
 import { landHit } from './land.js';
 
-const BROADSIDE_ARC = 0.62;  // half-angle of each side's firing arc
-const CHASER_ARC = 0.32;     // half-angle of the bow chasers' arc
 const FORT_SIZE = 20;        // a fort counts as in range once its walls are
 // Gunnery scatter scales with the hulls. The fleet pass cut every hull to 3/4 on the same sea
 // (src/config/ships.js), so every gun (ships, chasers, forts, both sides) lays its shot 3/4 as wide in bearing
@@ -30,18 +30,33 @@ function* targets(team) {
   for (const f of S.G.forts) if (f.team !== team && f.state === 'active') yield f;
 }
 
-function nearestInArc(s, dir, arc, range) {
+// The nearest target within `range` (and beyond `min`) inside `arc` of `dir`; an arc of PI or more is all round.
+function nearestInArc(s, dir, arc, range, min = 0) {
   let best = null, bd = Infinity;
   for (const e of targets(s.team)) {
     const d = Math.hypot(e.x - s.x, e.y - s.y) - (e.kind === 'fort' ? FORT_SIZE : 0);
-    if (d > range || d >= bd) continue;
-    if (Math.abs(angDiff(dir, Math.atan2(e.y - s.y, e.x - s.x))) < arc) { best = e; bd = d; }
+    if (d > range || d >= bd || d < min) continue;
+    if (arc >= PI || Math.abs(angDiff(dir, Math.atan2(e.y - s.y, e.x - s.x))) < arc) { best = e; bd = d; }
   }
   return best;
 }
-export const gunRange = (s) => s.range * AMMO[s.ammo || 'round'].range;
-export const findBroadsideTarget = (s, side) => nearestInArc(s, sideDir(s, side), BROADSIDE_ARC, gunRange(s));
-export const findChaseTarget = (s) => nearestInArc(s, s.h, CHASER_ARC, s.range * 0.85);
+// What one battery (src/sim/guns.js) could hit now: the nearest target in its own arc and reach.
+const batteryTarget = (s, b) => nearestInArc(s, b.face == null ? s.h : s.h + b.face, b.arc, batteryRange(s, b), b.minRange);
+// Her broadside reach (one side, or either): the longest of the hand-fired batteries with the shot they load.
+export const gunRange = (s, side = null) => {
+  let r = 0;
+  for (const b of s.batteries) if (handFired(b) && (side == null || b.side === side)) r = Math.max(r, batteryRange(s, b));
+  return r;
+};
+export const findBroadsideTarget = (s, side) => {
+  let arc = 0;
+  for (const b of s.batteries) if (b.side === side && handFired(b)) arc = Math.max(arc, b.arc);
+  return arc ? nearestInArc(s, sideDir(s, side), arc, gunRange(s, side)) : null;
+};
+export const findChaseTarget = (s) => {
+  const b = s.batteries.find((q) => q.pos === 'bow');
+  return b ? batteryTarget(s, b) : null;
+};
 
 // Where to aim at a moving target so the ball arrives where it will be.
 function leadPoint(t, gx, gy) {
@@ -50,86 +65,121 @@ function leadPoint(t, gx, gy) {
   return [t.x + Math.cos(h) * v * lead, t.y + Math.sin(h) * v * lead];
 }
 
-function launch(team, gx, gy, ang, dist, dmg, z0, skip, kind = 'round') {
-  S.balls.push({ x: gx, y: gy, vx: Math.cos(ang) * BALL_SPEED, vy: Math.sin(ang) * BALL_SPEED, travel: 0, max: dist, team, dmg, z0, skip, kind });
+function launch(team, gx, gy, ang, dist, dmg, z0, skip, kind = 'round', extra = null) {
+  const b = { x: gx, y: gy, vx: Math.cos(ang) * BALL_SPEED, vy: Math.sin(ang) * BALL_SPEED, travel: 0, max: dist, team, dmg, z0, skip, kind };
+  S.balls.push(extra ? Object.assign(b, extra) : b);
 }
 
-function muzzle(x, y, dir, z) {
-  spawn('flash', x + Math.cos(dir) * 5, y + Math.sin(dir) * 5, 0, 0, 0.14, 6, z, 0);
+// Flash and smoke at a muzzle; `k` scales it with the bore (a swivel puffs, a demi-cannon billows).
+function muzzle(x, y, dir, z, k = 1) {
+  spawn('flash', x + Math.cos(dir) * 5, y + Math.sin(dir) * 5, 0, 0, 0.14, 6 * k, z, 0);
   const w = S.G.wind.dir;
-  for (let k = 0; k < 3; k++) {
+  for (let n = 0; n < Math.max(1, Math.round(3 * k)); n++) {
     spawn('smoke', x + Math.cos(dir) * 8, y + Math.sin(dir) * 8,
       Math.cos(dir) * rand(20, 45) + Math.cos(w) * 12, Math.sin(dir) * rand(20, 45) + Math.sin(w) * 12,
-      rand(1.2, 2.0), rand(5, 8), z + 1, rand(6, 14));
+      rand(1.2, 2.0), rand(5, 8) * k, z + 1, rand(6, 14));
   }
 }
 
 const enemyMul = (team, k) => (team === 'enemy' ? S.G.ai[k] : 1);
 
-// Fires a rippling broadside. With no target (manual fire) the shot goes out to full range abeam.
 // Crews cut down by grapeshot reload more slowly.
 export const crewMul = (s) => 1 + Math.min(0.5, 0.06 * s.crewHit);
 
-export function fireBroadside(s, side, tgt) {
-  if (s.guns <= 0) return;
-  s.reload[side] = s.reloadTime * enemyMul(s.team, 'reloadMul') * crewMul(s) * rand(0.95, 1.05);
-  for (let i = 0; i < s.guns; i++) {
-    S.pending.push({ t: i * 0.075 + rand(0, 0.04), shipId: s.id, side, gi: i, targetId: tgt ? tgt.id : null, ammo: s.ammo });
+// Every tick for a ship afloat: her batteries (src/sim/guns.js) load, and those that may fire on their own do.
+// `fire: false` (a hulk, a boarding action) only loads. Broadside batteries fire on their own when `broadsides`
+// (the enemy, Auto, ships that sail themselves); swivels, chasers, mortars and fire-pots (guns marked auto) always
+// do. Each battery waits for a target inside its own reach and arc, so carronades hold fire until the enemy is
+// close and swivels only speak at pistol shot.
+export function updateGuns(s, dt, { fire = true, broadsides = true } = {}) {
+  applyReloadWrites(s);
+  for (const b of s.batteries) b.t -= dt;
+  if (fire) {
+    for (let i = 0; i < s.batteries.length; i++) {
+      const b = s.batteries[i];
+      if (b.t > 0 || (!b.auto && !broadsides)) continue;
+      const tgt = GUNS[b.gun].fires === 'shell' ? shellTarget(s, b.range, b.minRange) : batteryTarget(s, b);
+      if (tgt) fireBattery(s, i, tgt);
+    }
   }
-  if (s.team === 'player') S.G.stats.shots += s.guns * (AMMO[s.ammo].pellets || 1);
-  if (s.team === 'player' && s === S.selected && !reduceMotion) S.kick = Math.max(S.kick, 1);
+  syncReload(s);
+}
+
+// Fires one battery at a target (or, with none, out along its facing to full reach): a rippling discharge of its
+// guns, a mortar shell, or a fire-pot.
+export function fireBattery(s, bi, tgt) {
+  const b = s.batteries[bi], G = GUNS[b.gun];
+  if (G.fires === 'shell' && !tgt) return;
+  b.t = b.reloadTime * enemyMul(s.team, 'reloadMul') * crewMul(s) * rand(0.95, 1.05);
+  if (G.fires === 'shell') { lobShell(s, tgt, { dmg: b.dmg, radius: G.radius }); return; }
+  const shot = shotFor(s, b);
+  for (let i = 0; i < b.count; i++) {
+    S.pending.push({ t: i * (b.pos === 'broadside' ? 0.075 : 0.12) + rand(0, 0.04), shipId: s.id, bi, gi: i, targetId: tgt ? tgt.id : null, ammo: shot });
+  }
+  if (s.team === 'player') S.G.stats.shots += b.count * (G.pellets || (AMMO[shot] && AMMO[shot].pellets) || 1);
+  if (s.team === 'player' && s === S.selected && handFired(b) && !reduceMotion) S.kick = Math.max(S.kick, 1);
+}
+
+// Fires a side's loaded broadside (manual fire, or the AI): every hand-fired battery on that side that is ready,
+// each at the target if it has one, else abeam to its own reach. Returns how many batteries fired.
+export function fireBroadside(s, side, tgt) {
+  let n = 0;
+  for (let i = 0; i < s.batteries.length; i++) {
+    const b = s.batteries[i];
+    if (b.side !== side || !handFired(b) || b.t > 0) continue;
+    fireBattery(s, i, tgt);
+    n++;
+  }
+  syncReload(s);
+  return n;
 }
 
 export function fireQueued(p) {
   if (p.fortId != null) fireFortGun(p); else fireGun(p);
 }
 
+// One gun of a battery goes off: a ball (or a spray of pellets, or a fire-pot) toward the target, trained as far
+// as the gun will traverse.
 function fireGun(p) {
   const s = shipById(p.shipId);
   if (!s || !afloat(s)) return;
-  const sgn = p.side === 0 ? -1 : 1;
-  const along = s.guns === 1 ? 0 : lerp(-s.L * 0.28, s.L * 0.28, p.gi / (s.guns - 1));
-  const c = Math.cos(s.h), sn = Math.sin(s.h);
-  const oy = sgn * s.B * 0.55;
-  const gx = s.x + c * along - sn * oy, gy = s.y + sn * along + c * oy;
-  const dir = sideDir(s, p.side);
+  const b = s.batteries && s.batteries[p.bi];
+  if (!b) return;
+  const G = GUNS[b.gun];
+  const [gx, gy, z] = gunPoint(s, b, p.gi);
   const t = p.targetId != null ? unitById(p.targetId) : null;
-  const kind = p.ammo || 'round', A = AMMO[kind], range = s.range * A.range;
+  const live = t && alive(t);
+  const dir = b.face != null ? s.h + b.face : live ? Math.atan2(t.y - gy, t.x - gx) : s.h;
+  const kind = p.ammo || 'round', A = AMMO[kind] || { hull: 1, range: 1 }, range = batteryRange(s, b, kind);
   let ang = dir, dist = range * 0.95;
-  if (t && alive(t)) {
+  if (live) {
     const [ax, ay] = leadPoint(t, gx, gy);
-    // Guns only traverse a little; clamp the aim to the broadside arc.
-    ang = dir + clamp(angDiff(dir, Math.atan2(ay - gy, ax - gx)), -0.7, 0.7);
+    // Guns only traverse a little; clamp the aim to what this one can train.
+    const trav = G.traverse != null ? G.traverse : 0.7;
+    ang = dir + clamp(angDiff(dir, Math.atan2(ay - gy, ax - gx)), -trav, trav);
     dist = Math.hypot(ax - gx, ay - gy);
   }
-  const spread = (s.team === 'enemy' ? S.G.ai.spread : 0.07) * AIM;
-  const dmg = BALL_DMG * enemyMul(s.team, 'dmgMul') * A.hull;
+  const spread = (s.team === 'enemy' ? S.G.ai.spread : b.pos === 'broadside' ? 0.07 : 0.06) * AIM;
+  const dmg = b.dmg * enemyMul(s.team, 'dmgMul') * A.hull;
+  const pellets = G.pellets || A.pellets || 1;
+  const extra = G.crewKill != null || G.burn ? { crew: G.crewKill, burn: G.burn || 0 } : null;
   // Grapeshot leaves the muzzle as a spray of pellets; everything else is one ball.
-  for (let k = 0; k < (A.pellets || 1); k++) {
-    const a = ang + rand(-spread, spread) * (A.pellets ? 2.5 : 1);
-    launch(s.team, gx, gy, a, clamp(dist * scatter(0.9, 1.12), 40, range * 1.1), dmg, 6, -1, kind);
+  for (let k = 0; k < pellets; k++) {
+    const a = ang + rand(-spread, spread) * (pellets > 1 ? 2.5 : 1);
+    launch(s.team, gx, gy, a, clamp(dist * scatter(0.9, 1.12), 40, range * 1.1), dmg, z, -1, kind === 'pot' ? 'firepot' : kind, extra);
   }
-  muzzle(gx, gy, dir, 6);
-  // A little recoil.
-  s.x -= Math.cos(dir) * 0.6; s.y -= Math.sin(dir) * 0.6;
-  sfx.gun(gx, gy, s.team === 'player' ? 0.9 : 0.6);
+  const bore = G.render ? G.render.bore : 1;
+  muzzle(gx, gy, ang, z, clamp(bore, 0.4, 1.4));
+  // A little recoil from the great guns.
+  if (b.pos === 'broadside' && bore >= 0.9) { s.x -= Math.cos(dir) * 0.6; s.y -= Math.sin(dir) * 0.6; }
+  if (b.pos === 'broadside') sfx.gun(gx, gy, (s.team === 'player' ? 0.9 : 0.6) * clamp(bore, 0.45, 1.2));
+  else if (p.gi === 0) sfx.gun(gx, gy, (s.team === 'player' ? 0.55 : 0.4) * clamp(bore, 0.45, 1.2), 1.2);
 }
 
-// Bow chasers: one or two long guns in the bow that hit whatever sits dead ahead.
+// Bow chasers on demand (older callers); the bow battery normally fires on its own (updateGuns).
 export function fireChasers(s, t) {
-  const c = Math.cos(s.h), sn = Math.sin(s.h);
-  for (let i = 0; i < s.chasers; i++) {
-    const off = s.chasers === 1 ? 0 : (i ? 1 : -1) * s.B * 0.18;
-    const gx = s.x + c * s.L * 0.5 - sn * off, gy = s.y + sn * s.L * 0.5 + c * off;
-    const [ax, ay] = leadPoint(t, gx, gy);
-    const spread = (s.team === 'enemy' ? S.G.ai.spread : 0.06) * AIM;
-    const ang = s.h + clamp(angDiff(s.h, Math.atan2(ay - gy, ax - gx)), -0.35, 0.35) + rand(-spread, spread);
-    const dist = clamp(Math.hypot(ax - gx, ay - gy) * scatter(0.94, 1.08), 40, s.range);
-    launch(s.team, gx, gy, ang, dist, BALL_DMG * enemyMul(s.team, 'dmgMul'), 7, -1);
-    muzzle(gx, gy, s.h, 7);
-  }
-  if (s.team === 'player') S.G.stats.shots += s.chasers;
-  sfx.gun(s.x, s.y, 0.55, 1.2);
+  const i = s.batteries.findIndex((b) => b.pos === 'bow');
+  if (i >= 0) fireBattery(s, i, t);
 }
 
 // A fort's tower gun, fired from high up so its shot clears its own island.
@@ -218,7 +268,10 @@ export function hitShip(e, b) {
   rollCrit(e, b, end);
   if (b.kind === 'chain') e.slowT = Math.max(e.slowT, AMMO.chain.slow);
   // Each pellet that lands has a fair chance of cutting down a man; a full grape broadside from a frigate kills three or four.
-  if (b.kind === 'grape') { if (Math.random() < 0.25) e.marines = Math.max(0, e.marines - 1); e.crewHit = Math.min(8, e.crewHit + 0.15); }
+  // Swivels (crewKill in src/config/guns.js) are deadlier still.
+  if (b.kind === 'grape') { if (Math.random() < (b.crew != null ? b.crew : 0.25)) e.marines = Math.max(0, e.marines - 1); e.crewHit = Math.min(8, e.crewHit + 0.15); }
+  // A fire-pot that lands sets her burning (or keeps her burning).
+  if (b.burn && e.state === 'afloat') applyCrit(e, 'fire', b.burn);
   if (b.team === 'player' && !b.mine) G.stats.hits++;
   for (let k = 0; k < 7; k++) spawn('splinter', b.x, b.y, rand(-60, 60), rand(-60, 60), rand(0.6, 1.0), rand(2, 4.5), 10, rand(30, 70));
   spawn('smoke', b.x, b.y, rand(-8, 8), rand(-8, 8), 0.8, 5, 10, 8);

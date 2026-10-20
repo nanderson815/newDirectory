@@ -5,7 +5,7 @@ import { windFactor } from './wind.js';
 import { playerSteer, avoidIslands, aiSteer, escortSteer, shoreClear } from './steering.js';
 import { updateAbilities, abilityWind } from './abilities/index.js';
 import { checkExit, sailOff } from './exit.js';
-import { findBroadsideTarget, findChaseTarget, fireBroadside, fireChasers, dropMine, crewMul } from './combat.js';
+import { updateGuns, dropMine } from './combat.js';
 import { spawn } from './particles.js';
 import { updateHazards, hazardSpeed, hazardTurn } from './hazards.js';
 import { corePt, coastNearest } from './terrain.js';
@@ -91,28 +91,13 @@ export function updateShip(s, dt) {
   const r = angDiff(s.h, G.wind.dir);
   s.yard += (clamp(r * 0.45, -0.75, 0.75) - s.yard) * Math.min(1, dt * 2);
 
-  s.reload[0] -= dt; s.reload[1] -= dt;
   s.flash = Math.max(0, s.flash - dt);
-  // Crews fighting hand to hand on deck don't work the guns.
-  if (!s.passive && !s.boarding) {
-    if (s.team === 'enemy' || S.fireMode === 'auto' || selfSailing(s)) {
-      for (let side = 0; side < 2; side++) {
-        if (s.reload[side] > 0) continue;
-        const tgt = findBroadsideTarget(s, side);
-        if (tgt) fireBroadside(s, side, tgt);
-      }
-    }
-    // Bow chasers always fire on their own.
-    if (s.chasers) {
-      s.chaseT -= dt;
-      if (s.chaseT <= 0) {
-        const tgt = findChaseTarget(s);
-        if (tgt) s.chaseT = CHASER_RELOAD * (s.team === 'enemy' ? G.ai.reloadMul : 1) * crewMul(s);
-        if (tgt) fireChasers(s, tgt);
-      }
-    }
-    updateAbilities(s, dt);
-  }
+  // Her guns load, and fire where they may (src/sim/combat.js updateGuns): broadsides on their own for the enemy,
+  // in Auto and for ships that sail themselves; chasers, swivels, mortars and fire-pots always. Crews fighting
+  // hand to hand on deck don't work the guns.
+  const working = !s.passive && !s.boarding;
+  updateGuns(s, dt, { fire: working, broadsides: s.team === 'enemy' || S.fireMode === 'auto' || selfSailing(s) });
+  if (working) updateAbilities(s, dt);
 
   s.fxT -= dt;
   if (s.fxT <= 0) {

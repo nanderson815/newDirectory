@@ -19,37 +19,50 @@ export default {
   defaults: { range: 430, reload: 6.5, dmg: 22, radius: 36 },
   init(s, a) { a.t = rand(2, 4); if (!s.boss) s.standoff = a.range * 0.75; },
   update(s, a, dt) {
-    const G = S.G;
     a.t -= dt;
     if (a.t > 0) return;
-    let best = null, bd = Infinity;
-    for (const o of G.ships) {
-      if (o.team === s.team || !afloat(o) || (o.hidden && s.team === 'player')) continue;
-      const d = Math.hypot(o.x - s.x, o.y - s.y);
-      if (d > MIN_RANGE && d < a.range && d < bd) { bd = d; best = o; }
-    }
-    for (const f of G.forts) {
-      if (f.team === s.team || f.state !== 'active') continue;
-      const d = Math.hypot(f.x - s.x, f.y - s.y) * 0.8; // a fort is the juicier target
-      if (d > MIN_RANGE && d < a.range && d < bd) { bd = d; best = f; }
-    }
+    const best = shellTarget(s, a.range);
     if (!best) { a.t = 0.6; return; }
-    a.t = a.reload * (s.team === 'enemy' ? G.ai.reloadMul : 1) * rand(0.92, 1.08);
-    const d = Math.hypot(best.x - s.x, best.y - s.y), T = 0.9 + d / SHELL_SPEED;
-    // Lead a moving ship a little, and scatter by the gun crew's skill.
-    const lead = best.kind === 'fort' ? 0 : best.v * T * 0.7, h = best.kind === 'fort' ? 0 : best.h;
-    const sc = d * (s.team === 'enemy' ? G.ai.spread : 0.08) * 0.8, sa = rand(0, TAU), sr = rand(0, sc);
-    const tx = clamp(best.x + Math.cos(h) * lead + Math.cos(sa) * sr, 10, G.W - 10);
-    const ty = clamp(best.y + Math.sin(h) * lead + Math.sin(sa) * sr, 10, G.H - 10);
-    S.balls.push({
-      kind: 'shell', team: s.team, sx: s.x, sy: s.y, x: s.x, y: s.y, tx, ty, u: 0, T, h: 10, apex: 90 + d * 0.25,
-      dmg: a.dmg * (s.team === 'enemy' ? G.ai.dmgMul : 1), radius: a.radius, travel: 0, max: d, z0: 10, vx: 0, vy: 0, skip: -1,
-    });
-    spawn('flash', s.x, s.y, 0, 0, 0.2, 12, 12, 0);
-    for (let k = 0; k < 5; k++) spawn('smoke', s.x + rand(-5, 5), s.y + rand(-5, 5), rand(-10, 10), rand(-10, 10), rand(1.4, 2.0), rand(7, 10), 14, rand(18, 30));
-    sfx.boom(0.7, 1.3, s.x, s.y);
+    a.t = a.reload * (s.team === 'enemy' ? S.G.ai.reloadMul : 1) * rand(0.92, 1.08);
+    lobShell(s, best, a);
   },
 };
+
+// The nearest enemy ship (or, keener, fort) a mortar on ship s could reach: between `min` and `range`.
+// Shared with the great ship's deck mortar (src/config/guns.js, src/sim/combat.js).
+export function shellTarget(s, range, min = MIN_RANGE) {
+  const G = S.G;
+  let best = null, bd = Infinity;
+  for (const o of G.ships) {
+    if (o.team === s.team || !afloat(o) || (o.hidden && s.team === 'player')) continue;
+    const d = Math.hypot(o.x - s.x, o.y - s.y);
+    if (d > min && d < range && d < bd) { bd = d; best = o; }
+  }
+  for (const f of G.forts) {
+    if (f.team === s.team || f.state !== 'active') continue;
+    const d = Math.hypot(f.x - s.x, f.y - s.y) * 0.8; // a fort is the juicier target
+    if (d > min && d < range && d < bd) { bd = d; best = f; }
+  }
+  return best;
+}
+
+// Lobs one shell from ship s at `best`, bursting for up to cfg.dmg across cfg.radius.
+export function lobShell(s, best, cfg) {
+  const G = S.G;
+  const d = Math.hypot(best.x - s.x, best.y - s.y), T = 0.9 + d / SHELL_SPEED;
+  // Lead a moving ship a little, and scatter by the gun crew's skill.
+  const lead = best.kind === 'fort' ? 0 : best.v * T * 0.7, h = best.kind === 'fort' ? 0 : best.h;
+  const sc = d * (s.team === 'enemy' ? G.ai.spread : 0.08) * 0.8, sa = rand(0, TAU), sr = rand(0, sc);
+  const tx = clamp(best.x + Math.cos(h) * lead + Math.cos(sa) * sr, 10, G.W - 10);
+  const ty = clamp(best.y + Math.sin(h) * lead + Math.sin(sa) * sr, 10, G.H - 10);
+  S.balls.push({
+    kind: 'shell', team: s.team, sx: s.x, sy: s.y, x: s.x, y: s.y, tx, ty, u: 0, T, h: 10, apex: 90 + d * 0.25,
+    dmg: cfg.dmg * (s.team === 'enemy' ? G.ai.dmgMul : 1), radius: cfg.radius, travel: 0, max: d, z0: 10, vx: 0, vy: 0, skip: -1,
+  });
+  spawn('flash', s.x, s.y, 0, 0, 0.2, 12, 12, 0);
+  for (let k = 0; k < 5; k++) spawn('smoke', s.x + rand(-5, 5), s.y + rand(-5, 5), rand(-10, 10), rand(-10, 10), rand(1.4, 2.0), rand(7, 10), 14, rand(18, 30));
+  sfx.boom(0.7, 1.3, s.x, s.y);
+}
 
 // Moves a shell along its arc; returns true once it has landed (combat.js calls this for every shell).
 export function updateShell(b, dt) {

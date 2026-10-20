@@ -227,7 +227,8 @@ export function wrapText(ctx, str, maxW, size = HUD.value, weight = 500) {
 
 // ---------- Controls ----------
 // A button: an ink slip. state: 'normal' | 'pressed' | 'disabled' | 'active' (toggled on). variant 'glass' |
-// 'gold' (the main action: a paper slip, one per screen) | 'danger' (red). `progress` (0..1) is a reload rule
+// 'gold' (the main action: a paper slip, one per screen) | 'danger' (red). `progress` (0..1, or [{ k, w }] for a rule split
+// into one segment per battery, w guns long, gilt once loaded) is a reload rule
 // filling along the bottom edge; `ready` (a loaded gun) and 'active' invert the slip to paper with ink type, so the
 // thing you can use now is the brightest thing on the bar. `stack` puts the icon over a small label (the action
 // bar's tiles, labels in Fell small capitals); otherwise icon and label sit side by side.
@@ -246,7 +247,20 @@ export function button(ctx, x, y, w, h, {
   if (ready && !pressed && !disabled) { ctx.save(); shadow(ctx, GLOW_GOLD); rrect(ctx, x, y, w, h, r); ctx.fillStyle = T.bottom; ctx.fill(); ctx.restore(); }
   panel(ctx, x, y + oy, w, h, { tone, r, elevation: pressed || disabled ? 1 : 2 });
   if (pressed) { rrect(ctx, x, y + oy, w, h, r); ctx.fillStyle = 'rgba(0,0,0,0.14)'; ctx.fill(); }
-  if (progress != null && !ready) {
+  if (Array.isArray(progress) && !ready) {
+    // A side with several batteries: the reload rule splits into one segment per battery, as long as its guns
+    // (w), each filling on its own and lit full once that battery is loaded.
+    const segs = progress, gap = 3, inner = w - 12 - gap * (segs.length - 1), sum = segs.reduce((n, g) => n + g.w, 0) || 1;
+    ctx.save(); rrect(ctx, x, y + oy, w, h, r); ctx.clip();
+    let sx = x + 6;
+    for (const g of segs) {
+      const sw = inner * g.w / sum, k = Math.min(1, Math.max(0, g.k));
+      ctx.fillStyle = 'rgba(239,229,207,0.16)'; ctx.fillRect(sx, y + oy + h - 4, sw, 1.5);
+      ctx.fillStyle = k >= 1 ? MARK.chosen : 'rgba(239,229,207,0.85)'; ctx.fillRect(sx, y + oy + h - (k >= 1 ? 4.5 : 4), sw * k, k >= 1 ? 2.5 : 1.5);
+      sx += sw + gap;
+    }
+    ctx.restore();
+  } else if (progress != null && !ready) {
     const k = Math.min(1, Math.max(0, progress));
     ctx.save(); rrect(ctx, x, y + oy, w, h, r); ctx.clip();
     ctx.fillStyle = 'rgba(239,229,207,0.06)'; ctx.fillRect(x, y + oy, w * k, h);
