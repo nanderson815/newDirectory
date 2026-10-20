@@ -539,6 +539,8 @@ html.no-fell-sc .btn { font-variant-caps: small-caps; }
 .cnode.n-right .cn-name { left: calc(100% + 7px); }
 .cnode.n-left .cn-you, .cnode.n-above .cn-you { left: auto; right: -31px; }
 .cnode.n-above .cn-you { top: -2px; }
+.cnode.ship-right .cn-you { left: auto; right: -31px; }
+.cnode.ship-left .cn-you { left: -30px; right: auto; }
 .cnode.locked .cn-name { color: #86786a; font-weight: 400; font-style: italic; }
 .cnode.next .cn-name { color: var(--p-red); font-size: 14px; }
 .cn-name small { display: block; font-size: 12px; font-weight: 400; font-style: italic; color: #5b4e42; }

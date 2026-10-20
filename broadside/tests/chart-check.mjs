@@ -182,6 +182,18 @@ for (const [world, { map, art }] of Object.entries(PLATES)) {
       }
     }
   }
+  // The little ship beside the next battle (.cn-you): up and to the left of its roundel, or to the right when the
+  // name is written left or above (or as `ship` says). Any battle can be the next one, so every one is checked.
+  for (const a of all) {
+    const n = NODES[a], R = n.boss ? 26 : 20, right = n.ship ? n.ship === 'right' : n.name === 'left' || n.name === 'above';
+    const ship = rect(right ? n.x + R + 1 : n.x - R - 30, n.y - R - (n.name === 'above' ? 2 : 22), 30, 25);
+    for (const b of all) {
+      if (b !== a && overlap(ship, disc(b, 1))) say(`the ship beside ${a} covers node ${b}`);
+      if (b !== a && overlap(ship, boxPoly(nameBox(b, true)))) say(`the ship beside ${a} covers the name of ${b}`);
+    }
+    if (overlap(ship, boxPoly(nameBox(a, true)))) say(`the ship beside ${a} covers its own name`);
+    for (const b of [...regionBoxes, ...seaBoxes, ...townBoxes, ...artBoxes]) if (overlap(ship, b.P)) say(`the ship beside ${a} covers ${b.what}`);
+  }
   const labels = [...regionBoxes, ...seaBoxes, ...landBoxes, ...artBoxes, ...townBoxes];
   labels.forEach((a, i) => labels.slice(i + 1).forEach((b) => { if (overlap(grow(a.P, -2), grow(b.P, -2))) say(`${a.what} overlaps ${b.what}`); }));
   for (const a of labels) for (const b of hillBoxes) if (overlap(grow(a.P, -2), b.P)) say(`${a.what} overlaps ${b.what}`);

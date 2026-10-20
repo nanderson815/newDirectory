@@ -25,19 +25,19 @@ export const lonLat = (lon, lat) => [Math.round(lonX(lon) * 10) / 10, Math.round
 // Positions are in the sea near the place, nudged apart where the real places are closer than two roundels
 // (Tangier and Gibraltar, Algiers twice, Candia and Dia, the Narrows and Tenedos).
 export const NODES = {
-  tangier:   { x: 95, y: 440, label: 'Tangier', name: 'left' },
+  tangier:   { x: 95, y: 440, label: 'Tangier', name: 'left', ship: 'left' },
   gibraltar: { x: 210, y: 428, label: 'Under the Rock', name: 'above', via: [[140, 444], [165, 444], [190, 438]] },
   sale:      { x: 88, y: 540, boss: true, label: 'Salé', name: 'right', via: [[185, 447], [160, 450], [140, 453], [118, 468], [100, 500]] },
-  bougie:    { x: 500, y: 360, label: 'Bougie Calm', name: 'right',
+  bougie:    { x: 500, y: 360, label: 'Bougie Calm', name: 'right', ship: 'right',
     via: [[112, 512], [130, 482], [140, 466], [152, 456], [168, 459], [195, 463], [240, 462], [290, 455], [330, 435], [360, 395], [420, 352], [465, 345]] },
   bagnio:    { x: 430, y: 392, label: 'The Bagnio' },
   goletta:   { x: 660, y: 390, label: 'La Goletta', via: [[500, 395], [525, 384], [560, 385], [600, 384], [640, 378]] },
   algiers:   { x: 460, y: 305, boss: true, label: 'Admiral of Algiers', name: 'left', via: [[640, 362], [560, 335], [500, 315]] },
   knights:   { x: 755, y: 470, label: 'Knights’ Galleys', via: [[520, 290], [600, 328], [680, 348], [715, 400], [712, 445], [728, 466]] },
-  passero:   { x: 830, y: 400, label: 'Cape Passero', name: 'left', via: [[800, 450]] },
+  passero:   { x: 830, y: 400, label: 'Cape Passero', name: 'left', ship: 'left', via: [[800, 450]] },
   tripoli:   { x: 725, y: 565, boss: true, label: 'Tripoli', via: [[850, 470], [815, 535]] },
   zante:     { x: 940, y: 368, label: 'Currant Ships', name: 'left', via: [[820, 560], [880, 470], [915, 410]] },
-  navarino:  { x: 965, y: 418, label: 'Navarino', name: 'right' },
+  navarino:  { x: 965, y: 418, label: 'Navarino', name: 'right', ship: 'right' },
   candia:    { x: 1105, y: 458, label: 'Candia', via: [[1000, 445], [1045, 452]] },
   dia:       { x: 1172, y: 448, label: 'Night off Dia' },
   narrows:   { x: 1186, y: 247, label: 'The Narrows', name: 'above', via: [[1180, 400], [1170, 370], [1150, 340], [1145, 305], [1148, 278], [1162, 263]] },

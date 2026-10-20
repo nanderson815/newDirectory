@@ -144,7 +144,7 @@ const SHIP = '<svg viewBox="0 0 40 36" class="cn-you" aria-hidden="true"><path d
 
 const stars = (n) => `<span class="cn-stars" aria-hidden="true">${[0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}">★</i>`).join('')}</span>`;
 const pos = (p) => `left:${(p.x / P.map.W * 100).toFixed(3)}%;top:${(p.y / P.map.H * 100).toFixed(3)}%`;
-const nameCls = (p) => (p.name ? ' n-' + p.name : '');
+const nameCls = (p) => (p.name ? ' n-' + p.name : '') + (p.ship ? ' ship-' + p.ship : '');
 
 function nodeHTML(b, i, next) {
   const p = P.map.NODES[b.id];
