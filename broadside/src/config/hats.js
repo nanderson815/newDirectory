@@ -123,6 +123,7 @@ const ART = {
   // Bahri Ömer Pasha, Kapudan Pasha: a tall kavuk wound slantwise in white muslin, a gold band, and a jewelled
   // aigrette holding heron plumes, one dyed red.
   kavuk:
+    '<g transform="translate(6 5) scale(0.9)">' +
     '<path d="M56 15 Q43 -3 53 -2 Q61 3 60 17 Z" fill="#fbf3dc"/>' +
     '<path d="M63 15 Q68 -3 78 -2 Q76 8 65 19 Z" fill="#fbf3dc"/>' +
     '<path d="M60 17 Q56 0 62 -2 Q67 5 63 19 Z" fill="#d23c2c"/>' +
@@ -130,7 +131,7 @@ const ART = {
     '<path d="M35 22 Q60 14 86 28 M32 33 Q60 25 88 40 M31 45 Q60 37 89 52 M33 56 Q60 49 90 62" fill="none" stroke="#c9bfa8" stroke-width="3"/>' +
     '<path d="M28 60 Q60 70 92 60 L92 68 Q60 78 28 68 Z" fill="#f2b632"/>' +
     '<path d="M53 31 Q60 19 67 31 Q60 38 53 31 Z" fill="#f2b632"/>' +
-    '<circle cx="60" cy="30" r="3" fill="#2f5aa8"/><circle cx="60" cy="39" r="2.4" fill="#d23c2c" stroke-width="2"/>',
+    '<circle cx="60" cy="30" r="3" fill="#2f5aa8"/><circle cx="60" cy="39" r="2.4" fill="#d23c2c" stroke-width="2"/>' + '</g>',
 };
 
 // Inline SVG art for a hat; locked hats render as a faded silhouette.
