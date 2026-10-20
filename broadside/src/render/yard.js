@@ -4,7 +4,7 @@ import { buildShipMesh, bakeStatic, dropTemplates, setShipFading, templateKeys }
 import { hullShape, foamCollarGeometry } from './shapes.js';
 import { TYPES } from '../config/ships.js';
 import { makeBatteries } from '../sim/guns.js';
-import { COL, clamp, lerp, PI, TAU } from '../util.js';
+import { COL, clamp, lerp, PI, TAU, reduceMotion } from '../util.js';
 
 // The 3D shipyard: the chosen ship of your fleet lying in a fitting-out berth at Port Royal, under warm late light,
 // beside a timber wharf with a slipway astern. Built when the shipyard opens and disposed when it closes (the battle
@@ -139,7 +139,8 @@ function shipExtras(ref) {
   for (const s of [1, -1]) line(new THREE.Vector3(L * 0.4 * s, d - 1, -B * 0.36), new THREE.Vector3(62 * s, WHARF.top + 3.6, WHARF.z0 - 3));
   const b = bakeStatic(g);
   g.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
-  const lines = new THREE.Mesh(b.solid, cutaway(toon('#ffffff', { vertexColors: true }), Y.cut));
+  const vc = toon('#ffffff', { vertexColors: true }), lines = new THREE.Mesh(b.solid, cutaway(vc, Y.cut));
+  vc.dispose();
   Y.extras = [shadow, foam, lines];
   for (const m of Y.extras) Y.scene.add(m);
 }
@@ -417,6 +418,9 @@ function bindInput() {
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
     p.x = e.clientX; p.y = e.clientY;
     if (Y.tap) Y.tap.moved += Math.abs(dx) + Math.abs(dy);
+    // Once she's been turned the hint has done its work.
+    const hint = Y.view.querySelector('.yard-hint');
+    if (hint && Y.tap && Y.tap.moved > 24) hint.hidden = true;
     const k = 3.2 / Math.max(300, Y.rect.w);
     Y.orbit.az -= dx * k; Y.orbit.el = clamp(Y.orbit.el + dy * k * 0.7, 0.03, 1.15);
     const dt = 1 / 60;
@@ -554,7 +558,7 @@ export function renderYard(dt) {
   // The camera: easing to a goal (a part, a new ship, home), or coasting on the inertia of a drag.
   const o = Y.orbit;
   if (Y.goal) {
-    const k = 1 - Math.exp(-dt * 5);
+    const k = reduceMotion ? 1 : 1 - Math.exp(-dt * 5);
     for (const f of ['az', 'el', 'dist', 'ty', 'tx']) o[f] += (Y.goal[f] - o[f]) * k;
     if (Math.abs(Y.goal.az - o.az) + Math.abs(Y.goal.el - o.el) < 1e-3 && Math.abs(Y.goal.dist - o.dist) < 0.5) Y.goal = null;
   } else if (!Y.ptr.size) {

@@ -205,7 +205,7 @@ const LOOK_GROUPS = [
   { part: 'stern', label: 'The stern', fields: ['gilding', 'lanterns'] },
   { part: 'flags', label: 'Her colours', fields: ['flag'] },
 ];
-const FIELD_LABEL = { paint: 'Paint', cloth: 'Canvas', emblem: 'Device', figurehead: 'Carving', flag: 'Colours', lanterns: 'Lanterns', gilding: 'Carving' };
+const FIELD_LABEL = { paint: 'Paint', cloth: 'Canvas', emblem: 'Device', figurehead: 'Carving', flag: 'Colours', lanterns: 'Lanterns', gilding: 'Gilding' };
 const FIELD_PART = Object.fromEntries(LOOK_GROUPS.flatMap((g) => g.fields.map((f) => [f, g.part])));
 const keyHTML = (part) => (YARD_KEYS[part] ? `<span class="key" aria-hidden="true">${YARD_KEYS[part].letter}</span>` : '');
 // "the red tricorne", but "Calico Kate's skull hat": a hat named after its owner keeps the name.
