@@ -222,7 +222,7 @@ function slotOptions(f, id) {
   for (const g of accepts(TYPES[f.cls].slots[id])) {
     const o = fitOffer(f, id, g), G = o.gun;
     const stats = [G.fires === 'shell' ? `reach ${G.minRange}–${G.range}` : `reach ${G.range}`, `loads in ${G.reload} s`,
-      G.fires === 'pot' ? `burns ${G.burn} s` : G.fires === 'shell' ? `${G.dmg} a shell` : `${G.dmg}${G.pellets ? ` × ${G.pellets}` : ''} a ball`,
+      G.fires === 'pot' ? `burns ${G.burn} s` : G.fires === 'shell' ? `${G.dmg} a shell` : G.pellets ? `${G.pellets} balls of ${G.dmg}` : `${G.dmg} a ball`,
       `${tons(G.weight * o.count)} tons`].join(' · ');
     const can = o.cost != null && !o.over && save.gold >= o.cost;
     const label = `${G.label}${o.count > 1 ? ` <span class="lv">${word(o.count)}</span>` : ''}`;
@@ -246,8 +246,9 @@ function renderYard() {
     '<dl class="ship-stats">' +
     `<div><dt>Hull</dt><dd>${st.hp}</dd></div><div><dt>Guns a side</dt><dd>${st.guns}</dd></div>` +
     `<div><dt>Speed</dt><dd>${st.speed}</dd></div><div><dt>Marines</dt><dd>${dash(st.marines)}</dd></div>` +
-    `<div><dt>Bow guns</dt><dd>${dash(st.chasers)}</dd></div><div><dt>Mines</dt><dd>${dash(st.mines)}</dd></div>` +
-    (T.slots ? `<div><dt>Stern guns</dt><dd>${dash(st.sternGuns)}</dd></div><div><dt>Tons of guns</dt><dd>${tons(st.weight)}</dd></div>` : '') +
+    // A great ship counts her chase guns fore and aft in one line (her tons are at the head of the gun decks).
+    (T.slots ? `<div><dt>Chase guns</dt><dd>${st.chasers} + ${st.sternGuns}</dd></div>` : `<div><dt>Bow guns</dt><dd>${dash(st.chasers)}</dd></div>`) +
+    `<div><dt>Mines</dt><dd>${dash(st.mines)}</dd></div>` +
     `<div class="wide"><dt>Shot</dt><dd>${st.ammo.map((k) => AMMO[k].short.toLowerCase()).join(', ')}</dd></div>` +
     '</dl><div class="up-list">';
   const rf = refitOffer(f);
