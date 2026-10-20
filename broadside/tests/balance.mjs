@@ -43,6 +43,17 @@ const WISHLIST = [
   ['Resolute', 'sails'], ['Resolute', 'chasers'],
 ];
 
+// The Mediterranean (src/config/worlds.js) keeps the shipyard busy where the West Indies list runs out: the escorts
+// grow into frigates and then ships of the line. These are only bought once a Mediterranean battle is won, so they
+// never change the West Indies' numbers.
+const WISHLIST_MED = [
+  ['Merlin', 'refit'], ['Osprey', 'refit'], ['Merlin', 'guns'], ['Osprey', 'guns'], ['Merlin', 'hull'], ['Osprey', 'hull'],
+  ['Swift', 'marines'], ['Kestrel', 'marines'], ['Resolute', 'marines'], ['Swift', 'refit'], ['Kestrel', 'refit'],
+  ['Merlin', 'marines'], ['Osprey', 'marines'], ['Swift', 'sails'], ['Kestrel', 'sails'], ['Resolute', 'sails'],
+  ['Merlin', 'guns'], ['Osprey', 'guns'], ['Merlin', 'hull'], ['Osprey', 'hull'], ['Swift', 'chasers'], ['Kestrel', 'chasers'],
+  ['Merlin', 'refit'], ['Osprey', 'refit'], ['Resolute', 'chasers'],
+];
+
 function wishCost([name, what]) {
   if (name === 'hire') return nextHire() ? nextHire().cost : null;
   const f = save.fleet.find((s) => s.name === name);
@@ -52,10 +63,11 @@ function wishCost([name, what]) {
 }
 
 // Returns the purchases made, as short labels.
-function shop(state) {
+function shop(state, world) {
   const bought = [];
-  while (state.next < WISHLIST.length) {
-    const w = WISHLIST[state.next];
+  const list = world === 'caribbean' || !world ? WISHLIST : [...WISHLIST, ...WISHLIST_MED];
+  while (state.next < list.length) {
+    const w = list[state.next];
     const cost = wishCost(w);
     if (cost == null) { state.next++; continue; }         // maxed out or ship missing: skip it
     if (save.gold < cost) break;                          // save up for it
@@ -178,7 +190,7 @@ for (let bi = 0; bi < BATTLES.length; bi++) {
   };
   save.gold += gold;
   save.stars[B.id] = 1;
-  row.bought = shop(shopState);
+  row.bought = shop(shopState, B.world);
   row.goldAfter = save.gold;
   rows.push(row);
   if (measure) process.stdout.write(`  ${B.roman.padStart(4)} ${B.id.padEnd(10)} win ${(row.win * 100).toFixed(0).padStart(3)}%  (${((Date.now() - t0) / 1000).toFixed(0)} s)\n`);
@@ -201,6 +213,6 @@ for (const r of rows) {
 console.log('\nShipyard purchases after each win (greedy wishlist):');
 for (const r of rows) console.log(`  ${r.roman.padStart(4)} +${String(r.gold).padStart(3)}g → ${r.bought.length ? r.bought.join(', ') : '(saving)'}   [${r.goldAfter}g left]`);
 const spent = rows.reduce((s, r) => s + r.gold, 0) - save.gold;
-console.log(`\nCampaign gold earned ${rows.reduce((s, r) => s + r.gold, 0)}, spent ${spent}; wishlist ${rows.length ? shopState.next : 0}/${WISHLIST.length} items bought.`);
+console.log(`\nCampaign gold earned ${rows.reduce((s, r) => s + r.gold, 0)}, spent ${spent}; wishlist ${rows.length ? shopState.next : 0}/${WISHLIST.length + WISHLIST_MED.length} items bought.`);
 console.log('Final fleet: ' + save.fleet.map((f) => { const s = fleetStats(f); return `${f.name} ${TYPES[f.cls].label} hp${s.hp} g${s.guns}`; }).join(', '));
 if (process.env.JSON) fs.writeFileSync(process.env.JSON, JSON.stringify(rows, null, 2));

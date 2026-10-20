@@ -51,14 +51,14 @@ export const MED_BATTLES = [
     ],
     // Defend the harbour from inside it: you start in Tangier Bay behind the Mole, Spain a smudge across the
     // Straits, and the galleys come at you from open water and round the cape to the east.
-    fleetAt: { slots: [[0.34, 0.79], [0.24, 0.8], [0.46, 0.86], [0.58, 0.86], [0.7, 0.86]], h: -90 },
+    fleetAt: { slots: [[0.36, 0.79], [0.26, 0.73], [0.46, 0.86], [0.58, 0.86], [0.7, 0.86]], h: -90 },
     coast: [
       { side: 'bottom', depth: 0.2, rough: 0.12, seed: 4, coves: [{ at: 0.56, width: 0.62, depth: 0.12 }], capes: [{ at: 0.06, width: 0.18, depth: 0.05 }, { at: 0.97, width: 0.14, depth: 0.12 }] },
       { side: 'top', depth: 0.05, rough: 0.4, seed: 5 },
     ],
     islands: [{ x: 0.62, y: 0.76, r: 30, stretch: 3.6, angle: -12 }, { x: 0.2, y: 0.5, r: 38, stretch: 1.4, angle: 30 }],
     forts: [{ island: 0, name: 'York Castle', hp: 260, guns: 3, need: 10, team: 'player' }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.15, hpMul: 1.6 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.7, hpMul: 2.1 },
   },
   {
     id: 'gibraltar', world: W, region: 'straits', roman: 'II', year: 1666, name: 'Under the Rock', foe: 'Salé rovers',
@@ -88,7 +88,7 @@ export const MED_BATTLES = [
     reefs: [{ x: 0.5, y: 0.72, r: 14, stretch: 5, angle: 90 }],
     shoals: [{ x: 0.66, y: 0.46, r: 44, stretch: 1.8, angle: 80 }],
     islands: [],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.15, hpMul: 1.7 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.4, hpMul: 2.2 },
   },
   {
     id: 'sale', world: W, region: 'straits', roman: 'III', year: 1666, name: 'The Rover of Salé', foe: 'Reis Ibrahim',
@@ -97,8 +97,8 @@ export const MED_BATTLES = [
     goals: [{ kind: 'boss' }, { kind: 'hunt', ships: 'Barq', bonus: true, gold: 140 }],
     brief: 'Reis Ibrahim lies in the river mouth behind the bar of Salé, under the guns of the Kasbah. His polacre slips over the sandbar where your big ships would stick fast: go round it. Hurt him and he will run for the open sea.',
     enemy: [
-      { type: 'polacre', name: 'Burak', x: 0.5, y: 0.2, h: 90, hp: 560, chasers: 2,
-        abilities: { flee: { below: 0.28, speed: 1.15, say: 'Reis Ibrahim makes for the open sea!' }, grapple: { below: 0.6 } },
+      { type: 'polacre', name: 'Burak', x: 0.5, y: 0.2, h: 90, hp: 720, chasers: 2,
+        abilities: { flee: { below: 0.28, speed: 1.15, say: 'Reis Ibrahim makes for the open sea!' }, grapple: { below: 0.55 } },
         boss: { captain: 'Reis Ibrahim', title: 'Burak', hat: 'rover' } },
       { type: 'galley', name: 'Saqr', x: 0.32, y: 0.24, h: 90 },
       { type: 'galley', name: 'Nasr', x: 0.68, y: 0.24, h: 90 },
@@ -116,7 +116,7 @@ export const MED_BATTLES = [
     shoals: [{ x: 0.5, y: 0.34, r: 36, stretch: 3, angle: 0 }],
     islands: [{ x: 0.19, y: 0.18, r: 28 }, { x: 0.82, y: 0.6, r: 40 }, { x: 0.16, y: 0.5, r: 32, stretch: 1.6, angle: 60 }],
     forts: [{ island: 0, name: 'the Kasbah', hp: 300, guns: 3, need: 15 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.1, hpMul: 1.6 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.4, hpMul: 1.85 },
   },
 
   // ---------- The Barbary Coast ----------
@@ -135,7 +135,7 @@ export const MED_BATTLES = [
     events: [
       { at: 30, banner: ['More oars round Cape Carbon!', 'Two galleys from the east'],
         spawn: [{ type: 'galley', name: 'Ra’d', x: 0.95, y: 0.42, h: 180 }, { type: 'galley', name: 'Sayf', x: 0.95, y: 0.5, h: 180 }] },
-      { at: 85, breeze: 1, wind: 45, banner: ['A breeze at last!', 'Your sails fill: now the galleys are in reach'] },
+      { at: 70, breeze: 1, wind: 45, banner: ['A breeze at last!', 'Your sails fill: now the galleys are in reach'] },
     ],
     // A flat calm in a wide bay: you start becalmed in the middle with galleys in a cove ahead and two more
     // astern; rocky islets to anchor behind, and a sandbank the shallow galleys cross and you can't.
@@ -143,7 +143,7 @@ export const MED_BATTLES = [
     coast: { side: 'top', depth: 0.16, rough: 0.3, seed: 8, capes: [{ at: 0.84, width: 0.28, depth: 0.12 }], coves: [{ at: 0.28, width: 0.34, depth: 0.09 }] },
     islands: [{ x: 0.2, y: 0.5, r: 46 }, { x: 0.82, y: 0.66, r: 38, stretch: 1.6, angle: 30 }, { x: 0.5, y: 0.84, r: 34 }],
     shoals: [{ x: 0.52, y: 0.36, r: 50, stretch: 2.4, angle: -10 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.15, hpMul: 1.6 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.95, hpMul: 2.55 },
   },
   {
     id: 'bagnio', world: W, region: 'barbary', roman: 'V', year: 1667, name: 'The Bagnio of Algiers', foe: 'the Algiers squadron',
@@ -173,7 +173,7 @@ export const MED_BATTLES = [
     islands: [{ x: 0.57, y: 0.44, r: 40 }, { x: 0.16, y: 0.6, r: 40, stretch: 1.6, angle: 70 }],
     reefs: [{ x: 0.32, y: 0.3, r: 14, stretch: 5, angle: 25 }],
     forts: [{ island: 0, name: 'the Mole Battery', hp: 280, guns: 3, need: 10 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.12, hpMul: 1.65 },
+    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 2.3, hpMul: 2.85 },
   },
   {
     id: 'goletta', world: W, region: 'barbary', roman: 'VI', year: 1668, name: 'Fireships at La Goletta', foe: 'the Tunis corsairs',
@@ -202,8 +202,8 @@ export const MED_BATTLES = [
     coast: { side: 'top', depth: 0.12, rough: 0.25, seed: 4 },
     islands: [{ x: 0.4, y: 0.36, r: 28, stretch: 5, angle: 0 }, { x: 0.73, y: 0.36, r: 34 }],
     shoals: [{ x: 0.62, y: 0.36, r: 30, stretch: 2.4, angle: 0 }],
-    forts: [{ island: 1, name: 'La Goletta', hp: 320, guns: 3, need: 15 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.15, hpMul: 1.6 },
+    forts: [{ island: 1, name: 'La Goletta', hp: 300, guns: 3, need: 15 }],
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.8, hpMul: 2.4 },
   },
   {
     id: 'algiers', world: W, region: 'barbary', roman: 'VII', year: 1668, name: 'The Admiral of Algiers', foe: 'Kara Hasan Reis',
@@ -230,7 +230,7 @@ export const MED_BATTLES = [
     coast: { side: 'left', depth: 0.18, rough: 0.25, seed: 7, coves: [{ at: 0.16, width: 0.3, depth: 0.1 }] },
     islands: [{ x: 0.7, y: 0.48, r: 40, stretch: 4.5, angle: 90 }, { x: 0.3, y: 0.9, r: 40 }],
     reefs: [{ x: 0.86, y: 0.28, r: 14, stretch: 4, angle: -40 }],
-    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 1.12, hpMul: 1.6 },
+    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 1.55, hpMul: 2.3 },
   },
 
   // ---------- Malta and Sicily ----------
@@ -241,8 +241,8 @@ export const MED_BATTLES = [
     goals: [
       { kind: 'sink' },
       { kind: 'protect', allies: [
-        { type: 'galley', name: 'San Giovanni', x: 0.4, y: 0.68, h: -90 },
-        { type: 'galley', name: 'Santa Ubaldesca', x: 0.6, y: 0.68, h: -90 },
+        { type: 'galley', name: 'San Giovanni', x: 0.4, y: 0.68, h: -90, hp: 340, up: { marines: 2 } },
+        { type: 'galley', name: 'Santa Ubaldesca', x: 0.6, y: 0.68, h: -90, hp: 340, up: { marines: 2 } },
       ] },
       { kind: 'take', ships: 'Rih', bonus: true, gold: 150 },
     ],
@@ -263,7 +263,7 @@ export const MED_BATTLES = [
     coast: { side: 'bottom', depth: 0.32, rough: 0.12, seed: 1, coves: [{ at: 0.5, width: 0.5, depth: 0.24 }] },
     islands: [{ x: 0.3, y: 0.72, r: 26 }, { x: 0.22, y: 0.2, r: 70, stretch: 1.8, angle: -10 }, { x: 0.64, y: 0.27, r: 34 }],
     forts: [{ island: 0, name: 'Fort St Elmo', hp: 240, guns: 3, need: 10, team: 'player' }],
-    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 1.12, hpMul: 1.65 },
+    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 1.7, hpMul: 2.3 },
   },
   {
     id: 'passero', world: W, region: 'malta', roman: 'IX', year: 1668, name: 'Storm off Cape Passero', foe: 'Tripoli rovers',
@@ -291,7 +291,7 @@ export const MED_BATTLES = [
     coast: { side: 'right', depth: 0.22, rough: 0.3, seed: 12, capes: [{ at: 0.6, width: 0.3, depth: 0.22 }] },
     islands: [{ x: 0.32, y: 0.66, r: 40 }, { x: 0.12, y: 0.86, r: 42, stretch: 1.5, angle: -20 }],
     reefs: [{ x: 0.28, y: 0.44, r: 14, stretch: 5, angle: 60 }, { x: 0.58, y: 0.34, r: 16, stretch: 2, angle: 10 }, { x: 0.36, y: 0.58, r: 12, stretch: 3, angle: 90 }],
-    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 1.12, hpMul: 1.65 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 2.55, hpMul: 3.1 },
   },
   {
     id: 'tripoli', world: W, region: 'malta', roman: 'X', year: 1669, name: 'The Reefs of Tripoli', foe: 'Osman Reis',
@@ -299,7 +299,7 @@ export const MED_BATTLES = [
     goals: [{ kind: 'boss' }, { kind: 'capture', bonus: true, gold: 180 }],
     brief: 'Osman Reis keeps his galleass behind the reefs that guard Tripoli roads and sends fire galleys out through the gaps. Thread the gaps, sink the fire galleys before they touch you, and bring him to action under the Red Castle.',
     enemy: [
-      { type: 'galleass', name: 'Hilal', x: 0.5, y: 0.25, h: 90, hp: 680, chasers: 3,
+      { type: 'galleass', name: 'Hilal', x: 0.5, y: 0.25, h: 90, hp: 800, chasers: 3,
         abilities: { launcher: { type: 'firegalley', name: 'Fire galley', every: 17, max: 2, range: 560, banner: ['Fire galley!', 'She rows straight for you: sink her'] } },
         boss: { captain: 'Osman Reis', title: 'Hilal', hat: 'osman' } },
       { type: 'polacre', name: 'Nur', x: 0.3, y: 0.3, h: 90 },
@@ -316,7 +316,7 @@ export const MED_BATTLES = [
     islands: [{ x: 0.24, y: 0.15, r: 28 }, { x: 0.8, y: 0.74, r: 40 }],
     reefs: [{ x: 0.21, y: 0.42, r: 26, stretch: 8, angle: 0 }, { x: 0.79, y: 0.53, r: 26, stretch: 8, angle: 0 }, { x: 0.86, y: 0.3, r: 12, stretch: 3, angle: 30 }],
     forts: [{ island: 0, name: 'the Red Castle', hp: 280, guns: 3, need: 15 }],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.12, hpMul: 1.6 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.65, hpMul: 2.35 },
   },
 
   // ---------- The Morea ----------
@@ -327,9 +327,9 @@ export const MED_BATTLES = [
     brief: 'Three Levant Company ships are loaded with Zante currants for the London Christmas puddings. They sail up the channel on their own; the Dulcigno corsairs wait in the coves of the Morea and behind Cephalonia. Two must get through.',
     goals: [
       { kind: 'escort', need: 2, ships: [
-        { type: 'merchant', name: 'Levant Merchant', x: 0.4, y: 0.88, h: -90, up: { marines: 2 } },
-        { type: 'merchant', name: 'Smyrna Factor', x: 0.54, y: 0.86, h: -90, up: { marines: 2 } },
-        { type: 'merchant', name: 'Zante Rose', x: 0.62, y: 0.92, h: -90, up: { marines: 2 } },
+        { type: 'merchant', name: 'Levant Merchant', x: 0.4, y: 0.88, h: -90, hp: 200, up: { marines: 2 } },
+        { type: 'merchant', name: 'Smyrna Factor', x: 0.54, y: 0.86, h: -90, hp: 200, up: { marines: 2 } },
+        { type: 'merchant', name: 'Zante Rose', x: 0.62, y: 0.92, h: -90, hp: 200, up: { marines: 2 } },
       ] },
       { kind: 'hunt', ships: 'Asad', bonus: true, gold: 170 },
     ],
@@ -349,7 +349,7 @@ export const MED_BATTLES = [
     // TODO(current): a current up the channel would carry the convoy and make the corsairs row against it.
     coast: { side: 'left', depth: 0.16, rough: 0.3, seed: 14, coves: [{ at: 0.3, width: 0.16, depth: 0.07 }, { at: 0.68, width: 0.14, depth: 0.07 }] },
     islands: [{ x: 0.8, y: 0.32, r: 46, stretch: 7, angle: 92 }, { x: 0.82, y: 0.8, r: 60, stretch: 1.5, angle: 60 }, { x: 0.44, y: 0.55, r: 34 }],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.15, hpMul: 1.6 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.3, hpMul: 2.0 },
   },
   {
     id: 'navarino', world: W, region: 'morea', roman: 'XII', year: 1669, name: 'Navarino Bay', foe: 'the Ottoman squadron',
@@ -357,7 +357,7 @@ export const MED_BATTLES = [
     brief: 'The Venetian galleass San Marco is trapped in Navarino Bay with you, and an Ottoman squadron is coming in. Cork the mouth of the bay with a ship for twenty seconds, and keep the San Marco afloat until the Venetian fleet arrives. The north channel is too shallow for anything bigger than a sloop.',
     fleetAt: { slots: [[0.46, 0.2], [0.34, 0.2], [0.56, 0.22], [0.4, 0.24], [0.5, 0.25]], h: 0 },
     goals: [
-      { kind: 'protect', secs: 160, allies: [{ type: 'galleass', name: 'San Marco', x: 0.62, y: 0.2, h: 0 }] },
+      { kind: 'protect', secs: 160, allies: [{ type: 'galleass', name: 'San Marco', x: 0.62, y: 0.2, h: 0, hp: 440 }] },
       { kind: 'reach', x: 0.68, y: 0.36, r: 0.1, secs: 20, label: 'Hold the mouth' },
       { kind: 'hunt', ships: 'Kaplan', bonus: true, gold: 180 },
     ],
@@ -370,7 +370,7 @@ export const MED_BATTLES = [
     events: [
       { at: 40, banner: ['More galleys!', 'They make for the north channel'],
         spawn: [{ type: 'galley', name: 'Kartal', x: 0.06, y: 0.5, h: -45 }, { type: 'galley', name: 'Yunus', x: 0.1, y: 0.62, h: -60 }] },
-      { at: 90, banner: ['An Ottoman galleass!', 'The Ejder leads the second wave in'],
+      { at: 90, banner: ['An Ottoman galleass!', 'The Ejder comes in on the second wave'],
         spawn: [{ type: 'galleass', name: 'Ejder', x: 0.6, y: 0.9, h: -90 }, { type: 'kalyon', name: 'Arslan', x: 0.85, y: 0.82, h: -110 }] },
       { at: 150, banner: ['Venetian sails!', 'The fleet of the Serenissima is coming in'] },
     ],
@@ -379,7 +379,7 @@ export const MED_BATTLES = [
     coast: { side: 'top', depth: 0.34, rough: 0.12, seed: 15, coves: [{ at: 0.45, width: 0.8, depth: 0.24 }] },
     islands: [{ x: 0.38, y: 0.32, r: 30, stretch: 5, angle: 0 }, { x: 0.8, y: 0.72, r: 40 }],
     shoals: [{ x: 0.17, y: 0.33, r: 36, stretch: 1.6, angle: 0 }],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.12, hpMul: 1.6 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.65, hpMul: 2.35 },
   },
 
   // ---------- Candia ----------
@@ -390,8 +390,8 @@ export const MED_BATTLES = [
     brief: 'The last summer of the siege. Hold the Sabbionara bastion while the Sultan’s bomb galleys shell it from the sea. Your ships can patch their hulls in the Venetian harbour by lying still in its anchorage.',
     forts: [{ island: 0, name: 'the Sabbionara', hp: 240, guns: 3, need: 10, team: 'player' }],
     enemy: [
-      { type: 'galley', name: 'Doğan', x: 0.2, y: 0.2, h: 90, abilities: { mortar: { range: 420, reload: 7.5, dmg: 18, radius: 34 } } },
-      { type: 'galley', name: 'Şahin', x: 0.46, y: 0.14, h: 90, abilities: { mortar: { range: 420, reload: 7.5, dmg: 18, radius: 34 } } },
+      { type: 'galley', name: 'Doğan', x: 0.2, y: 0.2, h: 90, abilities: { mortar: { range: 420, reload: 8, dmg: 15, radius: 32 } } },
+      { type: 'galley', name: 'Şahin', x: 0.46, y: 0.14, h: 90, abilities: { mortar: { range: 420, reload: 8, dmg: 15, radius: 32 } } },
       { type: 'kalyon', name: 'Yıldız', x: 0.74, y: 0.2, h: 110 },
       { type: 'kalyon', name: 'Arslan', x: 0.36, y: 0.28, h: 90 },
     ],
@@ -402,7 +402,7 @@ export const MED_BATTLES = [
       { at: 75, banner: ['The Kapudan’s squadron!', 'A kalyon and a galleass bear down'],
         spawn: [{ type: 'kalyon', name: 'Fatih', x: 0.6, y: 0.06, h: 90 }, { type: 'galleass', name: 'Ejder', x: 0.85, y: 0.1, h: 120 }] },
       { at: 100, banner: ['The Santa Giustina!', 'A Venetian galleass comes out to stand with you'],
-        spawn: [{ type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, x: 0.9, y: 0.66, h: 180 }] },
+        spawn: [{ type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, x: 0.9, y: 0.66, h: 180, hp: 380 }] },
       { at: 122, banner: ['The final assault!', 'Fire galleys and the last kalyons'],
         spawn: [{ type: 'firegalley', name: 'Alev', x: 0.3, y: 0.06, h: 90 }, { type: 'kalyon', name: 'Zafer', x: 0.12, y: 0.12, h: 60 }] },
     ],
@@ -411,14 +411,14 @@ export const MED_BATTLES = [
     coast: { side: 'bottom', depth: 0.22, rough: 0.12, seed: 16, capes: [{ at: 0.26, width: 0.2, depth: 0.1 }], coves: [{ at: 0.64, width: 0.3, depth: 0.12 }] },
     islands: [{ x: 0.26, y: 0.66, r: 28 }, { x: 0.64, y: 0.38, r: 52, stretch: 1.4, angle: 20 }],
     fleetAt: { slots: [[0.5, 0.66], [0.4, 0.6], [0.62, 0.62], [0.46, 0.72], [0.58, 0.74]], h: -90 },
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.12, hpMul: 1.6 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.3, hpMul: 2.0 },
   },
   {
     id: 'dia', world: W, region: 'candia', roman: 'XIV', year: 1669, name: 'Night off Dia', foe: 'the Dia battery',
     faction: 'ottoman', night: true, reward: 980, wind: -45, sea: 1.35,
     goals: [{ kind: 'capture' }, { kind: 'hunt', ships: 'Yıldız', bonus: true, gold: 180 }],
     brief: 'A new Ottoman battery on the island of Dia sinks every relief boat bound for Candia. Take it tonight. Your lookouts see only a little way in the dark, but a burning ship lights up the whole sea, and so does the Venetian lantern on the shore.',
-    forts: [{ island: 0, name: 'the Dia battery', hp: 280, guns: 3, need: 15 }],
+    forts: [{ island: 0, name: 'the Dia battery', hp: 340, guns: 3, need: 15 }],
     enemy: [
       { type: 'galley', name: 'Doğan', x: 0.28, y: 0.2, h: 0 },
       { type: 'galley', name: 'Şahin', x: 0.72, y: 0.16, h: 180 },
@@ -426,8 +426,8 @@ export const MED_BATTLES = [
       { type: 'felucca', name: 'Yunus', x: 0.5, y: 0.56, h: 0 },
     ],
     events: [
-      { at: 50, banner: ['Oars in the dark!', 'A night patrol comes round the island'],
-        spawn: [{ type: 'galley', name: 'Kartal', x: 0.06, y: 0.36, h: 0 }, { type: 'galley', name: 'Ejder', x: 0.94, y: 0.4, h: 180 }] },
+      { at: 50, banner: ['Oars in the dark!', 'A night patrol and a galleass come round the island'],
+        spawn: [{ type: 'galley', name: 'Kartal', x: 0.06, y: 0.36, h: 0 }, { type: 'galley', name: 'Ejder', x: 0.94, y: 0.4, h: 180 }, { type: 'galleass', name: 'Sancak', x: 0.5, y: 0.04, h: 90 }] },
       { fortsHeld: 1, banner: ['The Dia battery is ours!', 'Its guns turn on the Sultan’s ships'] },
     ],
     // Night round a big island: Dia fills the middle of the chart with reefs off both ends, the battery on its
@@ -437,21 +437,19 @@ export const MED_BATTLES = [
     coast: { side: 'bottom', depth: 0.1, rough: 0.3, seed: 17 },
     islands: [{ x: 0.5, y: 0.36, r: 74, stretch: 2.2, angle: 8 }, { x: 0.8, y: 0.62, r: 32 }],
     reefs: [{ x: 0.14, y: 0.42, r: 14, stretch: 5, angle: 80 }, { x: 0.87, y: 0.3, r: 14, stretch: 5, angle: -70 }],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.1, hpMul: 1.55 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 2.8, hpMul: 3.4 },
   },
 
   // ---------- The Dardanelles ----------
   {
     id: 'narrows', world: W, region: 'dardanelles', roman: 'XV', year: 1670, name: 'The Castles of the Narrows', foe: 'the castles',
-    faction: 'ottoman', reward: 1020, wind: -90, sea: 1.6,
+    faction: 'ottoman', reward: 1020, wind: -90, sea: 1.4,
     brief: 'The Levant Company’s ships are held at Gallipoli. Run Resolute up the Dardanelles past the castles of Kilitbahir and Çanakkale and out at the top of the chart, with the fleet to draw their fire. The castles’ guns cover the Narrows from both shores.',
     goals: [{ kind: 'breakthrough' }, { kind: 'timer', secs: 150, bonus: true, gold: 190 }],
     enemy: [
       { type: 'galley', name: 'Doğan', x: 0.42, y: 0.36, h: 90 },
-      { type: 'galley', name: 'Şahin', x: 0.6, y: 0.4, h: 90 },
-      { type: 'galleass', name: 'Ejder', x: 0.5, y: 0.26, h: 90 },
-      { type: 'kalyon', name: 'Yıldız', x: 0.4, y: 0.14, h: 90 },
-      { type: 'kalyon', name: 'Arslan', x: 0.62, y: 0.12, h: 90 },
+      { type: 'galleass', name: 'Ejder', x: 0.56, y: 0.22, h: 90 },
+      { type: 'kalyon', name: 'Yıldız', x: 0.5, y: 0.12, h: 90 },
     ],
     events: [
       { at: 35, banner: ['Galleys from Maydos!', 'They row out astern of you'],
@@ -467,10 +465,10 @@ export const MED_BATTLES = [
     ],
     islands: [{ x: 0.36, y: 0.46, r: 32 }, { x: 0.64, y: 0.58, r: 32 }],
     forts: [
-      { island: 0, name: 'Kilitbahir', hp: 300, guns: 3, need: 15 },
-      { island: 1, name: 'Çanakkale', hp: 300, guns: 3, need: 15 },
+      { island: 0, name: 'Kilitbahir', hp: 280, guns: 2, need: 15 },
+      { island: 1, name: 'Çanakkale', hp: 280, guns: 2, need: 15 },
     ],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.1, hpMul: 1.6 },
+    ai: { spread: 0.09, reloadMul: 1.05, dmgMul: 0.65, hpMul: 1.4 },
   },
   {
     id: 'kapudan', world: W, region: 'dardanelles', roman: 'XVI', year: 1670, name: 'The Kapudan Pasha', foe: 'Bahri Ömer Pasha',
@@ -478,13 +476,12 @@ export const MED_BATTLES = [
     goals: [{ kind: 'boss' }, { kind: 'take', ships: 'Arslan', bonus: true, gold: 240 }],
     brief: 'Bahri Ömer Pasha, Kapudan Pasha of the Ottoman fleet, comes out of the Dardanelles in his sultana Kara Ejder with galleasses on his wings and galleys behind Tenedos. His ships fight faster near him. Break his line and sink the flagship.',
     enemy: [
-      { type: 'sultana', name: 'Kara Ejder', x: 0.55, y: 0.14, h: 90, hp: 1150, chasers: 3,
-        abilities: { rally: { radius: 230, reload: 0.7 }, mortar: { range: 460, reload: 8, dmg: 22, radius: 36 } },
+      { type: 'sultana', name: 'Kara Ejder', x: 0.55, y: 0.14, h: 90, hp: 1100, chasers: 3,
+        abilities: { rally: { radius: 230, reload: 0.75 }, mortar: { range: 460, reload: 9, dmg: 20, radius: 34 } },
         boss: { captain: 'Bahri Ömer Pasha', title: 'Kara Ejder', hat: 'kavuk' } },
       { type: 'galleass', name: 'Sancak', x: 0.3, y: 0.12, h: 90 },
       { type: 'galleass', name: 'Ejder', x: 0.72, y: 0.12, h: 100 },
       { type: 'kalyon', name: 'Arslan', x: 0.42, y: 0.22, h: 90 },
-      { type: 'kalyon', name: 'Yıldız', x: 0.68, y: 0.24, h: 90 },
     ],
     events: [
       { at: 35, wind: 45, banner: ['The wind veers!', 'The Ottoman line loses the weather gauge'] },
@@ -492,8 +489,8 @@ export const MED_BATTLES = [
         spawn: [{ type: 'galley', name: 'Doğan', x: 0.2, y: 0.14, h: 60 }, { type: 'galley', name: 'Şahin', x: 0.06, y: 0.56, h: 0 },
           { type: 'firegalley', name: 'Alev', x: 0.08, y: 0.2, h: 60 }] },
       { bossHp: 0.35, banner: ['Venetian galleasses!', 'San Marco and Santa Giustina join the fight'],
-        spawn: [{ type: 'galleass', name: 'San Marco', team: 'player', ally: true, x: 0.12, y: 0.92, h: -60 },
-          { type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, x: 0.72, y: 0.94, h: -110 }] },
+        spawn: [{ type: 'galleass', name: 'San Marco', team: 'player', ally: true, x: 0.12, y: 0.92, h: -60, hp: 380 },
+          { type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, x: 0.72, y: 0.94, h: -110, hp: 380 }] },
     ],
     // The great fleet action on a wide sea: Tenedos to the north-west hiding the galley reserve, the Asian shore
     // close on the right, a reef and an islet to split the Ottoman crescent as it comes down on you.
@@ -501,6 +498,6 @@ export const MED_BATTLES = [
     islands: [{ x: 0.22, y: 0.36, r: 80, stretch: 1.8, angle: -20 }, { x: 0.62, y: 0.6, r: 40 }],
     reefs: [{ x: 0.26, y: 0.66, r: 14, stretch: 5, angle: 30 }],
     shoals: [{ x: 0.44, y: 0.5, r: 46, stretch: 2, angle: 40 }],
-    ai: { spread: 0.085, reloadMul: 0.98, dmgMul: 1.12, hpMul: 1.55 },
+    ai: { spread: 0.085, reloadMul: 1.0, dmgMul: 1.05, hpMul: 1.6 },
   },
 ];

@@ -53,6 +53,28 @@ With no `goal`/`goals` the goal is `sink`. Optional fields:
 Ship defs take `type`, `name`, `x`, `y` and `h`, plus optional `hp` (fixed hull; otherwise the type's hull ×
 `ai.hpMul`), `chasers`, `reloadMul`, `passive`, `boss` and `abilities`.
 
+## Worlds
+
+The campaign is told in worlds (`src/config/worlds.js`): the West Indies (`src/config/battles.js`) and the
+Mediterranean (`src/config/battles-med.js`). Every battle and region carries `world`; `BATTLES` is every world's list
+merged in order, so a battle's index never moves when a world is added (saves keep their stars by id). Progress is
+per world: inside a world each battle opens once the one before it is won, and a world's first battle opens once its
+`unlock: { won: id }` battle is won. The chart shows one world at a time (`save.world`, else the latest open world
+with battles to win) and the results sheet's *Next battle* runs on into the next world. A new world is a battles
+file merged in `battles.js`, a `WORLDS` entry, its regions, story (`story-*.js`), land (`lands-*.js`), hats with
+`world`, and a chart plate (`src/ui/chart-map-med.js` shows the shape).
+
+A battle may also set `where` (the briefing's "off ..." line, else its region's), `weather` (a preset in
+`src/config/weather.js`), `faction` (`src/config/factions.js`: spain, pirate, barbary, ottoman; the world's by
+default), `breeze` (wind strength: 1 fair, 0.3 a flat calm where only oars make way, 1.5 a gale that drives ships
+faster and throws every gun wide; the `breeze` event changes it mid-battle) and `night: true` (fought like fog at
+`NIGHT_SIGHT`; a ship on fire shows across the sea; the renderer may draw it as night).
+
+**Bonus objectives.** Any goal can be a bonus: `{ kind: 'hunt', ships: 'Barq', bonus: true, gold: 140 }` (gold
+defaults to a quarter of the reward). A bonus never wins or loses the battle; it is met if, when the battle is won,
+it is done and has never failed (so a bonus `timer` means "win within secs"), and it pays its gold with the win.
+It can't be the first goal.
+
 ## Shape the sea (geography and openings)
 
 Round islands on open water get old fast. A battle can also lay out (all optional, see
@@ -167,7 +189,9 @@ goal: 'boss', hat: 'rojo', goals: [{ kind: 'boss' }, { kind: 'timer', secs: 240 
 
 ## Add a ship type
 
-Add an entry to `TYPES` in `src/config/ships.js`. The renderer builds the model from `L`, `B`, `masts` (2 or
+Add an entry to `TYPES` in `src/config/ships.js` (the Mediterranean's classes live in `src/config/ships-med.js`,
+merged into `TYPES`). A type may also carry `chasers` (bow guns every ship of the class has), `plural` (the
+briefing's roster), `shallow` (crosses shoals whatever her length) and `faction` (for the art). The renderer builds the model from `L`, `B`, `masts` (2 or
 3) and `rig`, so no art is needed.
 
 ```js

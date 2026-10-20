@@ -25,7 +25,7 @@ export default {
     odds: 'only when her fighting men outnumber the defenders by this much',
     chase: 'AI captains steer for such a ship within this range',
   },
-  defaults: { below: 0.6, odds: 1.1, chase: 340 },
+  defaults: { below: 0.45, odds: 1.4, chase: 300 },
   steer(s, a) {
     if (s.boarding || s.fleeing || s.team === 'player') return null;
     const t = quarry(s, a);

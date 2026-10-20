@@ -332,9 +332,9 @@ Corsair boarders: closes with a hurt enemy ship and boards her sooner than other
 
 | param | default | description |
 |---|---|---|
-| `below` | `0.6` | board ships whose hull is down to this share of full (0-1) |
-| `odds` | `1.1` | only when her fighting men outnumber the defenders by this much |
-| `chase` | `340` | AI captains steer for such a ship within this range |
+| `below` | `0.45` | board ships whose hull is down to this share of full (0-1) |
+| `odds` | `1.4` | only when her fighting men outnumber the defenders by this much |
+| `chase` | `300` | AI captains steer for such a ship within this range |
 
 Hooks: `update`, `steer`.
 
@@ -397,9 +397,9 @@ length × beam. Enemy hulls are multiplied by the battle's `ai.hpMul` unless the
 | `bomb` | Bomb ketch | 95 | 2 | 3 | 44 | 0.9 | 220 | 10 | 2 | 64 × 24 | square | mortar {"range":430,"reload":6.5,"dmg":22,"radius":36} |
 | `fireship` | Fireship | 40 | 0 | 9 | 62 | 1.25 | 0 | 0 | 2 | 54 × 20 | square | fireship |
 | `merchant` | Merchantman | 130 | 1 | 4 | 36 | 0.7 | 200 | 6 | 3 | 74 × 30 | square |  |
-| `galley` | War galley | 85 | 1 | 3.2 | 50 | 1.25 | 210 | 42 | 2 | 72 × 16 | lateen | oars {"min":0.96}, ram {"dmg":22,"charge":220}, grapple |
+| `galley` | War galley | 85 | 1 | 3.2 | 50 | 1.25 | 210 | 34 | 2 | 72 × 16 | lateen | oars {"min":0.96}, ram {"dmg":18,"charge":220}, grapple |
 | `galleass` | Galleass | 200 | 5 | 3.4 | 38 | 0.55 | 260 | 46 | 3 | 96 × 30 | lateen | oars {"min":0.9} |
-| `polacre` | Polacre | 80 | 3 | 2.4 | 64 | 1.3 | 235 | 24 | 3 | 64 × 20 | lateen | grapple {"below":0.5} |
+| `polacre` | Polacre | 80 | 3 | 2.4 | 64 | 1.3 | 235 | 24 | 3 | 64 × 20 | lateen | grapple |
 | `tartane` | Tartane | 52 | 2 | 2.2 | 66 | 1.6 | 215 | 14 | 2 | 50 × 17 | lateen |  |
 | `felucca` | Felucca | 36 | 1 | 2 | 76 | 1.9 | 190 | 10 | 2 | 44 × 13 | lateen | oars {"min":0.8} |
 | `kalyon` | Kalyon | 165 | 6 | 3.3 | 44 | 0.66 | 270 | 32 | 3 | 94 × 34 | square |  |

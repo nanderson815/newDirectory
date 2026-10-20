@@ -18,8 +18,8 @@
 export const MED_TYPES = {
   galley: {
     label: 'War galley', plural: 'war galleys', faction: 'barbary', L: 72, B: 16, hp: 85, guns: 1, reload: 3.2, speed: 50, turn: 1.25,
-    range: 210, masts: 2, marines: 42, rig: 'lateen', chasers: 3, shallow: true,
-    abilities: { oars: { min: 0.96 }, ram: { dmg: 22, charge: 220 }, grapple: true },
+    range: 210, masts: 2, marines: 34, rig: 'lateen', chasers: 3, shallow: true,
+    abilities: { oars: { min: 0.96 }, ram: { dmg: 18, charge: 220 }, grapple: true },
   },
   galleass: {
     label: 'Galleass', plural: 'galleasses', faction: 'ottoman', L: 96, B: 30, hp: 200, guns: 5, reload: 3.4, speed: 38, turn: 0.55,
@@ -27,7 +27,7 @@ export const MED_TYPES = {
   },
   polacre: {
     label: 'Polacre', plural: 'polacres', faction: 'barbary', L: 64, B: 20, hp: 80, guns: 3, reload: 2.4, speed: 64, turn: 1.3,
-    range: 235, masts: 3, marines: 24, rig: 'lateen', abilities: { grapple: { below: 0.5 } },
+    range: 235, masts: 3, marines: 24, rig: 'lateen', abilities: { grapple: true },
   },
   tartane: {
     label: 'Tartane', plural: 'tartanes', faction: 'barbary', L: 50, B: 17, hp: 52, guns: 2, reload: 2.2, speed: 66, turn: 1.6,
