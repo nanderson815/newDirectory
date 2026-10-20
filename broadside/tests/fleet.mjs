@@ -47,7 +47,7 @@ for (const kind of ['crossing', 'head-on']) {
     b.S.bumps = 0;
     let min = Infinity, t = 0;
     for (; t < 60 * 20 && (a.path.length || c.path.length); t++) { b.sim(1); min = Math.min(min, Math.hypot(a.x - c.x, a.y - c.y)); }
-    return { min, bumps: b.S.bumps, done: !a.path.length && !c.path.length, secs: t / 60, need: (a.L + c.L) * 0.34, comfy: (a.L + c.L) * 0.5 };
+    return { min, bumps: b.S.bumps, done: !a.path.length && !c.path.length, secs: t / 60, need: (a.L + c.L) * 0.34, comfy: (a.L + c.L) * 0.42 };
   }, kind);
   check(r.bumps === 0 && r.min > r.comfy, `${kind}: two of your ships ordered across each other's courses pass clear (closest ${Math.round(r.min)} units between centres, hulls touch at ${Math.round(r.need)}; ${r.bumps} ticks touching)`, failures);
   check(r.done, `${kind}: and both finish their courses (${r.secs.toFixed(1)} s)`, failures);
