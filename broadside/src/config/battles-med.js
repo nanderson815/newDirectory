@@ -256,8 +256,8 @@ export const MED_BATTLES = [
       { side: 'left', depth: 0.22, rough: 0.25, seed: 7, coves: [{ at: 0.1, width: 0.1, depth: 0.08 }] },
       { side: 'top', depth: 0.12, rough: 0.2, seed: 17, coves: [{ at: 0.3, width: 0.24, depth: 0.06 }] },
     ],
-    islands: [{ x: 0.22, y: 0.42, r: 64, stretch: 1.4, angle: 30 }, { x: 0.5, y: 0.52, r: 46 }, { x: 0.74, y: 0.62, r: 60, stretch: 1.5, angle: 35 }],
-    reefs: [{ x: 0.62, y: 0.57, r: 14, stretch: 4, angle: 30 }],
+    islands: [{ x: 0.22, y: 0.42, r: 80, stretch: 1.4, angle: 30 }, { x: 0.48, y: 0.52, r: 56 }, { x: 0.7, y: 0.62, r: 72, stretch: 1.5, angle: 35 }],
+    reefs: [{ x: 0.59, y: 0.57, r: 14, stretch: 3, angle: 30 }],
     ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 2.17, hpMul: 3.22 },
   },
 
