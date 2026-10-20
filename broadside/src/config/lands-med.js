@@ -235,7 +235,7 @@ export const MED_LANDS = {
       { kind: 'ruin', island: 0, at: 10, d: 0.6 },
       { kind: 'chapel', island: 0, at: 100, d: 0.5 },
       { kind: 'stacks', island: 1, at: 0, count: 3 },
-      { kind: 'wreck', x: 0.16, y: 0.42 },
+      { kind: 'wreck', x: 0.14, y: 0.42 },
     ],
   },
 
