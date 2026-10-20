@@ -6,6 +6,8 @@
 //   npm run build:single && node tests/balance.mjs            # N = 16 runs per battle
 //   RUNS=30 node tests/balance.mjs                            # more runs
 //   ONLY=rojo,oro node tests/balance.mjs                      # measure some battles (fleet still follows the campaign)
+//   WORLD=med WORKERS=2 node tests/balance.mjs                # measure one world's battles (src/config/worlds.js); the
+//                                                             # fleet and gold still come through every earlier battle
 //   JSON=out.json node tests/balance.mjs                      # also write the raw results
 //   PAGE=/path/to/index.html node tests/balance.mjs           # measure another single-file build
 //   FLEET='[{"name":"Resolute","cls":"frigate","up":{}}]' node tests/balance.mjs   # one fixed fleet for every battle
@@ -23,6 +25,7 @@ const MAX_T = +(process.env.MAX_T || 420);      // game seconds before a run cou
 const WORKERS = Math.max(1, +(process.env.WORKERS || 4));
 const FLAWLESS = +(process.env.FLAWLESS ?? 0.4);   // share of first wins assumed flawless (+50% gold)
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
+const WORLD = process.env.WORLD || null;
 const BOT_SRC = fs.readFileSync(path.join(ROOT, 'tests', 'bot.js'), 'utf8');
 
 // ---------- Greedy shipyard policy ----------
@@ -145,7 +148,7 @@ for (let bi = 0; bi < BATTLES.length; bi++) {
   const label = B.tutorial ? 'Swift (sloop)' : fleetLabel();
   const goldBefore = save.gold;
   let runs = [];
-  const measure = !ONLY || ONLY.includes(B.id) || B.tutorial;
+  const measure = WORLD ? B.world === WORLD && (!ONLY || ONLY.includes(B.id)) : !ONLY || ONLY.includes(B.id) || B.tutorial;
   if (measure) {
     const jobs = Array.from({ length: RUNS }, (_, r) => hash(`${B.id}#${r}`));
     let k = 0;
@@ -162,7 +165,7 @@ for (let bi = 0; bi < BATTLES.length; bi++) {
   const botGold = Math.round(B.reward * (1 + 0.5 * flawless));
   const gold = Math.round(B.reward * (1 + 0.5 * (B.tutorial ? 1 : FLAWLESS)));
   const row = {
-    id: B.id, roman: B.roman, goal: B.goal || 'sink', fleet: label, fleetDef: fleet, measured: measure,
+    id: B.id, roman: B.roman, goal: B.goal || (B.goals ? B.goals[0].kind : 'sink'), fleet: label, fleetDef: fleet, measured: measure,
     win: wins.length / n, runs: runs.length,
     tWin: avg(wins.map((r) => r.t)), tAll: avg(runs.map((r) => r.t)),
     lost: avg(runs.map((r) => r.lost)), lostWin: avg(wins.map((r) => r.lost)), ships: runs[0] ? runs[0].fleet : fleet.length,
@@ -178,7 +181,7 @@ for (let bi = 0; bi < BATTLES.length; bi++) {
   row.bought = shop(shopState);
   row.goldAfter = save.gold;
   rows.push(row);
-  process.stdout.write(`  ${B.roman.padStart(4)} ${B.id.padEnd(10)} win ${(row.win * 100).toFixed(0).padStart(3)}%  (${((Date.now() - t0) / 1000).toFixed(0)} s)\n`);
+  if (measure) process.stdout.write(`  ${B.roman.padStart(4)} ${B.id.padEnd(10)} win ${(row.win * 100).toFixed(0).padStart(3)}%  (${((Date.now() - t0) / 1000).toFixed(0)} s)\n`);
 }
 await browser.close();
 
@@ -189,6 +192,7 @@ const f1 = (x) => (Number.isNaN(x) || x == null ? '  -' : x.toFixed(1).padStart(
 console.log(`\nBroadside balance: ${RUNS} runs per battle, bot captain, ${MAX_T}s cap, budget assumes ${FLAWLESS * 100}% flawless\n`);
 console.log('  #    battle      goal     win  t(win) t(all) lost/fleet 3*   to  extra        bot$ budget  fleet');
 for (const r of rows) {
+  if (WORLD && !r.measured) continue;
   let extra = r.goal === 'boss' ? `bossHp ${r.bossHp == null || Number.isNaN(r.bossHp) ? ' -' : (r.bossHp * 100).toFixed(0) + '%'}`
     : r.forts != null ? `forts ${r.forts.toFixed(1)}` : '';
   if (r.taken > 0.05) extra += ` tk${r.taken.toFixed(1)}`;

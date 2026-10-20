@@ -7,6 +7,8 @@ import repair from './repair.js';
 import ram from './ram.js';
 import flee from './flee.js';
 import rally from './rally.js';
+import grapple from './grapple.js';
+import moored from './moored.js';
 
 // Ship abilities: self-contained behaviours a ship type or a single ship in a battle can carry.
 // A ship type lists them in TYPES[type].abilities, a battle ship in its def's `abilities`, both as
@@ -22,7 +24,7 @@ import rally from './rally.js';
 //   sunk(s, a)        when she starts to go down
 //   draw(s, a, api)   chart markers while she's afloat and seen (api: the HUD's drawing kit, see src/hud/hud.js)
 // To add one: write a module like these, then list it here.
-export const ABILITIES = Object.fromEntries([mortar, fireship, launcher, mineLayer, oars, repair, ram, flee, rally].map((a) => [a.id, a]));
+export const ABILITIES = Object.fromEntries([mortar, fireship, launcher, mineLayer, oars, repair, ram, flee, rally, grapple, moored].map((a) => [a.id, a]));
 
 export function initAbilities(s, spec) {
   s.abilities = {};

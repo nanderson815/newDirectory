@@ -18,10 +18,18 @@
 // Geography (src/sim/terrain.js): islands may be long ({ x, y, r, stretch, angle }); shoals and reefs take the
 //   same shape; coast: { side, depth, coves?, capes? } (or a list) lays a shore along an edge; fleetAt moves
 //   your fleet's start ('top', 'left', 'right', 'center' or { slots, h }).
+// Worlds (src/config/worlds.js): this file is the West Indies; the Mediterranean is src/config/battles-med.js. Both
+//   are merged into BATTLES below (the West Indies first, so their indices never move) and every battle carries
+//   `world`. A battle may set `where` (the briefing's "off ..." line) and `weather` (a preset name), `breeze`
+//   (wind strength: 1 fair, 0.3 a calm where only oars make way, 1.5 a gale) and `night: true` (fought in the
+//   dark: your lookouts see NIGHT_SIGHT unless `fog` says otherwise; burning ships show). Any goal can be a
+//   bonus ({ ..., bonus: true, gold? }): it never decides the battle, and pays its gold with a win if it was met.
 // sea: optional size multiplier (linear) for the battle's sea on top of the camera's SEA_SCALE, e.g. 1.2 for a
 //   wide-open chase or 0.85 for a tight harbour. Positions are fractions, so the layout scales with it.
 
-export const REGIONS = [
+import { MED_BATTLES, MED_REGIONS } from './battles-med.js';
+
+const CARIBBEAN_REGIONS = [
   { id: 'port', name: 'Port Royal' },
   { id: 'windward', name: 'The Windward Passage' },
   { id: 'main', name: 'The Spanish Main' },
@@ -30,11 +38,12 @@ export const REGIONS = [
   { id: 'campeche', name: 'The Bay of Campeche' },
   { id: 'armada', name: 'The Last Armada' },
 ];
+export const REGIONS = [...CARIBBEAN_REGIONS.map((r) => ({ world: 'caribbean', ...r })), ...MED_REGIONS];
 
 // Where the player's fleet starts, by fleet position.
 export const FLEET_SLOTS = [[0.5, 0.8], [0.24, 0.85], [0.76, 0.85], [0.37, 0.92], [0.63, 0.92]];
 
-export const BATTLES = [
+const CARIBBEAN = [
   {
     id: 'tutorial', region: 'port', roman: '0', year: 1655, name: 'Shakedown Cruise', foe: 'old hulk',
     tutorial: true, hat: 'cabin', reward: 60, wind: 0,
@@ -382,4 +391,10 @@ export const BATTLES = [
   },
 ];
 
+// Every world's battles in one list: an index into it is a battle's id in the save and the sim (G.battle).
+export const BATTLES = [...CARIBBEAN.map((b) => ({ world: 'caribbean', ...b })), ...MED_BATTLES];
+
 export const battleIndex = (id) => BATTLES.findIndex((b) => b.id === id);
+// The battles of one world, in campaign order, with their indices into BATTLES.
+export const worldBattles = (world) => BATTLES.map((b, i) => ({ b, i })).filter((x) => x.b.world === world);
+export const regionOf = (B) => REGIONS.find((r) => r.id === (B && B.region)) || null;

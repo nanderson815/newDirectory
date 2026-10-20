@@ -17,6 +17,8 @@
 // Islands and coasts are indexed as in battles.js, so `npm run check` catches a landmark left behind when the
 // geography changes.
 
+import { MED_LANDS } from './lands-med.js';
+
 export const LANDS = {
   // ---------- Port Royal ----------
   tutorial: {
@@ -242,3 +244,6 @@ export const LANDS = {
     ],
   },
 };
+
+// The Mediterranean's land lives in its own file.
+Object.assign(LANDS, MED_LANDS);

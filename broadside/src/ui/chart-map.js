@@ -81,12 +81,13 @@ export const SEANAMES = [['Mar del Sur', 200, 640, -8], ['Mar del Norte', 846, 6
 
 // ---------- The route ----------
 const f1 = (n) => Math.round(n * 10) / 10;
-// Route points in campaign order; each remembers which battle (index into `ids`) its leg leads to.
-export function routePoints(ids) {
+// Route points in campaign order; each remembers which battle (index into `ids`) its leg leads to. `nodes` is the
+// chart's node table (this one by default; the Mediterranean's lives in chart-map-med.js).
+export function routePoints(ids, nodes = NODES) {
   const pts = [];
   ids.forEach((id, i) => {
-    for (const [x, y] of NODES[id].via || []) pts.push({ x, y, to: i });
-    pts.push({ x: NODES[id].x, y: NODES[id].y, to: i, node: id });
+    for (const [x, y] of nodes[id].via || []) pts.push({ x, y, to: i });
+    pts.push({ x: nodes[id].x, y: nodes[id].y, to: i, node: id });
   });
   return pts;
 }
@@ -102,8 +103,8 @@ export function curveSegments(pts) {
   return out;
 }
 // SVG path data for each leg (one leg runs from a battle to the next, through its via points).
-export function legPaths(ids) {
-  const pts = routePoints(ids), segs = curveSegments(pts), legs = [];
+export function legPaths(ids, nodes = NODES) {
+  const pts = routePoints(ids, nodes), segs = curveSegments(pts), legs = [];
   segs.forEach(([a, c1, c2, b]) => {
     const to = b.to;
     if (!legs[to]) legs[to] = `M${a.x} ${a.y}`;

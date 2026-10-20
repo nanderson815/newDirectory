@@ -10,6 +10,7 @@ import { goalsSunk } from './goals/index.js';
 import { RAKE, rakeEnd, raked, rollCrit } from './hazards.js';
 import { coreDist, coastGap } from './terrain.js';
 import { landHit } from './land.js';
+import { galeScatter } from './wind.js';
 
 const BROADSIDE_ARC = 0.62;  // half-angle of each side's firing arc
 const CHASER_ARC = 0.32;     // half-angle of the bow chasers' arc
@@ -96,7 +97,7 @@ function fireGun(p) {
     ang = dir + clamp(angDiff(dir, Math.atan2(ay - gy, ax - gx)), -0.7, 0.7);
     dist = Math.hypot(ax - gx, ay - gy);
   }
-  const spread = s.team === 'enemy' ? S.G.ai.spread : 0.07;
+  const spread = (s.team === 'enemy' ? S.G.ai.spread : 0.07) * galeScatter(S.G);
   const dmg = BALL_DMG * enemyMul(s.team, 'dmgMul') * A.hull;
   // Grapeshot leaves the muzzle as a spray of pellets; everything else is one ball.
   for (let k = 0; k < (A.pellets || 1); k++) {
@@ -113,10 +114,10 @@ function fireGun(p) {
 export function fireChasers(s, t) {
   const c = Math.cos(s.h), sn = Math.sin(s.h);
   for (let i = 0; i < s.chasers; i++) {
-    const off = s.chasers === 1 ? 0 : (i ? 1 : -1) * s.B * 0.18;
+    const off = (i - (s.chasers - 1) / 2) * s.B * (s.chasers > 2 ? 0.2 : 0.36);
     const gx = s.x + c * s.L * 0.5 - sn * off, gy = s.y + sn * s.L * 0.5 + c * off;
     const [ax, ay] = leadPoint(t, gx, gy);
-    const spread = s.team === 'enemy' ? S.G.ai.spread : 0.06;
+    const spread = (s.team === 'enemy' ? S.G.ai.spread : 0.06) * galeScatter(S.G);
     const ang = s.h + clamp(angDiff(s.h, Math.atan2(ay - gy, ax - gx)), -0.35, 0.35) + rand(-spread, spread);
     const dist = clamp(Math.hypot(ax - gx, ay - gy) * rand(0.94, 1.08), 40, s.range);
     launch(s.team, gx, gy, ang, dist, BALL_DMG * enemyMul(s.team, 'dmgMul'), 7, -1);
@@ -134,7 +135,7 @@ function fireFortGun(p) {
   if (!t || !afloat(t)) return;
   const gx = f.x + Math.cos(f.aim) * 12, gy = f.y + Math.sin(f.aim) * 12;
   const [ax, ay] = leadPoint(t, gx, gy);
-  const spread = f.team === 'enemy' ? S.G.ai.spread : 0.08;
+  const spread = (f.team === 'enemy' ? S.G.ai.spread : 0.08) * galeScatter(S.G);
   const ang = Math.atan2(ay - gy, ax - gx) + rand(-spread, spread);
   const dist = clamp(Math.hypot(ax - gx, ay - gy) * rand(0.92, 1.08), 40, f.range * 1.1);
   launch(f.team, gx, gy, ang, dist, BALL_DMG * FORT.dmgMul * enemyMul(f.team, 'dmgMul'), FORT.gunHeight, f.island);

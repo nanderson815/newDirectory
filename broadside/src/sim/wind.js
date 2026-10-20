@@ -20,10 +20,17 @@ export function windFactor(h, s) {
     const [a0, f0] = pts[i], [a1, f1] = pts[i + 1];
     if (a <= a1) { f = lerp(f0, f1, (a - a0) / (a1 - a0)); break; }
   }
-  // High land steals the wind in its lee (src/sim/land.js); sweeps don't care.
+  // High land steals the wind in its lee (src/sim/land.js), and a calm steals it everywhere; sweeps don't care.
   if (s && s.x != null) f *= leeAt(S.G, s.x, s.y);
+  f *= breeze(S.G);
   return s && s.oars ? Math.max(f, OARS) : f;
 }
+
+// The strength of the wind (the battle's `breeze`, changed by a `breeze` event): 1 a fair sailing breeze. A calm
+// never stops a ship dead, and a gale drives her a little faster than a fair wind would.
+export const breeze = (G) => { const k = G && G.wind && G.wind.k != null ? G.wind.k : 1; return k <= 1 ? Math.max(0.2, k) : 1 + (k - 1) * 0.5; };
+// A gale throws the gunners' aim about: the scatter multiplier for every gun on the chart.
+export const galeScatter = (G) => { const k = G && G.wind && G.wind.k != null ? G.wind.k : 1; return k > 1 ? 1 + (k - 1) * 1.6 : 1; };
 
 // The wind wanders a little around the battle's base direction.
 export function updateWind() {

@@ -1,3 +1,5 @@
+import { MED_TYPES } from './ships-med.js';
+
 // Ship classes. L = length, B = beam (world units); speed in units/sec, turn in rad/sec, reload in sec.
 // marines = troops a ship can put ashore to take a fort.
 export const TYPES = {
@@ -27,3 +29,6 @@ export const MINE_DMG = 30;
 export const CHASER_RELOAD = 2.4;
 export const CAPTURE_TIME = 3; // seconds a landing party needs ashore
 export const FORT = { range: 240, reload: 2.8, dmgMul: 1.25, gunHeight: 40 };
+
+// The Mediterranean's classes (galleys, polacres, the Ottoman line) live in their own file.
+Object.assign(TYPES, MED_TYPES);

@@ -3,6 +3,7 @@ import { BOARDING } from '../config/ammo.js';
 import { rand } from '../util.js';
 import { spawn } from './particles.js';
 import { sfx } from '../audio/sfx.js';
+import { factionOf } from '../config/factions.js';
 
 // Boarding: lash alongside a crippled enemy ship and send your marines across. If they win the fight on deck,
 // the ship strikes her colours and joins your squadron as a prize for the rest of the battle.
@@ -11,9 +12,10 @@ import { sfx } from '../audio/sfx.js';
 // The defenders' strength: their surviving marines, stiffened by whatever hull they have left.
 export const defence = (e) => Math.max(1, Math.round(e.marines * (0.6 + 0.4 * e.hp / e.maxHp)));
 
-export function canBoard(s, e) {
+// `frac`: how hurt she must be (corsairs with the grapple ability board sooner than BOARDING.hpFrac).
+export function canBoard(s, e, frac = BOARDING.hpFrac) {
   return s && e && afloat(s) && afloat(e) && s.team !== e.team && !e.boss && !e.passive && !s.passive &&
-    !s.boarding && !e.boarding && s.marines > 0 && e.hp <= e.maxHp * BOARDING.hpFrac &&
+    !s.boarding && !e.boarding && s.marines > 0 && e.hp <= e.maxHp * frac &&
     Math.hypot(s.x - e.x, s.y - e.y) < (s.L + e.L) * BOARDING.reach;
 }
 
@@ -28,16 +30,18 @@ export function boardingTarget(s) {
   return best;
 }
 
-export function startBoarding(s, e) {
-  if (!canBoard(s, e)) return false;
+export function startBoarding(s, e, frac) {
+  if (!canBoard(s, e, frac)) return false;
   s.boarding = { targetId: e.id, t: 0, attacker: true };
   e.boarding = { targetId: s.id, t: 0, attacker: false };
   s.path = []; s.pivot = null; e.path = []; e.pivot = null;
   if (s.team === 'player') showToast('Boarders away!', s, 1.4);
-  else { showToast('Spanish boarders!', e, 1.6); showBanner(`${e.name} is being boarded!`, 'Sink the boarder or bring help'); }
+  else { showToast(`${cap(factionOf(S.G.faction).adj)} boarders!`, e, 1.6); showBanner(`${e.name} is being boarded!`, 'Sink the boarder or bring help'); }
   sfx.woodHit(e.x, e.y);
   return true;
 }
+
+const cap = (t) => t[0].toUpperCase() + t.slice(1);
 
 function release(s, e) {
   if (s) s.boarding = null;
@@ -84,7 +88,7 @@ export function updateBoardings(dt) {
       } else {
         e.prize = false; e.label = 'Captured';
         if (S.selected === e) S.selected = S.G.ships.find((x) => x.team === 'player' && afloat(x)) || null;
-        showBanner(`${e.name} has been taken!`, 'She fights for Spain now');
+        showBanner(`${e.name} has been taken!`, `She fights for ${factionOf(S.G.faction).side} now`);
       }
     } else {
       s.marines = Math.max(0, s.marines - Math.max(1, Math.ceil(s.marines * 0.6)));

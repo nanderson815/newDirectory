@@ -6,6 +6,8 @@ import { BATTLES, REGIONS, FLEET_SLOTS, battleIndex } from './config/battles.js'
 import { battleDef, ENDLESS, ENDLESS_ID, waveEnemies } from './config/endless.js';
 import { LAB_ID, setLab } from './config/lab.js';
 import { TYPES } from './config/ships.js';
+import { WORLDS } from './config/worlds.js';
+import { FACTIONS } from './config/factions.js';
 import { HATS, HAT_ORDER } from './config/hats.js';
 import { R, initGL } from './render/gl.js';
 import { renderScene } from './render/scene.js';
@@ -107,7 +109,7 @@ function battleParam() {
 // Dev builds check the content tables against the primitive registries at boot (npm run check does the same).
 if (import.meta.env.DEV) {
   import('./config/validate.js').then(({ validateContent }) => {
-    const problems = validateContent({ BATTLES, REGIONS, FLEET_SLOTS, TYPES, HATS, HAT_ORDER, GOALS, ABILITIES, WHEN, DO, ENDLESS, waveEnemies, TERRAIN, fleetLayout, LANDS, landOf, checkLand });
+    const problems = validateContent({ BATTLES, REGIONS, FLEET_SLOTS, TYPES, HATS, HAT_ORDER, GOALS, ABILITIES, WHEN, DO, ENDLESS, waveEnemies, TERRAIN, fleetLayout, LANDS, landOf, checkLand, WORLDS, FACTIONS });
     if (problems.length) console.warn(`Broadside content: ${problems.length} problem(s)\n  ${problems.join('\n  ')}`);
   });
 }

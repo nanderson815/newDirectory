@@ -89,11 +89,32 @@
       const q = nearest(s, c.enemies.filter((e) => [].concat(o.ships).includes(e.name)));
       return q ? { target: q } : null;
     },
-    // The named ship (or whichever ship is closest) sails into the ring; the others fight on.
+    // The named ship (or whichever ship is closest) sails into the ring, and anchors there if it must be held;
+    // the others fight on.
     reach(s, o, c) {
       if (o.got) return null;
       const runner = o.ship ? c.ships.find((q) => q.name === o.ship) : nearest({ x: o.px, y: o.py }, c.ships);
-      return runner === s ? { to: { x: o.px, y: o.py } } : null;
+      if (runner !== s) return null;
+      if (o.secs && Math.hypot(s.x - o.px, s.y - o.py) < o.pr * 0.7) return { hold: true };
+      return { to: { x: o.px, y: o.py } };
+    },
+    // Silence the battery, then the ship with the most marines anchors in the landing ring while the rest fight;
+    // once the captives' boat is away, cover her.
+    rescue(s, o, c) {
+      if (o.stage === 'land') {
+        const lander = c.ships.filter((q) => q.marines >= o.need).sort((a, b) => b.marines - a.marines)[0];
+        const fort = o.fort && c.hostileForts.find((f) => f.name === o.fort);
+        if (fort) {
+          const near = nearest(s, c.enemies);
+          if (near && Math.hypot(near.x - s.x, near.y - s.y) < s.range * 1.2) return { target: near };
+          return { target: fort };
+        }
+        if (lander !== s) return null;
+        if (Math.hypot(s.x - o.px, s.y - o.py) < o.pr * 0.6) return { hold: true };
+        return { to: { x: o.px, y: o.py } };
+      }
+      const boat = c.G.ships.find((q) => q.id === o.boatId && live(q));
+      return boat && c.enemies.length ? { target: nearest(boat, c.enemies) } : null;
     },
     // Hold out: fight the enemy nearest the middle of the fleet, so the ships stick together.
     survive(s, o, c) {
@@ -142,11 +163,13 @@
         let order = fire.length && !s.flag ? { target: nearest(s, fire) } : null;
         for (const o of G.goals) {
           if (order) break;
+          if (o.bonus) continue; // the bot plays for the win; bonus objectives happen by the way
           const fn = GOAL_ORDERS[o.kind];
           if (fn) order = fn(s, o, c);
         }
         if (!order) { const t = nearest(s, enemies.length ? enemies : c.hostileForts); if (t) order = { target: t }; }
         if (!order) continue;
+        if (order.hold) { s.path = []; s.order = null; if (s.pivot == null) s.pivot = s.h; continue; }
         if (order.to) { s.pivot = null; s.order = null; s.path = [{ x: order.to.x, y: order.to.y }]; } else circle(s, order.target, G);
       }
     },

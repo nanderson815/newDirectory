@@ -20,7 +20,8 @@ export const SHOAL = { maxL: 64, slow: 0.3, turn: 0.6, bump: 4, dps: 1 };
 // A reef holes any hull that crosses it: `dps` hull a second at full speed (40% of it when barely moving),
 // and the ship is slowed while she grinds over.
 export const REEF = { dps: 16, slow: 0.5 };
-export const grounds = (s) => s.L > SHOAL.maxL;
+// A shallow-draught class (galleys: `shallow` in TYPES) crosses shoals whatever her length.
+export const grounds = (s) => !s.shallow && s.L > SHOAL.maxL;
 
 // ---------- Capsules ----------
 const P = { x: 0, y: 0 };
@@ -202,7 +203,7 @@ export const TERRAIN = {
     params: CAPSULE,
     check: (v) => checkCapsules('shoals', v),
     blocks(B, p, T, W, H) {
-      if (T && T.L <= SHOAL.maxL) return null;
+      if (T && (T.L <= SHOAL.maxL || T.shallow)) return null;
       const L = T ? T.L : 84;
       for (let i = 0; i < (B.shoals || []).length; i++) if (isObj(B.shoals[i]) && capsuleGap(B.shoals[i], p, W, H) < L * 0.3) return `starts aground on shoal ${i}`;
       return null;
