@@ -61,6 +61,7 @@ function aheadOf(o, t, out = AH) {
 const K = 10;
 const NB = []; // per neighbour: [px, py, vx, vy, R, H, then K x/y pairs at full sail, then K pairs at reduced sail]
 const STRIDE = 6 + K * 4;
+const CAND = []; // candidates better than holding on: [cost, offset, sail] triples
 // Risk for a candidate velocity (vx, vy): the first sample time she'd be inside a neighbour's ring (sooner is
 // worse), graded by how deep. Under reduced sail (`slow` = 1) the samples run over a longer time, so easing off
 // earns nothing by just putting a collision off for later, only by letting the other ship by.
@@ -104,7 +105,7 @@ export function avoidShips(s, desired, dt) {
     const R = (s.L + o.L) * (foe ? AVOID.foe : AVOID.ally), H = foe ? AVOID.foeHorizon : AVOID.horizon;
     const at = aheadOf(o, tau);
     const px = at.x - s.x, py = at.y - s.y;
-    if (px * px + py * py > (R + (vs + ov) * H / AVOID.slow) ** 2) continue;
+    if (px * px + py * py > (R + (vs + ov) * H) ** 2) continue; // too far off to meet within the horizon
     NB[n] = px; NB[n + 1] = py; NB[n + 4] = R; NB[n + 5] = H;
     const hh = o.h + (o.hRate || 0) * Math.min(tau, 1.5);
     NB[n + 2] = Math.cos(hh) * ov; NB[n + 3] = Math.sin(hh) * ov;
@@ -123,15 +124,23 @@ export function avoidShips(s, desired, dt) {
     const prev = s.avoidPick || 0;
     const r0 = riskOf(Math.cos(base) * vs, Math.sin(base) * vs, n);
     if (r0 > 0) {
-      let best = r0 + AVOID.stick * Math.abs(prev);
+      const keep = r0 + AVOID.stick * Math.abs(prev);
+      let m = 0;
       for (const k of [1, AVOID.slow]) {
         for (const off of AVOID.fan) {
           if (!off && k === 1) continue;
           const a = base + off, v = vs * k;
           const cost = Math.abs(off) - (off > 0 ? AVOID.starboard : 0) + (k < 1 ? AVOID.slowCost : 0) + AVOID.stick * Math.abs(off - prev) + riskOf(Math.cos(a) * v, Math.sin(a) * v, n, k < 1 ? 1 : 0);
-          // Never bear away onto the beach to miss a ship.
-          if (cost < best && (!off || wayClear(s, a, 70))) { best = cost; pick = off; pickV = k; }
+          if (cost < keep) { CAND[m++] = cost; CAND[m++] = off; CAND[m++] = k; }
         }
+      }
+      // The cheapest alteration that doesn't bear away onto the beach (checked lazily: the land test is dear).
+      for (let found = false; m && !found;) {
+        let bi = 0;
+        for (let i = 3; i < m; i += 3) if (CAND[i] < CAND[bi]) bi = i;
+        const off = CAND[bi + 1];
+        if (!off || wayClear(s, base + off, 70)) { pick = off; pickV = CAND[bi + 2]; found = true; }
+        CAND[bi] = CAND[m - 3]; CAND[bi + 1] = CAND[m - 2]; CAND[bi + 2] = CAND[m - 1]; m -= 3;
       }
     }
     if (desired == null && s.avoidRef == null && (pick || pickV < 1)) s.avoidRef = s.h;

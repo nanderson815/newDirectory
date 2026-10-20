@@ -168,10 +168,11 @@ goal: 'boss', hat: 'rojo', goals: [{ kind: 'boss' }, { kind: 'timer', secs: 240 
 ## Add a ship type
 
 Add an entry to `TYPES` in `src/config/ships.js`. The renderer builds the model from `L`, `B`, `masts` (2 or
-3) and `rig`, so no art is needed.
+3) and `rig`, so no art is needed. Draw to the fleet's scale: a sloop is 45 long, a frigate 63, a man-o'-war 78
+(collision, boarding reach, shore clearance and the hit test all follow from `L` and `B`).
 
 ```js
-pinnace: { label: 'Pinnace', L: 50, B: 17, hp: 50, guns: 2, reload: 2.1, speed: 72, turn: 1.6, range: 215,
+pinnace: { label: 'Pinnace', L: 38, B: 13, hp: 50, guns: 2, reload: 2.1, speed: 72, turn: 1.6, range: 215,
            masts: 2, marines: 8, rig: 'fore-aft', abilities: { oars: true } },
 ```
 

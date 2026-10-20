@@ -24,10 +24,20 @@ dramatic when ships trade broadsides. Every element earns its place on a phone s
 - A short establishing move at battle start (sweep over the enemy, settle on your fleet).
 
 ### Controls (one thumb)
-- A ship is always selected (your flagship to begin with). Tap a ship of yours to select it.
+- A battle opens with your flagship selected. Tap a ship of yours to select it; tap her again (or her row in the dock)
+  to let go of her. With nothing selected one finger pans the view (it coasts on when let go), taps on the sea order
+  nothing, a tap on an enemy names her, the action bar goes and the director eases to a calm overview of the fleet
+  and the nearest enemy, holding wherever you panned until you take command again or double-tap the sea.
 - Drag *anywhere* on the sea to plot the selected ship's course; starting on another of your ships selects
   it first. Tap the sea to sail straight there.
 - Tap an enemy to **engage**: the ship manoeuvres on its own to keep that target on the beam.
+- **Whole fleet** (a row under the dock): a course is sailed by the chosen ship with the rest in **line ahead**, each in
+  the wake of the ship ahead of her, 1.8 mean lengths apart (or **abreast** on her beams: the two words under the row
+  choose); the head of the line shortens sail to the slowest ship's pace. A whole-fleet engage spreads the ships
+  round the target, each on her own arc of sea at her own range, instead of all chasing round one ring.
+- Ships never grind into each other: every captain (yours and theirs) gives other ships room before they touch,
+  altering to starboard when two meet head on, and easing sail to let a crossing ship by. Friends keep a
+  comfortable distance; enemies may close to board or ram.
 - The course preview is the track the ship will *really* sail (turning circle and island avoidance included),
   drawn as a soft ribbon on the water with a small end marker.
 - A compact contextual action bar for the selected ship: Anchor (then drag to turn on the spot), Fire
@@ -212,8 +222,9 @@ a touch target or a paragraph needs one (buttons, tips, toasts).
   landscape). Off-screen enemies are red edge chevrons that slide clear of all of these.
 - **Fleet dock:** no box: a 44 px row per ship you command (her name in Garamond, haloed, over a 3 px flat hull bar);
   the chosen one's name is gilt with a short gilt rule beside it (with Whole fleet on, every name turns gilt and the
-  rule marks that row). Words appear only when they say something (Sunk, Captured, Through,
-  Prize), in small capitals. Merchantmen or allies share one compact row of short bars.
+  rule marks that row; under it two words, *In line* and *Abreast*, the chosen one gilt and underlined). Words appear
+  only when they say something (Sunk, Captured, Through, Prize), in small capitals. Merchantmen or allies share one
+  compact row of short bars.
 - **Action bar:** 52 px stacked tiles, ink slips with the icon over a Fell small-capital label. A reload is a fine
   paper rule filling along the bottom; a loaded gun inverts its tile to paper with ink type and a faint glow, so what
   you can fire now is the brightest thing on the bar. Toggled (anchored) also inverts. The one main action (Board or

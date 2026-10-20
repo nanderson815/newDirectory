@@ -158,15 +158,18 @@ export function fitCamera() {
   footprint(cam.fp, 0, 0, 0, D);
   footprint(cam.safe, Math.min(INSET.top, ch * 0.22), Math.min(INSET.bottom, ch * 0.24), Math.min(INSET.side, cw * 0.08), D);
   // Zoom range from on-screen ship size: px per map unit at the look-at point, scaled for bigger screens.
+  // Since the fleet pass (hulls at 3/4, src/config/ships.js) the director sits a little further out than it
+  // did: close 1.02 (was 1.12) and comfort 0.85 (was 0.92) px a unit show about a quarter more sea, with a
+  // frigate about 64 px long on a 390 px phone at close range. A pinch can go closer than before (1.9).
   const fp = cam.fp;
   const w0 = 2 * (fp.nw + (fp.fw - fp.nw) * (-fp.nb) / (fp.fb - fp.nb)); // ground width at the centre row, per unit d
   const ref = Math.min(cw, ch) / 390;
   const dAt = (ppu) => cw / (w0 * ppu * ref);
   cam.dMax = Math.min((2 * halfU() + 2 * MARGIN) / (2 * fp.fw), (2 * halfV() + 2 * MARGIN) / (fp.fb - fp.nb));
-  cam.dMin = Math.min(dAt(1.7), cam.dMax);
-  cam.dClose = Math.min(dAt(1.12), cam.dMax);
-  cam.dComfort = Math.min(dAt(0.92), cam.dMax);
-  cam.dWide = Math.min(dAt(0.68), cam.dMax);
+  cam.dMin = Math.min(dAt(1.9), cam.dMax);
+  cam.dClose = Math.min(dAt(1.02), cam.dMax);
+  cam.dComfort = Math.min(dAt(0.85), cam.dMax);
+  cam.dWide = Math.min(dAt(0.62), cam.dMax);
   if (!cam.ready) { resetCamera(); return; }
   cam.d = clamp(cam.d, cam.dMin * 0.8, cam.dMax);
   clampPose();

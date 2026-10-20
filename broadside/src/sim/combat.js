@@ -14,6 +14,12 @@ import { landHit } from './land.js';
 const BROADSIDE_ARC = 0.62;  // half-angle of each side's firing arc
 const CHASER_ARC = 0.32;     // half-angle of the bow chasers' arc
 const FORT_SIZE = 20;        // a fort counts as in range once its walls are
+// Gunnery scatter scales with the hulls. The fleet pass cut every hull to 3/4 on the same sea
+// (src/config/ships.js), so every gun (ships, chasers, forts, both sides) lays its shot 3/4 as wide in bearing
+// and in range: a ship is then exactly as easy a mark at any range as she was, and the campaign's difficulty
+// stays where it was tuned (tests/balance.mjs).
+export const AIM = 0.75;
+const scatter = (lo, hi) => 1 + rand(lo - 1, hi - 1) * AIM; // a range error, as a factor on the distance
 
 export const sideDir = (s, side) => s.h + (side === 0 ? -PI / 2 : PI / 2); // 0 = port, 1 = starboard
 
@@ -96,12 +102,12 @@ function fireGun(p) {
     ang = dir + clamp(angDiff(dir, Math.atan2(ay - gy, ax - gx)), -0.7, 0.7);
     dist = Math.hypot(ax - gx, ay - gy);
   }
-  const spread = s.team === 'enemy' ? S.G.ai.spread : 0.07;
+  const spread = (s.team === 'enemy' ? S.G.ai.spread : 0.07) * AIM;
   const dmg = BALL_DMG * enemyMul(s.team, 'dmgMul') * A.hull;
   // Grapeshot leaves the muzzle as a spray of pellets; everything else is one ball.
   for (let k = 0; k < (A.pellets || 1); k++) {
     const a = ang + rand(-spread, spread) * (A.pellets ? 2.5 : 1);
-    launch(s.team, gx, gy, a, clamp(dist * rand(0.9, 1.12), 40, range * 1.1), dmg, 6, -1, kind);
+    launch(s.team, gx, gy, a, clamp(dist * scatter(0.9, 1.12), 40, range * 1.1), dmg, 6, -1, kind);
   }
   muzzle(gx, gy, dir, 6);
   // A little recoil.
@@ -116,9 +122,9 @@ export function fireChasers(s, t) {
     const off = s.chasers === 1 ? 0 : (i ? 1 : -1) * s.B * 0.18;
     const gx = s.x + c * s.L * 0.5 - sn * off, gy = s.y + sn * s.L * 0.5 + c * off;
     const [ax, ay] = leadPoint(t, gx, gy);
-    const spread = s.team === 'enemy' ? S.G.ai.spread : 0.06;
+    const spread = (s.team === 'enemy' ? S.G.ai.spread : 0.06) * AIM;
     const ang = s.h + clamp(angDiff(s.h, Math.atan2(ay - gy, ax - gx)), -0.35, 0.35) + rand(-spread, spread);
-    const dist = clamp(Math.hypot(ax - gx, ay - gy) * rand(0.94, 1.08), 40, s.range);
+    const dist = clamp(Math.hypot(ax - gx, ay - gy) * scatter(0.94, 1.08), 40, s.range);
     launch(s.team, gx, gy, ang, dist, BALL_DMG * enemyMul(s.team, 'dmgMul'), 7, -1);
     muzzle(gx, gy, s.h, 7);
   }
@@ -134,9 +140,9 @@ function fireFortGun(p) {
   if (!t || !afloat(t)) return;
   const gx = f.x + Math.cos(f.aim) * 12, gy = f.y + Math.sin(f.aim) * 12;
   const [ax, ay] = leadPoint(t, gx, gy);
-  const spread = f.team === 'enemy' ? S.G.ai.spread : 0.08;
+  const spread = (f.team === 'enemy' ? S.G.ai.spread : 0.08) * AIM;
   const ang = Math.atan2(ay - gy, ax - gx) + rand(-spread, spread);
-  const dist = clamp(Math.hypot(ax - gx, ay - gy) * rand(0.92, 1.08), 40, f.range * 1.1);
+  const dist = clamp(Math.hypot(ax - gx, ay - gy) * scatter(0.92, 1.08), 40, f.range * 1.1);
   launch(f.team, gx, gy, ang, dist, BALL_DMG * FORT.dmgMul * enemyMul(f.team, 'dmgMul'), FORT.gunHeight, f.island);
   if (f.team === 'player') S.G.stats.shots++;
   muzzle(gx, gy, f.aim, FORT.gunHeight);

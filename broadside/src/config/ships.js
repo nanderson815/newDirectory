@@ -10,8 +10,8 @@
 // - everything sized from L and B follows on its own: collision and boarding reach, the shore and shoal clearance
 //   (src/sim/steering.js), ram and fireship contact, the model (src/render/models.js), rings and bars on the HUD.
 //   SHOAL.maxL (src/sim/terrain.js) scales with them so the same classes still run aground.
-// - the hit test pads the hull a little (HIT_PAD in src/sim/combat.js) so the smaller hull isn't a much harder
-//   mark than before: the campaign's difficulty stays where it was tuned.
+// - gunnery scatter shrinks with the hulls (AIM in src/sim/combat.js), so a ship is as easy a mark at any range
+//   as before and the campaign's difficulty stays where it was tuned.
 // A new class should be drawn to this scale: a sloop 45 long, a frigate 63, a man-o'-war 78.
 export const TYPES = {
   sloop:   { label: 'Sloop',      L: 45, B: 16.5, hp: 70,  guns: 3, reload: 2.4, speed: 62, turn: 1.35, range: 235, masts: 2, marines: 10 },
