@@ -115,8 +115,12 @@ check(galley.chasers === 3 && galley.shallow && galley.oars, `a war galley carri
 check(galley.breeze === 0.3 && galley.sail < 0.35 && galley.row > 0.85, `in the Bougie calm sails barely draw (${galley.sail.toFixed(2)}) while oars row on (${galley.row.toFixed(2)})`, failures);
 const breeze = await B(() => {
   const b = window.__broadside, G = b.G;
-  for (const s of G.ships) if (s.team === 'enemy') { s.passive = true; s.x = 30; s.y = 30; }
-  b.sim(60 * 86);
+  // Keep every enemy out of it, the galleys that row in at 30 s too, so the fleet is still afloat when the breeze
+  // is due (otherwise whether it is depends on the dice).
+  for (let t = 0; t < 86; t++) {
+    for (const s of G.ships) if (s.team === 'enemy' && !s.passive) { s.passive = true; s.x = 30; s.y = 30; }
+    b.sim(60);
+  }
   return G.wind.k;
 });
 check(breeze === 1, `then the breeze comes back on cue (${breeze})`, failures);
