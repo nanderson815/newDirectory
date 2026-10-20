@@ -97,7 +97,7 @@ const STYLES = {
   // The Barbary coast: ochre hills, red rock, date palms behind the beaches, olives inland.
   barbary: {
     sand: '#f1dcaa', wet: '#ccad79', grass: ['#a8a25e', '#949453'], meadow: '#cdb06b', high: '#a67f55', forest: '#636f40',
-    rock: '#cf9466', strata: '#a86e4a', pad: '#ece0c4',
+    rock: '#cf9466', strata: '#a86e4a', pad: '#c9ae84',
     cliffs: 0.25, hill: 18, plateau: 5, beach: 0.16, density: 0.8, veg: { grove: 'olive', orchard: true, palms: 0.55, date: true, forest: 0.55, dry: 'maquis' },
     F: { bush: ['#5f7342', '#6a7a46'], scrub: ['#7f8248', '#8a8a4e'], olive: ['#6c8050', '#778a58', '#65784a'] },
   },
