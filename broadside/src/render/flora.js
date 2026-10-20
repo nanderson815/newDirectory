@@ -15,6 +15,11 @@ import { R, toon } from './gl.js';
 //   bush       a low clump; scrub is its dry, flat cousin
 //   cactus     a saguaro column with an arm or two; agave a rosette of spikes (the Main)
 //   mangrove   a dark flat crown on arching stilt roots
+// The Mediterranean's:
+//   olive      a gnarled, forked trunk under a low, lumpy crown of silvery grey-green (in rows, as an orchard)
+//   cypress    a tall dark flame of a tree (the Aegean, Candia, beside chapels and Ottoman graves)
+//   stonePine  the umbrella pine: a bare leaning trunk under a flat, spreading crown
+//   datePalm   palm() with opts.date: a taller, straighter trunk, stiff blue-green fronds, a cluster of dates
 
 // ---------- Shared shapes ----------
 function finish(pos, col, idx) {
@@ -170,30 +175,34 @@ export function scrub(parent, x, y, z, s, rnd, F) {
   ink(part(parent, g.puffLo, c, x + Math.cos(a) * 3 * s, y + 0.8 * s, z + Math.sin(a) * 3 * s, 2.2 * s, 1.4 * s, 2.2 * s), 0.35);
 }
 // lean: which way the trunk leans (radians in the group's frame; palms lean out over the beach), else random.
-export function palm(parent, x, y, z, s, rnd, F, ctx, lean) {
+// date: a date palm (taller and straighter, stiffer fronds, dates under the crown).
+export function palm(parent, x, y, z, s, rnd, F, ctx, lean, date) {
   const g = geos(), p = new THREE.Group();
   p.position.set(x, y - 0.4, z);
   parent.add(p);
   s *= 0.95;
-  const h = 19 * s * rnd(0.9, 1.1), bend = rnd(0.18, 0.42), dir = lean == null ? rnd(0, TAU) : lean + rnd(-0.5, 0.5);
+  const h = (date ? 23 : 19) * s * rnd(0.9, 1.1), bend = date ? rnd(0.04, 0.14) : rnd(0.18, 0.42), dir = lean == null ? rnd(0, TAU) : lean + rnd(-0.5, 0.5);
   // The trunk: a tapering curve, banded light and dark.
   const N = 3, pts = [];
   for (let i = 0; i <= N; i++) { const u = i / N, off = Math.pow(u, 1.7) * bend * h; pts.push([Math.cos(dir) * off, u * h, -Math.sin(dir) * off]); }
-  p.add(new THREE.Mesh(trunkGeo(pts, 1.25 * s, 0.7 * s), toon(F.palmTrunk)));
-  p.add(new THREE.Mesh(trunkGeo(pts, 1.25 * s + 0.35, 0.7 * s + 0.35), R.inkMat));
+  const r0 = (date ? 1.45 : 1.25) * s, r1 = (date ? 1.0 : 0.7) * s;
+  p.add(new THREE.Mesh(trunkGeo(pts, r0, r1), toon(date ? F.dateTrunk || F.palmTrunk : F.palmTrunk)));
+  p.add(new THREE.Mesh(trunkGeo(pts, r0 + 0.35, r1 + 0.35), R.inkMat));
   const top = pts[N];
   const head = new THREE.Group();
   head.position.set(top[0], top[1], top[2]);
   p.add(head);
-  const n = 6, a0 = rnd(0, TAU);
+  const n = date ? 8 : 6, a0 = rnd(0, TAU), fr = date ? F.dateFrond || F.frond : F.frond;
   for (let i = 0; i < n; i++) {
     const arm = new THREE.Group();
-    arm.rotation.set(0, a0 + (i / n) * TAU + rnd(-0.18, 0.18), rnd(-0.12, 0.2), 'YXZ');
+    // A date palm's fronds stand stiffer: a ring raised up and out, another arching lower.
+    arm.rotation.set(0, a0 + (i / n) * TAU + rnd(-0.18, 0.18), date ? (i % 2 ? 0.42 : -0.05) + rnd(-0.08, 0.08) : rnd(-0.12, 0.2), 'YXZ');
     head.add(arm);
-    const L = 10.5 * s * rnd(0.88, 1.08);
-    const f = part(arm, g.frond, i % 2 ? F.frond[0] : F.frond[1], 0, 0, 0, L, L * 0.75, 3.4 * s);
+    const L = (date ? 9.5 : 10.5) * s * rnd(0.88, 1.08);
+    const f = part(arm, g.frond, i % 2 ? fr[0] : fr[1], 0, 0, 0, L, L * (date ? 0.55 : 0.75), (date ? 2.6 : 3.4) * s);
     ink(f, 0.42, 0.6);
   }
+  if (date) for (let i = 0; i < 3; i++) { const a = a0 + i * 2.1; part(head, g.puffLo, F.dates || '#b5652a', Math.cos(a) * 1.4 * s, -1.6 * s, Math.sin(a) * 1.4 * s, 1.1 * s, 1.5 * s, 1.1 * s); }
   ctx.sway(p, rnd(0, 0.999));
   return p;
 }
@@ -209,6 +218,49 @@ function trunkGeo(pts, r0, r1) {
     idx.push(a, b, a + 1, a + 1, b, b + 1);
   }
   return finish(pos, col, idx);
+}
+// An olive: two or three crooked stems from one stump, a low crown of lumpy silver-green clumps.
+export function olive(parent, x, y, z, s, rnd, F, opts = {}) {
+  const g = geos(), t = new THREE.Group();
+  t.position.set(x, y, z);
+  t.rotation.y = rnd(0, TAU);
+  parent.add(t);
+  const k = s * rnd(0.85, 1.05), c = pick(F.olive || F.canopy, rnd), w = opts.ink === false ? 0 : INK;
+  for (const [a, lean] of [[0, 0.32], [2.3, 0.26]]) {
+    const st = part(t, g.trunk, F.oliveTrunk || F.trunk, Math.cos(a) * 0.5 * k, -0.4, Math.sin(a) * 0.5 * k, 0.8 * k, 4.6 * k, 0.8 * k);
+    st.rotation.set(Math.sin(a) * lean, 0, -Math.cos(a) * lean);
+  }
+  const top = part(t, g.puff, c, 0, 5.6 * k, 0, 5.4 * k, 3.1 * k, 5.4 * k);
+  if (w) ink(top, w);
+  for (const a of [0.9, 3.1, 5]) {
+    const m = part(t, g.puffLo, c, Math.cos(a) * 3.3 * k, 4.7 * k, Math.sin(a) * 3.3 * k, 3.1 * k, 2.2 * k, 3.1 * k);
+    if (w) ink(m, w);
+  }
+  return t;
+}
+// A cypress: a tall dark spindle on a stub of trunk.
+export function cypress(parent, x, y, z, s, rnd, F) {
+  const g = geos(), k = s * rnd(0.85, 1.12), c = pick(F.cypress || F.pine, rnd);
+  part(parent, g.trunk, F.trunk, x, y - 0.5, z, 0.7 * k, 2.4 * k, 0.7 * k);
+  const m = part(parent, g.puff, c, x, y + 8.6 * k, z, 2.5 * k, 9.4 * k, 2.5 * k);
+  m.rotation.y = rnd(0, TAU);
+  return ink(m, 0.5, 0.05);
+}
+// The umbrella pine: a tall, bare, leaning trunk and a flat, spreading crown.
+export function stonePine(parent, x, y, z, s, rnd, F, opts = {}) {
+  const g = geos(), t = new THREE.Group();
+  t.position.set(x, y, z);
+  t.rotation.y = rnd(0, TAU);
+  parent.add(t);
+  const k = s * rnd(0.9, 1.1), c = pick(F.stone || F.pine, rnd), lean = rnd(0.08, 0.2);
+  const tr = part(t, g.trunk, F.pineTrunk || F.trunk, 0, -0.5, 0, 0.95 * k, 12 * k, 0.95 * k);
+  tr.rotation.z = lean;
+  const hx = -Math.sin(lean) * 11.5 * k, hy = Math.cos(lean) * 11.5 * k;
+  const m = part(t, g.puff, c, hx, hy + 1.4 * k, 0, 7.2 * k, 2.6 * k, 7.2 * k);
+  if (opts.ink !== false) ink(m, INK, 0.1);
+  const m2 = part(t, g.puffLo, c, hx + 3 * k, hy + 0.6 * k, 2.2 * k, 4.6 * k, 1.8 * k, 4.6 * k);
+  if (opts.ink !== false) ink(m2, 0.45, 0.1);
+  return t;
 }
 export function pine(parent, x, y, z, s, rnd, F, opts = {}) {
   const g = geos(), t = new THREE.Group();

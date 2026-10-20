@@ -67,23 +67,30 @@ if (sets.includes('regions')) {
   }
 }
 
-// Line-ups: each class, broadside on, at the comfort zoom and close in.
+// Line-ups: each class broadside on, packed in a column (or two) at the map's centre, the HUD hidden. zoom: the
+// director's comfort zoom, 'close' (as close as the game goes) or 'detail' (closer than that, for the carving).
 const lineup = (page, ships, opts = {}) => page.evaluate(([ships, opts]) => {
   const b = window.__broadside;
   b.S.muted = true;
-  const n = ships.length, enemy = [], player = [];
-  ships.forEach((s, i) => {
-    const d = { name: s.name || s.type + i, x: opts.cols ? 0.32 + (i % 2) * 0.36 : 0.5, y: opts.cols ? 0.3 + Math.floor(i / 2) * (0.4 / Math.ceil(n / 2)) : 0.28 + i * (0.44 / Math.max(1, n - 1)), h: 0, passive: true, ...s };
-    (s.team === 'player' ? player : enemy).push(d);
+  const enemy = [], player = [];
+  ships.forEach((s, i) => (s.team === 'player' ? player : enemy).push({ name: s.name || s.type + i, x: 0.5, y: 0.3 + i * 0.02, h: 0, passive: true, ...s }));
+  if (!player.length) player.push({ type: 'sloop', name: 'Me', x: 0.5, y: 0.97, h: -90 });
+  b.playDef({ name: 'Line-up', wind: opts.wind == null ? -90 : opts.wind, islands: [], weather: opts.weather || 'med', faction: opts.faction, player, enemy, ai: { dmgMul: 0 } });
+  const G = b.G, cols = opts.cols || 1;
+  const xs = G.ships.filter((s) => s.name !== 'Me'), rows = Math.ceil(xs.length / cols);
+  const gapY = opts.gap || 46, gapX = 120;
+  xs.forEach((s, i) => {
+    const c = i % cols, r = Math.floor(i / cols);
+    s.x = G.W / 2 + (c - (cols - 1) / 2) * gapX; s.y = G.H / 2 + (r - (rows - 1) / 2) * gapY; s.h = 0; s.v = 0;
   });
-  if (!player.length) player.push({ type: 'sloop', name: 'Me', x: 0.5, y: 0.94, h: -90 });
-  b.playDef({ name: 'Line-up', wind: -90, islands: [], weather: opts.weather || 'med', faction: opts.faction, player, enemy, ai: { dmgMul: 0 } });
+  document.getElementById('hud').style.visibility = 'hidden';
   b.step(60); b.settle();
-  const G = b.G, cam = b.cam, xs = G.ships.filter((s) => s.name !== 'Me');
+  const cam = b.cam;
   cam.mode = 'manual'; cam.idle = 0;
-  cam.tx = xs.reduce((a, s) => a + s.x, 0) / xs.length; cam.ty = xs.reduce((a, s) => a + s.y, 0) / xs.length;
-  cam.d = opts.close ? cam.dMin * 0.8 : cam.dComfort * (opts.far || 1);
-  if (opts.focus != null) { const s = xs[opts.focus]; cam.tx = s.x; cam.ty = s.y; }
+  cam.tx = G.W / 2; cam.ty = G.H / 2;
+  if (opts.focus != null) { cam.tx = xs[opts.focus].x; cam.ty = xs[opts.focus].y; }
+  cam.d = opts.zoom === 'detail' ? cam.dMin * 0.6 : opts.zoom === 'close' ? cam.dMin * 0.85 : cam.dComfort * (opts.far || 1);
+  if (opts.zoom === 'detail') cam.dMin *= 0.6;
   b.step(30);
   return { calls: b.drawCalls, keys: [...window.__broadsideR.debug.shipMeshes.values()].map((m) => m.tpl.info.key.split('|')[0]) };
 }, [ships, opts]);
@@ -92,29 +99,35 @@ if (sets.includes('ships')) {
   const page = await open(browser, { width: 390, height: 844, save: veteran });
   const oared = ['galley', 'galleass', 'firegalley', 'felucca', 'tartane', 'polacre'].map((type) => ({ type, faction: 'barbary' }));
   const tall = [{ type: 'kalyon', faction: 'ottoman' }, { type: 'sultana', faction: 'ottoman' }, { type: 'frigate', team: 'player', name: 'Resolute' }];
+  const barbary = ['polacre', 'galley', 'tartane', 'polacre', 'galley', 'tartane'].map((type, i) => ({ type, name: ['Sa’ada', 'Saqr', 'Rih', 'Qamar', 'Asad', 'Zahra'][i] }));
+  const ottoman = ['kalyon', 'galley', 'galleass', 'kalyon', 'galley', 'sultana'].map((type, i) => ({ type, name: ['Yıldız', 'Doğan', 'Ejder', 'Arslan', 'Şahin', 'Fatih'][i] }));
+  const allies = [{ type: 'galley', team: 'player', ally: true, faction: 'knights', name: 'San Giovanni' }, { type: 'galleass', team: 'player', ally: true, faction: 'venice', name: 'San Marco' }, { type: 'frigate', team: 'player', name: 'Resolute' }];
+  const bosses = [
+    { type: 'polacre', name: 'Burak', boss: { captain: 'Reis Ibrahim', title: 'Burak', hat: 'rover' } },
+    { type: 'kalyon', name: 'Mubarak', boss: { captain: 'Kara Hasan Reis', title: 'Mubarak', hat: 'kalpak' } },
+    { type: 'galleass', name: 'Hilal', boss: { captain: 'Osman Reis', title: 'Hilal', hat: 'osman' } },
+    { type: 'sultana', name: 'Kara Ejder', boss: { captain: 'Bahri Ömer Pasha', title: 'Kara Ejder', hat: 'kavuk' } }];
   for (const [name, ships, opts] of [
-    ['classes-oared', oared, { faction: 'barbary', far: 1.15 }],
-    ['classes-oared-close', oared.slice(0, 3), { faction: 'barbary', close: true, focus: 1 }],
-    ['classes-small-close', oared.slice(3), { faction: 'barbary', close: true, focus: 1 }],
-    ['classes-tall', tall, { faction: 'ottoman' }],
-    ['classes-tall-close', tall.slice(0, 2), { faction: 'ottoman', close: true, focus: 1 }],
-    ['faction-barbary', ['polacre', 'galley', 'tartane', 'polacre', 'galley', 'tartane'].map((type, i) => ({ type, name: ['Sa’ada', 'Saqr', 'Rih', 'Qamar', 'Asad', 'Zahra'][i] })), { faction: 'barbary', cols: true }],
-    ['faction-barbary-close', ['polacre', 'galley', 'tartane', 'polacre', 'galley', 'tartane'].map((type, i) => ({ type, name: ['Sa’ada', 'Saqr', 'Rih', 'Qamar', 'Asad', 'Zahra'][i] })), { faction: 'barbary', cols: true, close: true, focus: 0 }],
-    ['faction-ottoman', ['kalyon', 'galley', 'galleass', 'kalyon', 'galley', 'sultana'].map((type, i) => ({ type, name: ['Yıldız', 'Doğan', 'Ejder', 'Arslan', 'Şahin', 'Fatih'][i] })), { faction: 'ottoman', cols: true }],
-    ['faction-ottoman-close', ['kalyon', 'galley'].map((type, i) => ({ type, name: ['Yıldız', 'Doğan'][i] })), { faction: 'ottoman', close: true, focus: 0 }],
-    ['allies', [{ type: 'galley', team: 'player', ally: true, faction: 'knights', name: 'San Giovanni' }, { type: 'galleass', team: 'player', ally: true, faction: 'venice', name: 'San Marco' }, { type: 'frigate', team: 'player', name: 'Resolute' }], { faction: 'barbary' }],
-    ['allies-close', [{ type: 'galley', team: 'player', ally: true, faction: 'knights', name: 'San Giovanni' }, { type: 'galleass', team: 'player', ally: true, faction: 'venice', name: 'San Marco' }], { faction: 'barbary', close: true, focus: 1 }],
-    ['bosses', [
-      { type: 'polacre', name: 'Burak', boss: { captain: 'Reis Ibrahim', title: 'Burak', hat: 'rover' } },
-      { type: 'kalyon', name: 'Mubarak', boss: { captain: 'Kara Hasan Reis', title: 'Mubarak', hat: 'kalpak' } },
-      { type: 'galleass', name: 'Hilal', boss: { captain: 'Osman Reis', title: 'Hilal', hat: 'osman' } },
-      { type: 'sultana', name: 'Kara Ejder', boss: { captain: 'Bahri Ömer Pasha', title: 'Kara Ejder', hat: 'kavuk' } }], { faction: 'ottoman', far: 1.1 }],
-    ['boss-kapudan-close', [{ type: 'sultana', name: 'Kara Ejder', boss: { captain: 'Bahri Ömer Pasha', title: 'Kara Ejder', hat: 'kavuk' } }], { faction: 'ottoman', close: true }],
-    ['boss-rover-close', [{ type: 'polacre', name: 'Burak', boss: { captain: 'Reis Ibrahim', title: 'Burak', hat: 'rover' } }, { type: 'kalyon', name: 'Mubarak', boss: { captain: 'Kara Hasan Reis', title: 'Mubarak', hat: 'kalpak' } }], { faction: 'barbary', close: true, focus: 0 }],
-    ['boss-osman-close', [{ type: 'galleass', name: 'Hilal', boss: { captain: 'Osman Reis', title: 'Hilal', hat: 'osman' } }], { faction: 'barbary', close: true }],
+    ['classes-oared', oared, { faction: 'barbary', gap: 52 }],
+    ['classes-oared-close', oared.slice(0, 3), { faction: 'barbary', zoom: 'close', gap: 56 }],
+    ['classes-galley-detail', oared.slice(0, 1), { faction: 'barbary', zoom: 'detail' }],
+    ['classes-galleass-detail', oared.slice(1, 2), { faction: 'barbary', zoom: 'detail' }],
+    ['classes-small-close', oared.slice(3), { faction: 'barbary', zoom: 'close', gap: 44 }],
+    ['classes-tall', tall, { faction: 'ottoman', gap: 70 }],
+    ['classes-tall-close', tall.slice(0, 2), { faction: 'ottoman', zoom: 'close', gap: 64 }],
+    ['faction-barbary', barbary, { faction: 'barbary', cols: 2, gap: 50 }],
+    ['faction-barbary-close', barbary.slice(0, 3), { faction: 'barbary', zoom: 'close', gap: 46 }],
+    ['faction-ottoman', ottoman, { faction: 'ottoman', cols: 2, gap: 60 }],
+    ['faction-ottoman-close', ottoman.slice(0, 3), { faction: 'ottoman', zoom: 'close', gap: 56 }],
+    ['allies', allies, { faction: 'barbary', gap: 62 }],
+    ['allies-close', allies.slice(0, 2), { faction: 'barbary', zoom: 'close', gap: 60 }],
+    ['bosses', bosses, { faction: 'ottoman', gap: 70 }],
+    ['boss-kapudan-detail', bosses.slice(3), { faction: 'ottoman', zoom: 'detail' }],
+    ['bosses-close', bosses.slice(0, 2), { faction: 'barbary', zoom: 'close', gap: 64 }],
+    ['boss-osman-close', bosses.slice(2, 3), { faction: 'barbary', zoom: 'close' }],
     ['player-med-looks-close', [
-      { type: 'frigate', team: 'player', name: 'Resolute', look: { paint: 'serenissima', figurehead: 'markLion', gilding: 'kapudan', lanterns: 3, flag: 'pennant', cloth: 'algerine' } },
-      { type: 'frigate', team: 'player', name: 'Swift', look: { paint: 'sale', cloth: 'tripoli', figurehead: 'markLion', gilding: 'gilt', flag: 'ensign' } }], { faction: 'barbary', close: true, focus: 0 }],
+      { type: 'frigate', team: 'player', name: 'Resolute', look: { paint: 'serenissima', emblem: 'markLion', figurehead: 'markLion', gilding: 'kapudan', lanterns: 3, flag: 'pennant', cloth: 'algerine' } },
+      { type: 'frigate', team: 'player', name: 'Swift', look: { paint: 'sale', cloth: 'tripoli', figurehead: 'markLion', gilding: 'gilt', flag: 'ensign' } }], { faction: 'barbary', zoom: 'close', gap: 64 }],
   ]) {
     const info = await lineup(page, ships, opts);
     await snap(page, name);

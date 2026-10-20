@@ -9,7 +9,7 @@ import { LANDMARKS, RING, STYLE_FALLBACK } from '../sim/land.js';
 import { battleDef } from '../config/endless.js';
 import { weatherFor } from '../config/weather.js';
 import { BUILD, flagCloth, buoys, sharedGeos, townLayout } from './landmarks.js';
-import { broadleaf, crown, palm, pine, bush, scrub, cactus, agave, mangrove, floraGeos } from './flora.js';
+import { broadleaf, crown, palm, pine, bush, scrub, cactus, agave, mangrove, olive, cypress, stonePine, floraGeos } from './flora.js';
 import { buildShoal, buildReef, rng, sharedTerrainGeos } from './terrain.js';
 
 // The land of a battle: islands and coasts with hills, cliffs, beaches and coves in the region's style
@@ -38,6 +38,9 @@ const FLORA = {
   trunk: '#6f5034', palmTrunk: '#a07e58', frond: ['#64a94b', '#4f9541'], nut: '#6b4a2a',
   pine: ['#3f6f4b', '#477a51', '#3a6646'], cactus: '#6b9a62', agave: ['#82a98b', '#6c977b'],
   mangrove: ['#3f7236', '#36683a'], root: '#5e4632',
+  // The Mediterranean's trees.
+  olive: ['#8e9c6c', '#98a676', '#84936a'], oliveTrunk: '#7d6c58', cypress: ['#2f5238', '#365a3c', '#2b4b35'],
+  stone: ['#4f7044', '#5a7a49'], pineTrunk: '#8a6446', dateTrunk: '#a3845a', dateFrond: ['#7d9e62', '#6e9158'], dates: '#b0602a',
 };
 const STYLES = {
   port: {
@@ -79,14 +82,66 @@ const STYLES = {
     rock: '#cbb68c', strata: '#a8936a', pad: '#d9c69d',
     cliffs: 0.35, hill: 17, plateau: 6, beach: 0.12, density: 1, veg: { grove: 'broad', palms: 0.4, forest: 0.85 },
   },
+  // ---------- The Mediterranean ----------
+  // Drier and paler than the Indies: straw and olive grass, pale limestone and ochre rock, scrub (maquis) for
+  // bushes, and its own trees: olives in orchard rows (orchard: on a grid, not in woods), cypresses (the share
+  // of lone trees), umbrella pines ('stone' groves), date palms (palms: 'date'). terraces: the hillsides stepped
+  // into fields, banded by height.
+  // The Straits: Gibraltar's pale limestone, dry golden scrub, cork and umbrella pine.
+  straits: {
+    sand: '#ead6a6', wet: '#c6ad7c', grass: ['#aaa86a', '#949a5c'], meadow: '#c9b77c', high: '#848b56', forest: '#5f6b42',
+    rock: '#cfc6b2', strata: '#a9a08c', pad: '#dfcca2',
+    cliffs: 0.4, hill: 22, plateau: 6, beach: 0.12, density: 0.7, veg: { grove: 'stone', palms: 0, forest: 0.6, dry: 'maquis', cypress: 0.15 },
+    F: { canopy: ['#5f7a45', '#6b8449'], bush: ['#7d8a4f', '#8a9455'], scrub: ['#9a9a5a', '#8a8d52'], stone: ['#4f7044', '#5a7a49'] },
+  },
+  // The Barbary coast: ochre hills, red rock, date palms behind the beaches, olives inland.
+  barbary: {
+    sand: '#efd7a2', wet: '#ccad79', grass: ['#bba96c', '#a6965c'], meadow: '#d6ba7c', high: '#9c8654', forest: '#727a46',
+    rock: '#cf9c6a', strata: '#ab7650', pad: '#e8d2a4',
+    cliffs: 0.25, hill: 18, plateau: 5, beach: 0.16, density: 0.6, veg: { grove: 'olive', orchard: true, palms: 0.55, date: true, forest: 0.4, dry: 'maquis' },
+    F: { bush: ['#8a8a50', '#7d824c'], scrub: ['#a89a5c', '#968e56'] },
+  },
+  // Malta: honey-coloured limestone, cliffs to the sea, small fields stepped down the slopes.
+  malta: {
+    sand: '#eedca9', wet: '#cbb27d', grass: ['#aeb06c', '#97995e'], meadow: '#cbbd80', high: '#8a8b52', forest: '#68733f',
+    rock: '#ddc28c', strata: '#bf9f68', pad: '#e8d29e',
+    cliffs: 0.5, hill: 12, plateau: 6, beach: 0.07, density: 0.5, veg: { grove: 'olive', orchard: true, palms: 0.06, forest: 0.32, dry: 'maquis', cypress: 0.1 },
+    terraces: true, fields: ['#d4c07e', '#9fa863', '#c09a68'],
+    F: { bush: ['#8a8d52', '#7f874d'], scrub: ['#a8a060', '#9a955a'] },
+  },
+  // The Morea and the Ionian isles: grey limestone and marble, olive groves, cypresses, steep rocky islands.
+  aegean: {
+    sand: '#ecdfb8', wet: '#c9b688', grass: ['#a3b06e', '#8d9d60'], meadow: '#bdba7e', high: '#7d8f59', forest: '#57703f',
+    rock: '#bdb4a3', strata: '#9a9180', pad: '#e8ddc3',
+    cliffs: 0.42, hill: 24, plateau: 6, beach: 0.1, density: 0.75, veg: { grove: 'olive', orchard: true, palms: 0, forest: 0.6, dry: 'maquis', cypress: 0.35 },
+    terraces: true, fields: ['#cbbd7e', '#a3ad68', '#b89c6c'],
+    F: { bush: ['#7f8f55', '#738650'], scrub: ['#9a9c62', '#8d935a'] },
+  },
+  // Crete before Candia: dry slopes under bare mountains, olives and cypresses, earth churned by the siege.
+  candia: {
+    sand: '#e8d4a4', wet: '#c6ad7a', grass: ['#a8a464', '#939358'], meadow: '#c4b277', high: '#808650', forest: '#5b6a3c',
+    rock: '#c8b089', strata: '#a58e69', pad: '#dcc59a',
+    cliffs: 0.32, hill: 22, plateau: 6, beach: 0.1, density: 0.6, veg: { grove: 'olive', orchard: true, palms: 0.04, forest: 0.45, dry: 'maquis', cypress: 0.3 },
+    F: { bush: ['#86884f', '#7a824b'], scrub: ['#a09656', '#958d52'] },
+  },
+  // The Dardanelles: green rolling hills, oak and pine woods, cypresses by the towns.
+  dardanelles: {
+    sand: '#e6d8ae', wet: '#c4b385', grass: ['#93ae60', '#7e9c55'], meadow: '#acb970', high: '#698f4c', forest: '#4b7041',
+    rock: '#a8a08e', strata: '#867e6d', pad: '#ddd0aa',
+    cliffs: 0.18, hill: 20, plateau: 6, beach: 0.1, density: 0.9, veg: { grove: 'mixed', palms: 0, forest: 0.85, cypress: 0.3 },
+    F: { canopy: ['#557e43', '#5e8848', '#4c7440'], stone: ['#4a6e44', '#557a49'] },
+  },
 };
 for (const [id, s] of Object.entries(STYLES)) { s.id = id; s.F = { ...FLORA, ...(s.F || {}) }; }
-// A style with no look of its own yet (the Mediterranean's, until the art pass) borrows one (STYLE_FALLBACK).
+// A style with no look of its own yet (a new world's, until its art pass) borrows one (STYLE_FALLBACK).
 export const styleOf = (G) => STYLES[G.style] || STYLES[STYLE_FALLBACK[G.style]] || STYLES.port;
 // Fort stone by region: grey English ragstone, honey-coloured Spanish limestone, mossy jungle stone.
 const FORT_LOOK = {
   main: { stone: '#e2cfa2', dark: '#b39d6e' }, armada: { stone: '#dcc48e', dark: '#ae9563' },
   golden: { stone: '#bdb8a0', dark: '#8a8a72' }, campeche: { stone: '#d9cba8', dark: '#a8987a' },
+  // The Med: Tangier's grey, whitewashed Barbary towers, Malta's honey, Aegean marble, Candia's Venetian ashlar.
+  straits: { stone: '#d6cfbd', dark: '#a7a08f' }, barbary: { stone: '#eee4cc', dark: '#c4a67a' }, malta: { stone: '#e6cb93', dark: '#bf9f68' },
+  aegean: { stone: '#e2dccd', dark: '#aaa293' }, candia: { stone: '#dcc595', dark: '#b39a6c' }, dardanelles: { stone: '#d2cab6', dark: '#9e9684' },
 };
 export const fortLook = (G) => FORT_LOOK[G.style] || FORT_LOOK[STYLE_FALLBACK[G.style]] || null;
 const C = (hex) => new THREE.Color(hex);
@@ -242,8 +297,8 @@ function shoreline(parent, edge, n, cliffAt, sea, seed) {
     }
   };
   const S = sea.shallow, W = sea.surf, K = sea.rim;
-  // Shallows: narrow under cliffs (deep water close in), wide off a beach.
-  const wide = (cl) => 1 - 0.55 * cl;
+  // Shallows: narrow under cliffs (deep water close in), wide off a beach, wider still in clear water.
+  const wide = (cl) => (1 - 0.55 * cl) * (sea.clear || 1);
   band([
     [() => -0.4, () => 0.6], [(u, c) => 6 * wide(c), () => 0.42], [(u, c) => (17 + 4 * wave(u, 9, 1)) * wide(c), () => 0.17],
     [(u, c) => (36 + 8 * wave(u, 5, 2)) * wide(c), () => 0],
@@ -290,6 +345,7 @@ function paint(geo, info, st, rl) {
   const col = new Float32Array(n * 3);
   const sand = C(st.sand), wet = C(st.wet), g0 = C(st.grass[0]), g1 = C(st.grass[1]), meadow = C(st.meadow), high = C(st.high);
   const floor = C(st.forest), rock = C(st.rock), strata = C(st.strata), ash = C('#57493f');
+  const fieldA = C(st.fields ? st.fields[0] : st.meadow), fieldB = C(st.fields ? st.fields[1] : st.grass[0]), fieldC = C(st.fields ? st.fields[2] : st.high);
   const top = rl.plateau + st.hill * 0.55;
   for (let i = 0; i < n; i++) {
     const f = info[i], y = pos.getY(i), ny = nor.getY(i);
@@ -299,6 +355,11 @@ function paint(geo, info, st, rl) {
     // Meadows: sunlit patches of paler, drier grass in the open, away from the woods.
     _c.lerp(meadow, smooth(0.54, 0.7, noise2(f.fx * 0.016 + 7.7, f.fy * 0.016 + rl.s1)) * 0.7 * (1 - smooth(0.25, 0.55, f.grove)));
     _c.lerp(high, smooth(top * 0.95, top * 1.9, y) * 0.75);
+    // Small fields (terraces): a patchwork of green, stubble and ploughed earth over the open ground.
+    if (st.terraces) {
+      const fi = Math.floor(f.fx / 26 + 0.5 * Math.floor(f.fy / 18)), fj = Math.floor(f.fy / 18), h = hash2(fi + 3.1, fj + rl.s1);
+      _c.lerp(h < 0.34 ? fieldA : h < 0.67 ? fieldB : fieldC, 0.5 * (1 - smooth(0.3, 0.6, f.grove)));
+    }
     // Broad, soft swells of light and shade across the land, so a wide stretch of grass is never one flat colour.
     _c.multiplyScalar(0.9 + 0.2 * noise2(f.fx * 0.0085 + rl.s2, f.fy * 0.0085 + 3.3));
     // The floor of the woods, darker where the crowns are thickest, and a little shade round their edges.
@@ -431,23 +492,31 @@ function planter(st, ctx, shade, crownAt) {
   return {
     grove(g, x, y, z, s, r, edge, wpos) {
       n[edge ? 'edge' : 'grove']++;
+      // An olive orchard: every tree outlined and shaded, in its row (the orchard reads as rows, not a wood).
+      if (V.grove === 'olive') { olive(g, x, y, z, s * 0.86, r, F); shade(wpos[0], wpos[1], 4.6 * s, 6 * s, 0.26); crownAt(wpos[0], wpos[1], 5 * s); return; }
       if (V.grove === 'pine') pine(g, x, y, z, s * (edge ? 0.92 : 1.02), r, F, { ink: edge });
+      else if (V.grove === 'stone' || (V.grove === 'mixed' && r() < 0.3)) stonePine(g, x, y, z, s * (edge ? 0.92 : 1), r, F, { ink: edge });
       else crown(g, x, y, z, s * (edge ? 0.94 : 1.04), r, F, { lo: !edge, ink: edge, two: edge && r() < 0.25 });
       if (edge) shade(wpos[0], wpos[1], 6.2 * s, 9 * s, 0.3);
       crownAt(wpos[0], wpos[1], 7.5 * s);
     },
-    palm(g, x, y, z, s, r, lean, wpos) { n.palm++; palm(g, x, y, z, s, r, F, ctx, lean); shade(wpos[0], wpos[1], 5 * s, 16 * s, 0.22); crownAt(wpos[0], wpos[1], 3.5 * s); },
+    palm(g, x, y, z, s, r, lean, wpos) { n.palm++; palm(g, x, y, z, s, r, F, ctx, lean, !!V.date); shade(wpos[0], wpos[1], 5 * s, 16 * s, 0.22); crownAt(wpos[0], wpos[1], 3.5 * s); },
     lone(g, x, y, z, s, r, wpos) {
       n.lone++;
       crownAt(wpos[0], wpos[1], 6 * s);
+      if (V.cypress && r() < V.cypress) { cypress(g, x, y, z, s, r, F); shade(wpos[0], wpos[1], 3 * s, 18 * s, 0.26); return; }
       if (V.grove === 'pine' && r() < 0.7) { pine(g, x, y, z, s, r, F); shade(wpos[0], wpos[1], 5.4 * s, 10 * s, 0.26); return; }
+      if (V.grove === 'olive') { olive(g, x, y, z, s, r, F); shade(wpos[0], wpos[1], 5.4 * s, 7 * s, 0.28); return; }
+      if (V.grove === 'stone' || (V.grove === 'mixed' && r() < 0.4)) { stonePine(g, x, y, z, s, r, F); shade(wpos[0], wpos[1], 7 * s, 13 * s, 0.28); return; }
       broadleaf(g, x, y, z, s, r, F);
       shade(wpos[0], wpos[1], 6.8 * s, 10 * s, 0.32);
     },
     small(g, x, y, z, s, r, wpos) {
       n.small++;
       const u = r();
-      if (V.dry) {
+      // The maquis: low dry scrub and darker bushes, no cactus.
+      if (V.dry === 'maquis') { if (u < 0.55) scrub(g, x, y, z, s, r, F); else bush(g, x, y, z, s * 0.85, r, F); }
+      else if (V.dry) {
         if (u < 0.18) cactus(g, x, y, z, s, r, F); else if (u < 0.55) agave(g, x, y, z, s, r, F); else scrub(g, x, y, z, s, r, F);
       } else bush(g, x, y, z, s, r, F);
       shade(wpos[0], wpos[1], 3.6 * s, 3 * s, 0.22);
@@ -503,6 +572,12 @@ function plantIsland(G, q, ii, st, pads, root, P, r) {
     if (inGrove(c)) {
       if (r() > Math.min(1, 0.55 + want * 0.45)) continue; // a few gaps, so light gets in
       const edge = ![at(c.i - 1, c.j), at(c.i + 1, c.j), at(c.i, c.j - 1), at(c.i, c.j + 1)].every(inGrove);
+      if (V.orchard) {
+        // An orchard stands in rows: the cell's own centre, not a jittered spot.
+        const ox = (c.i + 0.5) * cell - ext, oz = (c.j + 0.5) * cell - ext;
+        P.grove(g, ox, rl.h(ox, oz, null), oz, 1, r, edge, [wx(is.x) + ox, wz(is.y) + oz]);
+        continue;
+      }
       P.grove(g, c.dx, c.y, c.dy, s, r, edge, wp);
       continue;
     }
@@ -558,6 +633,12 @@ function plantCoast(G, q, st, root, P, r) {
         // Past the near band's far side counts as more wood, so no seam of outlines runs along it.
         const nb = [at(c.i - 1, c.j), at(c.i + 1, c.j), at(c.i, c.j - 1), at(c.i, c.j + 1)].map((q2, w) => (!q2 && ((w === 3 && near) || (w === 2 && !near)) ? { ok: true, gv: 1 } : q2));
         // Far inland (past the first band) every crown is the plain kind: nobody looks closely at the edge of the chart.
+        if (V.orchard) {
+          // Rows of olives along the shore: each tree at its cell's centre.
+          const ot = -0.12 + ((c.i + 0.5) * cell) / cr.len, os = s0 + (c.j + 0.5) * cell, [mx, my] = cr.point(ot, os);
+          P.grove(g, wx(mx), cr.h(ot, os, null, mx, my), wz(my), k * 0.9, r, true, [wx(mx), wz(my)]);
+          continue;
+        }
         P.grove(g, x, c.y, z, s, r, near && !nb.every(inGrove), wp);
         continue;
       }
@@ -657,7 +738,7 @@ function seaLook(G) {
   const w = weatherFor(battleDef(G.battle)), wa = w.water;
   return {
     shallow: C(wa.shallow || wa.light), surf: C(wa.foam), rim: C(wa.rim || wa.deep),
-    shadow: C(w.shadow.color), lift: w.shadow.lift, land: w.land || null,
+    shadow: C(w.shadow.color), lift: w.shadow.lift, land: w.land || null, clear: wa.clear || 1, night: !!w.night,
   };
 }
 
@@ -680,7 +761,7 @@ function landRamp() {
 export function buildLand(G) {
   const st = styleOf(G), place = placer(G), sea = seaLook(G);
   const root = new THREE.Group(), glass = new THREE.Group();
-  const life = { chimneys: [], lamps: [], flags: [], birds: [], people: [], houses: [], plumes: [], glints: [], spin: [] };
+  const life = { chimneys: [], lamps: [], flags: [], birds: [], people: [], houses: [], plumes: [], glints: [], spin: [], windows: [] };
   const swayCode = new Map();
   const reliefs = [], shadows = [], flats = [];
   const shade = (x, z, rad, h, a) => shadows.push([x, z, rad, h, a]);
@@ -694,8 +775,9 @@ export function buildLand(G) {
     if (o.kind === 'town') { const is = o.host && o.host.island != null ? G.islands[o.host.island] : null; o.bend = is ? Math.max(20, Math.hypot(o.x - is.x, o.y - is.y)) : 0; }
     if (!M || M.where !== 'land' || o.kind === 'peak' || o.kind === 'volcano' || !o.host) continue;
     if (o.kind === 'town' && o.host.island != null && G.islands[o.host.island].fort) continue; // a ring of houses, no pad
-    const ext = M.extent(o, o.hostR), color = o.kind === 'town' || o.kind === 'church' ? st.pad : o.kind === 'ruin' || o.kind === 'castle' ? '#b5ab8e' : null;
-    const spots = o.kind === 'town' ? townCircles(o) : [{ x: o.x, y: o.y, r: ext + 3 }];
+    const ext = M.extent(o, o.hostR), color = o.kind === 'town' || o.kind === 'church' || o.kind === 'mosque' || o.kind === 'chapel' ? st.pad
+      : o.kind === 'ruin' || o.kind === 'castle' || o.kind === 'kasbah' || o.kind === 'walls' ? '#b5ab8e' : o.kind === 'siegeworks' ? '#a08a66' : null;
+    const spots = o.kind === 'town' ? townCircles(o) : o.kind === 'walls' ? wallCircles(o) : [{ x: o.x, y: o.y, r: ext + 3 }];
     for (const p of spots) {
       if (o.host.island != null) { const is = G.islands[o.host.island]; islandPads[o.host.island].push({ x: p.x - is.x, y: p.y - is.y, r: p.r, color }); }
       else if (o.host.coast != null) coastPads[o.host.coast].push({ x: p.x, y: p.y, r: p.r, color });
@@ -724,6 +806,8 @@ export function buildLand(G) {
     chimney(g, x, y, z) { g.updateMatrixWorld(true); const p = toWorld(g, x, y, z); life.chimneys.push([p.x, p.y, p.z, Math.random() * 10]); },
     lamp(g, x, y, z) { g.updateMatrixWorld(true); const p = toWorld(g, x, y, z); life.lamps.push([p.x, p.y, p.z, Math.random() * 6]); },
     glint(g, x, y, z) { g.updateMatrixWorld(true); const p = toWorld(g, x, y, z); life.glints.push([p.x, p.y, p.z, Math.random() * 6]); },
+    // A window that is lit at night (a little proud of the wall, at x, y, z in g's frame).
+    window(g, x, y, z) { if (life.windows.length >= 90) return; g.updateMatrixWorld(true); const p = toWorld(g, x, y, z); life.windows.push([p.x, p.y, p.z, Math.random()]); },
     house(g, x, y, z) { g.updateMatrixWorld(true); const p = toWorld(g, x, y, z); if (ctx.town) ctx.town.push([p.x, p.y, p.z]); },
     // A soft shadow under something standing at (x, z) in g's frame: r across, h tall.
     shadow(g, x, z, r, h, a = 0.3) { g.updateMatrixWorld(true); const p = toWorld(g, x, 0, z); shade(p.x, p.z, r, h, a); },
@@ -856,7 +940,7 @@ export function buildLand(G) {
       for (let i = 0; i < 2; i++) life.birds.push({ x: wx(q.is.x), z: wz(q.is.y), y: 30 + q.rl.plateau + i * 6, r: q.is.r * 0.55, w: (k + i) % 2 ? 0.7 : -0.8, th: i * 2, ph: i * 3 + k, parrot: 1 + ((k + i) % 3) });
     });
   }
-  lastBuild = { G, mats, life, pools, groundAt, lee };
+  lastBuild = { G, mats, life, pools, groundAt, lee, night: sea.night };
   return out;
 }
 
@@ -884,9 +968,17 @@ function townCircles(o) {
   return out;
 }
 
+// The ground a bastioned wall covers: circles along its length (local z), a little to seaward.
+function wallCircles(o) {
+  const ax = Math.cos(o.face + PI / 2), ay = Math.sin(o.face + PI / 2), sx = Math.cos(o.face) * 4, sy = Math.sin(o.face) * 4;
+  const n = Math.max(2, Math.ceil(o.length / 18));
+  return Array.from({ length: n + 1 }, (_, i) => { const t = (i / n - 0.5) * o.length; return { x: o.x + ax * t + sx, y: o.y + ay * t + sy, r: 15 }; });
+}
+
 const landmarkNear = (G, x, y, pad) => (G.landmarks || []).some((o) => {
   const M = LANDMARKS[o.kind];
   if (!M || o.kind === 'peak' || o.kind === 'volcano' || o.kind === 'mangroves') return false;
+  if (o.kind === 'walls') return wallCircles(o).some((q) => Math.hypot(x - q.x, y - q.y) < q.r + pad);
   if (o.kind === 'town' && !o.ring) return townCircles(o).some((q) => Math.hypot(x - q.x, y - q.y) < q.r + pad);
   if (o.kind === 'town' && o.ring) {
     // Strung round a fort: the band of the island its arc of houses covers.
@@ -1171,6 +1263,14 @@ export function syncLand(G, clock, dt, np, ng) {
     if (ng >= 399) break;
     const f = 2.6 + 0.6 * Math.sin(clock * 2.2 + ph);
     setInst(P.glow, ng, x, y, z, f, f * 1.1, f); P.glow.setColorAt(ng++, C3.flame);
+  }
+  // Night: the town's windows are lit, a warm point each, flickering now and then.
+  if (L.night) {
+    for (const [x, y, z, ph] of life.windows) {
+      if (ng >= 396) break;
+      const f = 0.9 + 0.1 * Math.sin(clock * 3 + ph * 40) * (ph > 0.8 ? 1 : 0);
+      setInst(P.glow, ng, x, y, z, 0.75 * f, 0.95 * f, 0.75 * f); P.glow.setColorAt(ng++, C3.flash);
+    }
   }
   // The golden idol on a ruin glints now and then.
   for (const [x, y, z, ph] of life.glints) {

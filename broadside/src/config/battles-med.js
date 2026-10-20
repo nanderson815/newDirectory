@@ -241,8 +241,8 @@ export const MED_BATTLES = [
     goals: [
       { kind: 'sink' },
       { kind: 'protect', allies: [
-        { type: 'galley', name: 'San Giovanni', x: 0.4, y: 0.68, h: -90, hp: 340, up: { marines: 2 } },
-        { type: 'galley', name: 'Santa Ubaldesca', x: 0.6, y: 0.68, h: -90, hp: 340, up: { marines: 2 } },
+        { type: 'galley', name: 'San Giovanni', faction: 'knights', x: 0.4, y: 0.68, h: -90, hp: 340, up: { marines: 2 } },
+        { type: 'galley', name: 'Santa Ubaldesca', faction: 'knights', x: 0.6, y: 0.68, h: -90, hp: 340, up: { marines: 2 } },
       ] },
       { kind: 'take', ships: 'Rih', bonus: true, gold: 150 },
     ],
@@ -267,7 +267,7 @@ export const MED_BATTLES = [
   },
   {
     id: 'passero', world: W, region: 'malta', roman: 'IX', year: 1668, name: 'Storm off Cape Passero', foe: 'Tripoli rovers',
-    where: 'off the coast of Sicily', faction: 'barbary', reward: 900, wind: 0, sea: 1.4, weather: 'storm',
+    where: 'off the coast of Sicily', faction: 'barbary', reward: 900, wind: 0, sea: 1.4, weather: 'gale',
     brief: 'A Tripoli squadron is running down the Sicilian coast and the sky to the south is black. Sink them before the gale sets you all on the rocks of Cape Passero: when it blows, ships run faster, guns throw wild and the rain hides everything.',
     goals: [{ kind: 'sink' }, { kind: 'timer', secs: 200, bonus: true, gold: 170 }],
     enemy: [
@@ -357,7 +357,7 @@ export const MED_BATTLES = [
     brief: 'The Venetian galleass San Marco is trapped in Navarino Bay with you, and an Ottoman squadron is coming in. Cork the mouth of the bay with a ship for twenty seconds, and keep the San Marco afloat until the Venetian fleet arrives. The north channel is too shallow for anything bigger than a sloop.',
     fleetAt: { slots: [[0.46, 0.2], [0.34, 0.2], [0.56, 0.22], [0.4, 0.24], [0.5, 0.25]], h: 0 },
     goals: [
-      { kind: 'protect', secs: 160, allies: [{ type: 'galleass', name: 'San Marco', x: 0.62, y: 0.2, h: 0, hp: 440 }] },
+      { kind: 'protect', secs: 160, allies: [{ type: 'galleass', name: 'San Marco', faction: 'venice', x: 0.62, y: 0.2, h: 0, hp: 440 }] },
       { kind: 'reach', x: 0.68, y: 0.36, r: 0.1, secs: 20, label: 'Hold the mouth' },
       { kind: 'hunt', ships: 'Kaplan', bonus: true, gold: 180 },
     ],
@@ -402,7 +402,7 @@ export const MED_BATTLES = [
       { at: 75, banner: ['The Kapudan’s squadron!', 'A kalyon and a galleass bear down'],
         spawn: [{ type: 'kalyon', name: 'Fatih', x: 0.6, y: 0.06, h: 90 }, { type: 'galleass', name: 'Ejder', x: 0.85, y: 0.1, h: 120 }] },
       { at: 100, banner: ['The Santa Giustina!', 'A Venetian galleass comes out to stand with you'],
-        spawn: [{ type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, x: 0.9, y: 0.66, h: 180, hp: 380 }] },
+        spawn: [{ type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, faction: 'venice', x: 0.9, y: 0.66, h: 180, hp: 380 }] },
       { at: 122, banner: ['The final assault!', 'Fire galleys and the last kalyons'],
         spawn: [{ type: 'firegalley', name: 'Alev', x: 0.3, y: 0.06, h: 90 }, { type: 'kalyon', name: 'Zafer', x: 0.12, y: 0.12, h: 60 }] },
     ],
@@ -490,8 +490,8 @@ export const MED_BATTLES = [
         spawn: [{ type: 'galley', name: 'Doğan', x: 0.2, y: 0.14, h: 60 }, { type: 'galley', name: 'Şahin', x: 0.06, y: 0.56, h: 0 },
           { type: 'firegalley', name: 'Alev', x: 0.08, y: 0.2, h: 60 }] },
       { bossHp: 0.35, banner: ['Venetian galleasses!', 'San Marco and Santa Giustina join the fight'],
-        spawn: [{ type: 'galleass', name: 'San Marco', team: 'player', ally: true, x: 0.12, y: 0.92, h: -60, hp: 380 },
-          { type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, x: 0.72, y: 0.94, h: -110, hp: 380 }] },
+        spawn: [{ type: 'galleass', name: 'San Marco', team: 'player', ally: true, faction: 'venice', x: 0.12, y: 0.92, h: -60, hp: 380 },
+          { type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, faction: 'venice', x: 0.72, y: 0.94, h: -110, hp: 380 }] },
     ],
     // The great fleet action on a wide sea: Tenedos to the north-west hiding the galley reserve, the Asian shore
     // close on the right, a reef and an islet to split the Ottoman crescent as it comes down on you.
