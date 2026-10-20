@@ -99,7 +99,7 @@ const CARIBBEAN = [
       { x: 0.5, y: 0.7, r: 54, stretch: 3, angle: 0 }, { x: 0.94, y: 0.52, r: 34, stretch: 1.4, angle: 90 },
       { x: 0.1, y: 0.62, r: 34, stretch: 1.8, angle: 70 }, { x: 0.86, y: 0.8, r: 30, stretch: 1.6, angle: -30 },
     ],
-    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 1.05, hpMul: 1.7 },
+    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.95, hpMul: 1.55 },
   },
   {
     id: 'rojo', region: 'windward', roman: 'III', year: 1656, name: 'La Bruja', foe: 'Capitán Rojo',
@@ -137,7 +137,7 @@ const CARIBBEAN = [
     shoals: [{ x: 0.38, y: 0.19, r: 40, stretch: 1.5, angle: 80 }, { x: 0.38, y: 0.68, r: 40, stretch: 1.5, angle: 100 }],
     currents: [{ x: 0.3, y: 0.42, r: 90, stretch: 3, angle: 0, speed: 10 }],
     forts: [{ island: 0, name: 'Fort San Lucas', hp: 380, guns: 2, need: 10 }],
-    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 1.0, hpMul: 1.7 },
+    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 1.0, hpMul: 1.8 },
   },
   {
     id: 'silver', region: 'main', roman: 'V', year: 1657, name: 'The Silver Fleet', foe: 'treasure convoy',
@@ -282,7 +282,7 @@ const CARIBBEAN = [
       { enemiesLeft: 1, banner: ['The Black Dog!', 'The smugglers’ brig joins the hunt'],
         spawn: [{ type: 'brig', name: 'Black Dog', x: 0.5, y: 0.17, h: 90 }] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.45, hpMul: 2.5 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.5, hpMul: 2.5 },
   },
   {
     id: 'wreck', region: 'pirate', roman: 'XI', year: 1660, name: 'The Treasure Wreck', foe: 'pirate salvors',
