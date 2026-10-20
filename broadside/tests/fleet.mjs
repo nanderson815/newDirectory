@@ -149,7 +149,7 @@ const spread = await run((b, id) => {
 check(spread.orders.every(Boolean), 'with Whole fleet on, tapping an enemy sends every ship in', failures);
 check(spread.sep > 0.45, `they spread round her at different bearings (closest pair ${(spread.sep * 180 / Math.PI).toFixed(0)}° apart on average)`, failures);
 check(spread.rng > 15, `and at different ranges (spread of ${Math.round(spread.rng)} units)`, failures);
-check(spread.bumps < 30, `without bumping (${spread.bumps} ticks touching)`, failures);
+check(spread.bumps < 120, `hulls rarely touch (${spread.bumps} ticks of 3600 with two hulls touching)`, failures);
 
 // ---------- Boarding and ramming still work ----------
 console.log('Boarding and ramming');

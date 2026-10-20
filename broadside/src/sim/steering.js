@@ -237,6 +237,15 @@ export function beamSteer(s, t, st = null) {
       if (!st.turn) {
         const r = Math.max(s.v, 20) / s.turn, inward = d > ideal + r * 0.5 ? 1 : -1;
         st.turn = inward * (Math.sign(angDiff(s.h, bearing)) || 1);
+        // Never wear round into a friend close aboard: turn away from her instead.
+        let f = null, fd = Infinity;
+        for (const o of G.ships) {
+          if (o === s || o.team !== s.team || !afloat(o)) continue;
+          const dd = Math.hypot(o.x - s.x, o.y - s.y);
+          if (dd < (s.L + o.L) * 2 && dd < fd) { fd = dd; f = o; }
+        }
+        // (Only from well out, tacking in: from close in, wearing the other way would carry her through the target.)
+        if (f && inward > 0 && Math.sign(angDiff(s.h, Math.atan2(f.y - s.y, f.x - s.x))) === st.turn) st.turn = -st.turn;
       }
       desired = s.h + st.turn * 1.2;
     } else if (st) st.turn = 0;

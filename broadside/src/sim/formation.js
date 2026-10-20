@@ -116,7 +116,9 @@ export function formationSteer(s) {
   } else {
     // On station: steer for a point a little ahead on the line, and trim sail to hold her place.
     if (o.kind === 'line') { const w = wakePoint(p, Math.max(0, o.gap - ahead)); ax = w.x; ay = w.y; } else { ax = sx + tx * ahead; ay = sy + ty * ahead; }
-    s.fV = clamp(0.8 + 0.9 * along / gap, 0.35, 1);
+    // Gap error, plus how fast she is closing on her leader: when the ship ahead shortens sail (a turn, a gust)
+    // she eases off at once, before the gap closes up.
+    s.fV = clamp(0.8 + 0.9 * along / gap - 1.4 * (s.v - p.v) / Math.max(s.speed, 1), 0.3, 1);
   }
   // A ship whose station is a little astern of her and close in can't turn back onto it: she eases right off.
   if (along < -gap * 0.25 && dS < gap) s.fV = 0.35;
