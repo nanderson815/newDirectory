@@ -75,7 +75,7 @@ export const HILLS = [[80, 350], [130, 425], [60, 240], [200, 445], [250, 470], 
   [612, 676], [985, 640], [470, 172], [540, 196], [700, 282], [742, 298], [248, 300]];
 export const LANDNAMES = [
   ['NUEVA ESPAÑA', 132, 400, -10, 13], ['YUCATÁN', 246, 268, -78, 10], ['CUBA', 482, 182, 12, 12],
-  ['HISPANIOLA', 714, 292, 4, 10], ['FLORIDA', 470, 34, 62, 9], ['TIERRA FIRME', 640, 640, -4, 13],
+  ['HISPANIOLA', 714, 292, 4, 10], ['FLORIDA', 470, 34, 62, 9], ['TIERRA FIRME', 654, 642, -4, 13],
 ];
 export const SEANAMES = [['Mar del Sur', 200, 640, -8], ['Mar del Norte', 846, 64, 0]];
 
@@ -115,9 +115,10 @@ export function legPaths(ids, nodes = NODES) {
 
 // Boxes (in map units, unrotated) of a battle's name label and star row, for the layout checks. Nodes and names
 // keep their pixel size while the map scales, so at map scale `scale` they cover 1/scale as many map units.
-export const nodeRadius = (id, scale = 1) => (NODES[id].boss ? 26 : 20) / scale;
-export function nameBox(id, won, scale = 1) {
-  const n = NODES[id], r = nodeRadius(id, scale), w = (n.label.length * 6.1 + 6) / scale, h = 15 / scale;
+// `nodes` is the plate's node table (this one by default).
+export const nodeRadius = (id, scale = 1, nodes = NODES) => (nodes[id].boss ? 26 : 20) / scale;
+export function nameBox(id, won, scale = 1, nodes = NODES) {
+  const n = nodes[id], r = nodeRadius(id, scale, nodes), w = (n.label.length * 6.1 + 6) / scale, h = 15 / scale;
   const gap = (won ? 15 : 5) / scale;
   switch (n.name) {
     case 'above': return { x: n.x - w / 2, y: n.y - r - 5 / scale - h, w, h };
@@ -126,7 +127,7 @@ export function nameBox(id, won, scale = 1) {
     default: return { x: n.x - w / 2, y: n.y + r + gap - 2 / scale, w, h };
   }
 }
-export function starBox(id, scale = 1) {
-  const n = NODES[id], r = nodeRadius(id, scale), w = 34 / scale;
+export function starBox(id, scale = 1, nodes = NODES) {
+  const n = nodes[id], r = nodeRadius(id, scale, nodes), w = 34 / scale;
   return { x: n.x - w / 2, y: n.y + r, w, h: 12 / scale };
 }
