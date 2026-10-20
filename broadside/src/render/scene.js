@@ -304,21 +304,20 @@ export function syncScene() {
   }
 
   // Night: every gun fired lights the whole sea for an instant; the stern lanterns burn, their light lying on the
-  // water under them; a burning ship throws an orange glow round her.
+  // water under them.
   if (night) {
     R.hemi.intensity = WX.hemi * (1 + Math.min(1.1, gunLight) * (1 + WX.flash));
     for (const s of G.ships) {
       const m = shipMeshes.get(s.id);
       if (!m || !m.g.visible || m.vis < 0.6 || s.state === 'sunk' || s.hidden === true) continue;
-      const c = Math.cos(s.h), sn = Math.sin(s.h), bodyY = m.body.position.y, burning = s.burning === true || s.fireT > 0;
+      const c = Math.cos(s.h), sn = Math.sin(s.h), bodyY = m.body.position.y;
       for (const [lx, ly, lz, lr] of m.tpl.lanterns || []) {
         if (ng >= 396) break;
         const ax = lx * MODEL_SCALE, az = lz * MODEL_SCALE, x = wx(s.x + ax * c - az * sn), z = wz(s.y + ax * sn + az * c);
         const f = 1 + 0.08 * Math.sin(clock * 7 + s.bob + lz);
-        setInst(P.glow, ng, x, (ly + bodyY) * MODEL_SCALE, z, lr * 0.9 * f, lr * 0.9 * f, lr * 0.9 * f); P.glow.setColorAt(ng++, C3.flash);
-        setInst(P.glow, ng, x, 0.42, z, lr * 1.3, 0.04, lr * 3.2 * f); P.glow.setColorAt(ng++, C3.flame);
+        setInst(P.glow, ng, x, (ly + bodyY) * MODEL_SCALE, z, lr * 1.3 * f, lr * 1.3 * f, lr * 1.3 * f); P.glow.setColorAt(ng++, C3.flash);
+        setInst(P.glow, ng, x, 0.42, z, lr * 1.1, 0.04, lr * 4 * f); P.glow.setColorAt(ng++, C3.flame);
       }
-      if (burning && ng < 398 && s.state !== 'sinking') { const r = s.L * (0.7 + 0.06 * Math.sin(clock * 9 + s.bob)); setInst(P.glow, ng, wx(s.x), 0.38, wz(s.y), r, 0.03, r * 0.7, 0, -s.h, 0); P.glow.setColorAt(ng++, C3.ember); }
     }
   }
   // Ship effects drawn straight from the ship state (no sim particles): bow spray and deck fires.

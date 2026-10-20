@@ -39,7 +39,7 @@ const FLORA = {
   pine: ['#3f6f4b', '#477a51', '#3a6646'], cactus: '#6b9a62', agave: ['#82a98b', '#6c977b'],
   mangrove: ['#3f7236', '#36683a'], root: '#5e4632',
   // The Mediterranean's trees.
-  olive: ['#8e9c6c', '#98a676', '#84936a'], oliveTrunk: '#7d6c58', cypress: ['#2f5238', '#365a3c', '#2b4b35'],
+  olive: ['#6e8252', '#7a8c5a', '#67794c'], oliveTrunk: '#6d5c48', cypress: ['#2f5238', '#365a3c', '#2b4b35'],
   stone: ['#4f7044', '#5a7a49'], pineTrunk: '#8a6446', dateTrunk: '#a3845a', dateFrond: ['#7d9e62', '#6e9158'], dates: '#b0602a',
 };
 const STYLES = {
@@ -89,40 +89,40 @@ const STYLES = {
   // into fields, banded by height.
   // The Straits: Gibraltar's pale limestone, dry golden scrub, cork and umbrella pine.
   straits: {
-    sand: '#ead6a6', wet: '#c6ad7c', grass: ['#aaa86a', '#949a5c'], meadow: '#c9b77c', high: '#848b56', forest: '#5f6b42',
+    sand: '#ecd8a8', wet: '#c6ad7c', grass: ['#a9a866', '#939a58'], meadow: '#cbb877', high: '#7d8a52', forest: '#55653c',
     rock: '#cfc6b2', strata: '#a9a08c', pad: '#dfcca2',
     cliffs: 0.4, hill: 22, plateau: 6, beach: 0.12, density: 0.7, veg: { grove: 'stone', palms: 0, forest: 0.6, dry: 'maquis', cypress: 0.15 },
     F: { canopy: ['#5f7a45', '#6b8449'], bush: ['#7d8a4f', '#8a9455'], scrub: ['#9a9a5a', '#8a8d52'], stone: ['#4f7044', '#5a7a49'] },
   },
   // The Barbary coast: ochre hills, red rock, date palms behind the beaches, olives inland.
   barbary: {
-    sand: '#efd7a2', wet: '#ccad79', grass: ['#bba96c', '#a6965c'], meadow: '#d6ba7c', high: '#9c8654', forest: '#727a46',
-    rock: '#cf9c6a', strata: '#ab7650', pad: '#e8d2a4',
+    sand: '#f1dcaa', wet: '#ccad79', grass: ['#b8a462', '#a39256'], meadow: '#d2b56e', high: '#a8835a', forest: '#6a7342',
+    rock: '#cf9466', strata: '#a86e4a', pad: '#ece0c4',
     cliffs: 0.25, hill: 18, plateau: 5, beach: 0.16, density: 0.6, veg: { grove: 'olive', orchard: true, palms: 0.55, date: true, forest: 0.4, dry: 'maquis' },
-    F: { bush: ['#8a8a50', '#7d824c'], scrub: ['#a89a5c', '#968e56'] },
+    F: { bush: ['#5f7342', '#6a7a46'], scrub: ['#7f8248', '#8a8a4e'], olive: ['#6c8050', '#778a58', '#65784a'] },
   },
   // Malta: honey-coloured limestone, cliffs to the sea, small fields stepped down the slopes.
   malta: {
-    sand: '#eedca9', wet: '#cbb27d', grass: ['#aeb06c', '#97995e'], meadow: '#cbbd80', high: '#8a8b52', forest: '#68733f',
+    sand: '#efdcaa', wet: '#cbb27d', grass: ['#b2ad68', '#9c9c5c'], meadow: '#cfbd78', high: '#8a8a50', forest: '#5f6c3c',
     rock: '#ddc28c', strata: '#bf9f68', pad: '#e8d29e',
     cliffs: 0.5, hill: 12, plateau: 6, beach: 0.07, density: 0.5, veg: { grove: 'olive', orchard: true, palms: 0.06, forest: 0.32, dry: 'maquis', cypress: 0.1 },
-    terraces: true, fields: ['#d4c07e', '#9fa863', '#c09a68'],
-    F: { bush: ['#8a8d52', '#7f874d'], scrub: ['#a8a060', '#9a955a'] },
+    terraces: true, fields: ['#dcc474', '#8ea456', '#bc8c5c'],
+    F: { bush: ['#61753f', '#6d7e46'], scrub: ['#86884c', '#7c8046'], olive: ['#6c8050', '#778a58', '#65784a'] },
   },
   // The Morea and the Ionian isles: grey limestone and marble, olive groves, cypresses, steep rocky islands.
   aegean: {
     sand: '#ecdfb8', wet: '#c9b688', grass: ['#a3b06e', '#8d9d60'], meadow: '#bdba7e', high: '#7d8f59', forest: '#57703f',
     rock: '#bdb4a3', strata: '#9a9180', pad: '#e8ddc3',
     cliffs: 0.42, hill: 24, plateau: 6, beach: 0.1, density: 0.75, veg: { grove: 'olive', orchard: true, palms: 0, forest: 0.6, dry: 'maquis', cypress: 0.35 },
-    terraces: true, fields: ['#cbbd7e', '#a3ad68', '#b89c6c'],
-    F: { bush: ['#7f8f55', '#738650'], scrub: ['#9a9c62', '#8d935a'] },
+    terraces: true, fields: ['#d2c47c', '#8fa65a', '#b8946a'],
+    F: { bush: ['#5c7442', '#68804a'], scrub: ['#828a52', '#78834c'], olive: ['#6a8052', '#758b5a', '#62784c'] },
   },
   // Crete before Candia: dry slopes under bare mountains, olives and cypresses, earth churned by the siege.
   candia: {
-    sand: '#e8d4a4', wet: '#c6ad7a', grass: ['#a8a464', '#939358'], meadow: '#c4b277', high: '#808650', forest: '#5b6a3c',
+    sand: '#ead6a6', wet: '#c6ad7a', grass: ['#b0a862', '#9a9858'], meadow: '#cbb574', high: '#868650', forest: '#56653a',
     rock: '#c8b089', strata: '#a58e69', pad: '#dcc59a',
     cliffs: 0.32, hill: 22, plateau: 6, beach: 0.1, density: 0.6, veg: { grove: 'olive', orchard: true, palms: 0.04, forest: 0.45, dry: 'maquis', cypress: 0.3 },
-    F: { bush: ['#86884f', '#7a824b'], scrub: ['#a09656', '#958d52'] },
+    F: { bush: ['#5f7240', '#6b7c46'], scrub: ['#82844a', '#78804a'], olive: ['#6c8050', '#778a58', '#65784a'] },
   },
   // The Dardanelles: green rolling hills, oak and pine woods, cypresses by the towns.
   dardanelles: {
@@ -358,7 +358,7 @@ function paint(geo, info, st, rl) {
     // Small fields (terraces): a patchwork of green, stubble and ploughed earth over the open ground.
     if (st.terraces) {
       const fi = Math.floor(f.fx / 26 + 0.5 * Math.floor(f.fy / 18)), fj = Math.floor(f.fy / 18), h = hash2(fi + 3.1, fj + rl.s1);
-      _c.lerp(h < 0.34 ? fieldA : h < 0.67 ? fieldB : fieldC, 0.5 * (1 - smooth(0.3, 0.6, f.grove)));
+      _c.lerp(h < 0.34 ? fieldA : h < 0.67 ? fieldB : fieldC, 0.68 * (1 - smooth(0.3, 0.6, f.grove)));
     }
     // Broad, soft swells of light and shade across the land, so a wide stretch of grass is never one flat colour.
     _c.multiplyScalar(0.9 + 0.2 * noise2(f.fx * 0.0085 + rl.s2, f.fy * 0.0085 + 3.3));
@@ -493,7 +493,7 @@ function planter(st, ctx, shade, crownAt) {
     grove(g, x, y, z, s, r, edge, wpos) {
       n[edge ? 'edge' : 'grove']++;
       // An olive orchard: every tree outlined and shaded, in its row (the orchard reads as rows, not a wood).
-      if (V.grove === 'olive') { olive(g, x, y, z, s * 0.86, r, F); shade(wpos[0], wpos[1], 4.6 * s, 6 * s, 0.26); crownAt(wpos[0], wpos[1], 5 * s); return; }
+      if (V.grove === 'olive') { olive(g, x, y, z, s * 0.66, r, F); shade(wpos[0], wpos[1], 3.6 * s, 5 * s, 0.3); crownAt(wpos[0], wpos[1], 4 * s); return; }
       if (V.grove === 'pine') pine(g, x, y, z, s * (edge ? 0.92 : 1.02), r, F, { ink: edge });
       else if (V.grove === 'stone' || (V.grove === 'mixed' && r() < 0.3)) stonePine(g, x, y, z, s * (edge ? 0.92 : 1), r, F, { ink: edge });
       else crown(g, x, y, z, s * (edge ? 0.94 : 1.04), r, F, { lo: !edge, ink: edge, two: edge && r() < 0.25 });
@@ -636,7 +636,7 @@ function plantCoast(G, q, st, root, P, r) {
         if (V.orchard) {
           // Rows of olives along the shore: each tree at its cell's centre.
           const ot = -0.12 + ((c.i + 0.5) * cell) / cr.len, os = s0 + (c.j + 0.5) * cell, [mx, my] = cr.point(ot, os);
-          P.grove(g, wx(mx), cr.h(ot, os, null, mx, my), wz(my), k * 0.9, r, true, [wx(mx), wz(my)]);
+          P.grove(g, wx(mx), cr.h(ot, os, null, mx, my), wz(my), k * 0.72, r, true, [wx(mx), wz(my)]);
           continue;
         }
         P.grove(g, x, c.y, z, s, r, near && !nb.every(inGrove), wp);
@@ -1269,7 +1269,7 @@ export function syncLand(G, clock, dt, np, ng) {
     for (const [x, y, z, ph] of life.windows) {
       if (ng >= 396) break;
       const f = 0.9 + 0.1 * Math.sin(clock * 3 + ph * 40) * (ph > 0.8 ? 1 : 0);
-      setInst(P.glow, ng, x, y, z, 0.75 * f, 0.95 * f, 0.75 * f); P.glow.setColorAt(ng++, C3.flash);
+      setInst(P.glow, ng, x, y, z, 1.25 * f, 1.5 * f, 1.25 * f); P.glow.setColorAt(ng++, C3.flash);
     }
   }
   // The golden idol on a ruin glints now and then.

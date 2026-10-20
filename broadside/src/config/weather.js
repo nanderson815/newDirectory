@@ -175,7 +175,7 @@ Object.assign(PRESETS, {
     light: { sky: '#7a98c8', ground: '#0e1c30', hemi: 1.0, sun: '#a8c4ff', sunI: 1.0, dir: [0.4, 1, -0.5] },
     shadow: { color: '#000814', opacity: 0.3, lift: [0.22, 0.28] },
     swell: 0.9,
-    land: { sat: 0.55, tint: '#8496c0' },
+    land: { sat: 0.55, tint: '#93a4cc' },
     screen: { tint: '#0a1a3a', tintA: 0.1, haze: '#1a2a48', hazeA: 0.25, hazeFrom: 0.5, vignette: 0.5, vignetteColor: '#000510' },
     fog: { color: '#0c1626', alpha: 0.72, wisp: 0.1, radius: 250 },
     night: true,

@@ -380,7 +380,7 @@ function goods(g, x, z, rnd, ctx) {
 // street's direction (local z, at yaw 0) to its direction there.
 // A bigger town (and any city) has a back lane with a third row of houses behind the landward one, if there's
 // room inland; a city fills out its rows with more houses than its sim count.
-const DENSE = { city: 0.5, kasbah: 0.6, venetian: 0.5, maltese: 0.45 };
+const DENSE = { city: 0.5, kasbah: 1, venetian: 0.6, maltese: 0.5 };
 export function townLayout(o) {
   const ext = 6 + 4.5 * Math.sqrt(o.houses), bend = o.bend || 0;
   const half = bend ? Math.min(ext * 1.3, bend * 0.9) : ext * 1.3;
@@ -419,7 +419,7 @@ function mosque(b, kind, ctx, k = 1) {
     add(g, box(2.2, 3.2, 2.2), white, mx, 23.6, mz, 0.06);
     add(g, hip(2.2, 2.2, 1.6), '#3f7a52', mx, 25.2, mz, 0.06);
     for (const yy of [27.3, 28.4]) add(g, new THREE.SphereGeometry(0.42, 6, 4), '#e2b13a', mx, yy, mz);
-    ctx.lamp(g, mx, 24, mz);
+    ctx.window(g, mx, 24, mz);
   } else {
     add(g, box(12, 7, 12), white, 0, 3.5, 0, 0.035);
     add(g, cyl(5.6, 6, 2, 12), white, 0, 7.8, 0, 0.04);
@@ -435,7 +435,7 @@ function mosque(b, kind, ctx, k = 1) {
     add(g, cyl(1.9, 1.5, 0.9, 10), white, mx, 20, mz, 0.06);
     add(g, new THREE.ConeGeometry(1.25, 6.5, 10), lead, mx, 28.2, mz, 0.06);
     add(g, cyl(0.15, 0.15, 1.6, 4), '#e2b13a', mx, 32, mz);
-    ctx.lamp(g, mx, 20.6, mz);
+    ctx.window(g, mx, 20.6, mz);
   }
 }
 // Malta's: a honey-stone church with a great dome on a drum and twin bell towers at its front (+x).
