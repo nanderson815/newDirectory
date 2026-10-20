@@ -78,7 +78,7 @@ export const LANDNAMES = [
   ['SICILY', ...lonLat(14, 37.6), -6, 9], ['MOREA', ...lonLat(22.3, 37.4), -20, 9], ['ANATOLIA', ...lonLat(27.8, 38.2), -80, 10],
   ['TRIPOLI', ...lonLat(14.5, 31.0), -4, 11], ['CANDIA', ...lonLat(24.8, 35.18), -4, 8],
 ];
-export const SEANAMES = [['Mare Mediterraneum', ...lonLat(6.5, 39.0), -4], ['Mare Aegaeum', ...lonLat(25, 37.4), -70]];
+export const SEANAMES = [['Mare Mediterraneum', ...lonLat(5.2, 40.5), -4], ['Mare Aegaeum', ...lonLat(25, 37.4), -70]];
 
 // ---------- The route ----------
 export const routePoints = (ids) => caribRoute(ids, NODES);

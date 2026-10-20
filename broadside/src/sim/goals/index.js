@@ -101,7 +101,8 @@ export function goalLines(G) {
 // Text for the briefing and results screens.
 export const briefText = (B) => required(B).map((o) => GOALS[o.kind].brief(o, B)).join(' ');
 // The bonus orders, each with its prize: [{ text, gold }].
-export const bonusText = (B) => bonusGoals(B).map((o) => ({ text: GOALS[o.kind].brief(o, B), gold: bonusGold(o, B) }));
+// (A hunt's "the rest don't matter" is about the main fight, so a bonus drops it.)
+export const bonusText = (B) => bonusGoals(B).map((o) => ({ text: GOALS[o.kind].brief(o, B).replace(/; the rest don’t matter\./, '.'), gold: bonusGold(o, B) }));
 export function winText(B) {
   const o = goalsOf(B)[0];
   return GOALS[o.kind].won ? GOALS[o.kind].won(o, B) : `The ${B.foe} is beaten.`;
