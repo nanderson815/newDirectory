@@ -553,7 +553,7 @@ function hullHalf(L, B, pear) {
 // ---------- Figureheads ----------
 // A carving at the stem head, in its own frame: x forward, y up, base at the origin, k = her scale (about a
 // sixth of her beam). gilded: the Almirante's gold leaf over everything.
-function figurehead(kind, k, gilded) {
+function figurehead(kind, k, gilded, hd) {
   const g = new THREE.Group();
   const c = (col) => toon(gilded && col !== INK_DOT ? GILT : col);
   const add = (geo, col, x, y, z, rot, sc, ink = 0.1) => {
@@ -565,8 +565,9 @@ function figurehead(kind, k, gilded) {
     g.add(m);
     return m;
   };
-  const ball = (r) => new THREE.SphereGeometry(r * k, 12, 9);
-  const rod = (r0, r1, len) => new THREE.CylinderGeometry(r0 * k, r1 * k, len * k, 8);
+  // At sea the carving is a few pixels high: fewer facets there than in the yard.
+  const ball = (r) => new THREE.SphereGeometry(r * k, hd ? 12 : 7, hd ? 9 : 5);
+  const rod = (r0, r1, len) => new THREE.CylinderGeometry(r0 * k, r1 * k, len * k, hd ? 8 : 5);
   const eyes = (x, y, dz, r = 0.055) => { for (const z of [-dz, dz]) add(ball(r), INK_DOT, x, y, z, null, null, 0); };
   switch (kind) {
     case 'lion': {
@@ -847,7 +848,7 @@ export function shipTemplate(s, faction, opts = {}) {
   // The figurehead at her stem head, under the bowsprit (on a xebec, at the end of her beak).
   if (!sp.tar) {
     const k = clamp(B * 0.15, 2.4, 6.6);
-    const fh = part(figurehead(ids.figurehead, k, almirante), 'figurehead');
+    const fh = part(figurehead(ids.figurehead, k, almirante, parts), 'figurehead');
     if (sp.beak) fh.position.set(L * 0.6, base + d * 0.9, 0);
     else fh.position.set(L * 0.5 + k * 0.2, deckY - d * (sp.pear ? 0.2 : 0.32), 0);
     fh.rotation.z = 0.42;
