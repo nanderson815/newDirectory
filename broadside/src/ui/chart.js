@@ -1,11 +1,11 @@
-// The campaign sea chart: an illustrated parchment map of the Caribbean drawn as inline SVG, with the battles
-// as tappable buttons laid over it and the voyage drawn between them in campaign order: legs already sailed in
-// terracotta ink, the leg ahead dotted, the rest of the voyage not yet charted. The map is drawn in a
-// 1000 x 700 coordinate space (geometry in chart-map.js) and scaled to cover the screen; whatever doesn't fit
-// pans (drag or scroll).
+// The campaign sea chart: an illustrated printed plate drawn as inline SVG, with the battles as tappable buttons
+// laid over it and the voyage drawn between them in campaign order: legs already sailed in inked dashes, the leg
+// ahead dotted in red, the rest of the voyage not yet charted. Each plate is drawn in its own map units (W x H in
+// its geometry module) and scaled to cover the screen, never below 1:1; whatever doesn't fit pans (drag or scroll).
 //
-// Worlds: the chart shows one world at a time (save.js currentWorld; the West Indies plate from chart-map.js, the
-// Mediterranean's placeholder plate from chart-map-med.js), and a link in the chart's nav sails to the other.
+// Worlds: the chart shows one world's plate at a time (save.js currentWorld): the West Indies from chart-map.js
+// (1000 x 700), the Middle Sea from chart-map-med.js (a long plate, 1300 x 700). screens.js sets the plates' names
+// above it as tabs.
 import { BATTLES, REGIONS } from '../config/battles.js';
 import { worldById } from '../config/worlds.js';
 import * as CARIB from './chart-map.js';
@@ -15,12 +15,14 @@ import { ENDLESS_ID, ENDLESS } from '../config/endless.js';
 import { save, isUnlocked, currentWorld } from '../save.js';
 import { mainGoal } from '../sim/goals/index.js';
 import { iconSVG } from './icons.js';
-import { W, H } from './chart-map.js';
 
-// Each world's plate: its geometry module, the compass rose, the cartouche and the sea creatures.
+// Each world's plate: its geometry module, where the compass rose and the cartouche sit, its two vignettes, and
+// what else it carries (Port Royal's flag and the Endless Skirmish are the West Indies').
 const PLATES = {
-  caribbean: { map: CARIB, rose: [826, 166], title: 'The West Indies', beasts: true, port: true, endless: true },
-  med: { map: MED, rose: [700, 560], title: 'The Middle Sea', beasts: false, port: false, endless: false },
+  caribbean: { map: CARIB, rose: [826, 166], cartouche: [852, 652], title: 'The West Indies', sub: 'Drawn for the Admiral, 1655',
+    art: () => SERPENT + WHALE, port: true, endless: true },
+  med: { map: MED, rose: MED.ROSE, cartouche: MED.CARTOUCHE, title: 'The Middle Sea', sub: 'Printed for the Admiralty, 1666',
+    art: () => galley(...MED.VIGNETTES.galley) + dolphin(...MED.VIGNETTES.dolphin), port: false, endless: false },
 };
 const plateOf = (world) => PLATES[world] || PLATES.caribbean;
 let P = PLATES.caribbean;
@@ -65,7 +67,30 @@ const WHALE = '<g class="ch-beast" transform="translate(672 30) scale(0.72)">' +
   '<path d="M6 38 Q30 50 56 40" class="ch-line"/>' +
   '<circle cx="20" cy="26" r="3" class="ch-pupil"/>' +
   '</g>';
-const cartouche = (title, sub) => '<g class="ch-cartouche" transform="translate(852 652)">' +
+// The Middle Sea's two: a galley under her lateen with the oars out, and a dolphin leaping.
+const galley = (x, y) => `<g class="ch-beast" transform="translate(${x} ${y}) scale(0.8)">` +
+  '<path d="M-22 46 Q-6 40 10 46 T42 46 T74 46 T106 46 T138 46" class="ch-wave"/>' +
+  [16, 26, 36, 46, 56, 66, 76, 86].map((x) => `<path d="M${x} 33 L${x - 11} 47" class="ch-oar"/>`).join('') +
+  '<path d="M-18 27 L6 30 Q60 34 108 29 Q116 27 121 17 Q123 30 117 36 Q90 41 40 40 Q16 39 6 33 Z" class="ch-hull"/>' +
+  '<path d="M8 33 Q60 37 112 32" class="ch-line" style="stroke-width:0.9"/>' +
+  '<path d="M92 30 Q93 17 104 16 Q114 16 117 27" class="ch-tent"/>' +
+  '<path d="M98 29 Q99 20 104 18 M106 17 Q111 20 111 28" class="ch-line" style="stroke-width:0.9"/>' +
+  '<path d="M41 31 L36 -12" class="ch-line"/>' +
+  '<path d="M9 15 L86 -27 Q79 2 62 24 Q34 22 9 15 Z" class="ch-sail"/>' +
+  '<path d="M3 18 L90 -29" class="ch-line"/>' +
+  '<path d="M36 -12 Q45 -17 55 -13 Q46 -10 36 -8 Z" class="ch-fin"/>' +
+  '<path d="M119 18 L120 9" class="ch-line" style="stroke-width:1"/><circle cx="120" cy="7" r="2.6" class="ch-fin"/>' +
+  '</g>';
+const dolphin = (x, y) => `<g class="ch-beast" transform="translate(${x} ${y}) scale(0.82)">` +
+  '<path d="M-20 42 Q-6 36 8 42 T36 42 T64 42 T92 42" class="ch-wave"/>' +
+  '<path d="M-2 30 Q0 22 8 19 Q24 -4 46 4 Q60 10 64 25 L77 16 Q72 26 76 38 L61 31 Q52 14 34 13 Q18 13 12 27 Q8 33 4 34 Q0 33 -2 30 Z" class="ch-dolphin"/>' +
+  '<path d="M29 3 Q33 -10 43 -9 Q38 -3 40 5" class="ch-dolphin"/>' +
+  '<path d="M22 17 Q19 27 28 30 Q25 23 28 16" class="ch-dolphin"/>' +
+  '<path d="M-1 30 Q4 31 9 28 M14 9 Q24 1 36 1" class="ch-line" style="stroke-width:0.9"/>' +
+  '<circle cx="10" cy="22" r="2" class="ch-pupil"/>' +
+  '<path d="M-6 37 Q-9 31 -14 29 M-3 36 Q-3 31 -6 27 M70 41 Q76 35 82 36" class="ch-spout"/>' +
+  '</g>';
+const cartouche = ([x, y], title, sub) => `<g class="ch-cartouche" transform="translate(${x} ${y})">` +
   '<path d="M-100 -22 H100 Q93 0 100 22 H-100 Q-93 0 -100 -22 Z" class="ch-scroll"/>' +
   '<path d="M-92 -15 H92 M-92 15 H92" class="ch-line" style="stroke-width:0.6;opacity:0.5"/>' +
   '<path d="M-100 -22 Q-114 -16 -108 -6 Q-100 -2 -96 -10 M100 22 Q114 16 108 6 Q100 2 96 10" class="ch-line"/>' +
@@ -74,14 +99,14 @@ const cartouche = (title, sub) => '<g class="ch-cartouche" transform="translate(
   '</g>';
 
 function mapSVG() {
-  const { LAND, ISLES, HILLS, LANDNAMES, SEANAMES, REGION_LABELS, legPaths, NODES } = P.map;
+  const { LAND, ISLES, HILLS, LANDNAMES, SEANAMES, REGION_LABELS, legPaths, NODES, W, H, RIVERS = [], TOWNS = [] } = P.map;
   const ROSE = P.rose;
   const list = shown(), ids = list.map(({ b }) => b.id);
   let rh = '';
   // Rhumb lines fan out from the compass rose.
   for (let k = 0; k < 16; k++) {
     const a = (k * Math.PI) / 8;
-    rh += `M${ROSE[0]} ${ROSE[1]} L${f1(ROSE[0] + Math.cos(a) * 1300)} ${f1(ROSE[1] + Math.sin(a) * 1300)} `;
+    rh += `M${ROSE[0]} ${ROSE[1]} L${f1(ROSE[0] + Math.cos(a) * 1700)} ${f1(ROSE[1] + Math.sin(a) * 1700)} `;
   }
   // The voyage so far in terracotta, the leg ahead dotted; the rest is not yet on the chart.
   const route = legPaths(ids, NODES).map((d, k) => {
@@ -96,10 +121,12 @@ function mapSVG() {
     `<rect width="${W}" height="${H}" fill="url(#chPaper)"/>` +
     `<path d="${rh}" class="ch-rhumb"/>` +
     '<use href="#chLand" class="ch-shore2"/><use href="#chLand" class="ch-shore1"/><use href="#chLand" class="ch-land"/>' +
+    RIVERS.map((d) => `<path d="${d}" class="ch-river"/>`).join('') +
     `<g class="ch-hills">${HILLS.map(([x, y]) => `<path d="M${x - 8} ${y} Q${x} ${y - 10} ${x + 8} ${y} M${x + 4} ${y - 2} Q${x + 11} ${y - 9} ${x + 18} ${y - 1}"/>`).join('')}</g>` +
     LANDNAMES.map(([t, x, y, r, s]) => `<text x="${x}" y="${y}" transform="rotate(${r} ${x} ${y})" class="ch-landname" style="font-size:${s}px">${t}</text>`).join('') +
+    TOWNS.map(([t, x, y, a, dx, dy]) => `<circle cx="${x}" cy="${y}" r="2.3" class="ch-town"/><text x="${x + dx}" y="${y + dy}" text-anchor="${a}" class="ch-townname">${t}</text>`).join('') +
     SEANAMES.map(([t, x, y, r]) => `<text x="${x}" y="${y}" transform="rotate(${r} ${x} ${y})" class="ch-seaname">${t}</text>`).join('') +
-    compass(ROSE[0], ROSE[1]) + (P.beasts ? SERPENT + WHALE : '') + cartouche(P.title, `Drawn for the Admiral, ${worldById(P.world).years.slice(0, 4)}`) +
+    compass(ROSE[0], ROSE[1]) + P.art() + cartouche(P.cartouche, P.title, P.sub) +
     (P.port ? '<g class="ch-port"><path d="M566 342 V330 M566 330 L575 332.5 L566 335" /></g>' : '') +
     REGIONS.filter((r) => r.world === P.world).map((r) => { const p = REGION_LABELS[r.id]; return p ? `<text x="${p.x}" y="${p.y}" transform="rotate(${p.r} ${p.x} ${p.y})" class="ch-region">${p.t || r.name}</text>` : ''; }).join('') +
     route +
@@ -116,8 +143,8 @@ const SHIP = '<svg viewBox="0 0 40 36" class="cn-you" aria-hidden="true"><path d
   '<path d="M2 23 H38 L32 33 H8 Z" fill="#7b4c2b" stroke="#3a2a1b" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 
 const stars = (n) => `<span class="cn-stars" aria-hidden="true">${[0, 1, 2].map((i) => `<i class="${i < n ? 'on' : ''}">★</i>`).join('')}</span>`;
-const pos = (p) => `left:${p.x / 10}%;top:${(p.y / 7).toFixed(3)}%`;
-const nameCls = (p) => (p.name ? ' n-' + p.name : '');
+const pos = (p) => `left:${(p.x / P.map.W * 100).toFixed(3)}%;top:${(p.y / P.map.H * 100).toFixed(3)}%`;
+const nameCls = (p) => (p.name ? ' n-' + p.name : '') + (p.ship ? ' ship-' + p.ship : '');
 
 function nodeHTML(b, i, next) {
   const p = P.map.NODES[b.id];
@@ -169,7 +196,7 @@ export function renderChart(el, world = currentWorld()) {
 // Scales the map to cover the viewport (never below MIN_SCALE) and, when asked, centres on the next battle.
 export function layoutChart(centre) {
   if (!mapEl || !viewEl || !viewEl.clientWidth) return;
-  const vw = viewEl.clientWidth, vh = viewEl.clientHeight;
+  const vw = viewEl.clientWidth, vh = viewEl.clientHeight, { W, H } = P.map;
   const s = Math.max(vw / W, vh / H, MIN_SCALE);
   const mw = Math.round(W * s), mh = Math.round(H * s);
   const prev = mapEl.offsetWidth;

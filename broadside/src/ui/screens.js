@@ -1,7 +1,7 @@
 import { briefText, bonusText, winText, loseText, mainGoal } from '../sim/goals/index.js';
 import { S, afloat, selfSailing } from '../state.js';
 import { $, store } from '../util.js';
-import { regionOf } from '../config/battles.js';
+import { regionOf, BATTLES } from '../config/battles.js';
 import { WORLDS, worldById } from '../config/worlds.js';
 import { factionOf } from '../config/factions.js';
 import { TYPES } from '../config/ships.js';
@@ -181,17 +181,50 @@ function disarmReset() {
 }
 
 // ---------- Sea chart ----------
-// The chart shows one world; with more than one open, a link sails to the other (a placeholder for the chart
-// pass's world switch).
+// The chart shows one world (save.js currentWorld, remembered in the save); the plates' titles above it are tabs
+// that turn to another open world, and a world not yet open shows what opens it. The first time the chart is
+// opened after a new world opens (and nothing there is won yet), its plate is laid on the table with a note from
+// the captain's log.
+const unlockText = (W) => { const B = W.unlock && BATTLES.find((b) => b.id === W.unlock.won); return B ? `Beat ${B.name}` : 'Not yet open'; };
+function renderWorldTabs(here) {
+  let other = false;
+  const tabs = WORLDS.map((W) => {
+    if (W.id === here) return `<button type="button" class="wtab" aria-current="page" data-world="${W.id}">${esc(W.short)}</button>`;
+    if (worldOpen(W.id)) {
+      const id = other ? '' : ' id="worldBtn"';
+      other = true;
+      return `<button type="button" class="wtab"${id} data-world="${W.id}" aria-label="Turn to the chart of ${esc(W.name.replace(/^The /, 'the '))}">${esc(W.short)}</button>`;
+    }
+    const how = unlockText(W);
+    return `<button type="button" class="wtab locked" data-world="${W.id}" aria-disabled="true" aria-label="${esc(W.name)}: ${esc(how)} to open it">` +
+      `<span class="wt-name">${iconSVG('lock', { cls: 'wt-lock', stroke: 2.2 })}${esc(W.short)}</span><small>${esc(how)}</small></button>`;
+  });
+  // #worldBtn is always there (the tab to the other open world, or hidden), so the tests can find it.
+  $('worldTabs').innerHTML = tabs.join('') + (other ? '' : '<button type="button" class="wtab" id="worldBtn" hidden></button>');
+  $('worldTabs').hidden = WORLDS.length < 2;
+}
+const wonIn = (id) => BATTLES.some((b) => b.world === id && save.stars[b.id]);
 export function openChart() {
   idle();
   $('chartGold').innerHTML = goldHTML(save.gold);
   music.mood('calm');
   showScreen('chartScreen');
-  const here = currentWorld(), other = openWorlds().find((W) => W.id !== here);
-  $('worldBtn').hidden = !other;
-  if (other) { $('worldBtn').textContent = other.short; $('worldBtn').dataset.world = other.id; }
+  const seen = save.seenWorlds || [];
+  const fresh = openWorlds().find((W) => W.unlock && !seen.includes(W.id) && !wonIn(W.id));
+  if (fresh) { save.seenWorlds = [...seen, fresh.id]; setWorld(fresh.id); }
+  const here = currentWorld();
+  renderWorldTabs(here);
   renderChart($('chartList'), here);
+  $('chartNotice').hidden = !(fresh && fresh.opening);
+  if (fresh && fresh.opening) $('chartNoticeText').textContent = fresh.opening;
+}
+function turnChart(world) {
+  if (!setWorld(world)) return;
+  sfx.init();
+  openChart();
+  // The new plate fades in where the old one lay.
+  const v = document.querySelector('.chart-view');
+  v.classList.remove('turned'); void v.offsetWidth; v.classList.add('turned');
 }
 
 // ---------- Shipyard ----------
@@ -802,7 +835,16 @@ export function initUI() {
   });
   $('yardBtn').addEventListener('click', openYard);
   $('hatsBtn').addEventListener('click', openHats);
-  $('worldBtn').addEventListener('click', (e) => { if (setWorld(e.currentTarget.dataset.world)) openChart(); });
+  $('worldTabs').addEventListener('click', (e) => {
+    const t = e.target.closest('.wtab');
+    if (!t || t.getAttribute('aria-current')) return;
+    if (t.classList.contains('locked')) toast(`${unlockText(worldById(t.dataset.world))} to open ${worldById(t.dataset.world).name.replace(/^The /, 'the ')}`, 'lock');
+    else turnChart(t.dataset.world);
+  });
+  const putAway = () => { $('chartNotice').hidden = true; };
+  $('chartNoticeOk').addEventListener('click', putAway);
+  $('chartNotice').addEventListener('click', putAway);
+  $('chartList').addEventListener('pointerdown', putAway);
   $('chartBack').addEventListener('click', openMenu);
   $('yardScreen').addEventListener('click', onYardClick);
   $('yardBack').addEventListener('click', openChart);

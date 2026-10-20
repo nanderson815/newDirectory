@@ -6,14 +6,15 @@ export const W = 1000, H = 700;
 
 // Where each battle sits on the chart, and the short name written under it. `via` bends the route into that
 // battle through extra points, to keep it off land and clear of other battles; `name` places the label
-// ('below' by default, or 'above', 'left', 'right') where the route leaves it room.
+// ('below' by default, or 'above', 'left', 'right') where the route leaves it room; `ship` puts the little ship
+// that marks the next battle on its 'left' or 'right' (by default the side the name leaves free).
 export const NODES = {
   tutorial:   { x: 552, y: 362, label: 'Shakedown' },
   tortuga:    { x: 610, y: 288, label: 'Tortuga Narrows', via: [[606, 348]], name: 'above' },
-  cayman:     { x: 476, y: 316, label: 'Cayman Shoals', via: [[540, 278]] },
+  cayman:     { x: 476, y: 316, label: 'Cayman Shoals', via: [[540, 278]], ship: 'right' },
   rojo:       { x: 428, y: 258, boss: true, label: 'La Bruja', name: 'right' },
   sanlucas:   { x: 470, y: 612, label: 'San Lucas', via: [[398, 322], [436, 420], [480, 530]], name: 'left' },
-  silver:     { x: 536, y: 498, label: 'Silver Fleet', name: 'right' },
+  silver:     { x: 550, y: 504, label: 'Silver Fleet', name: 'right', ship: 'right' },
   comodoro:   { x: 556, y: 616, boss: true, label: 'San Cristóbal', name: 'right' },
   cartagena:  { x: 630, y: 556, label: 'Cartagena', name: 'right' },
   santamarta: { x: 702, y: 504, label: 'Santa Marta', name: 'above' },
@@ -22,7 +23,7 @@ export const NODES = {
   wreck:      { x: 912, y: 336, label: 'Treasure Wreck', name: 'above' },
   kate:       { x: 798, y: 372, boss: true, label: 'Black Wyvern', name: 'above' },
   convoy:     { x: 706, y: 380, label: 'Convoy', name: 'above' },
-  siege:      { x: 616, y: 414, label: 'Fort Charles' },
+  siege:      { x: 616, y: 414, label: 'Fort Charles', ship: 'right' },
   hierro:     { x: 128, y: 232, boss: true, label: 'Iron Marquis', via: [[520, 432], [428, 396], [384, 300], [350, 222], [300, 172], [230, 166]] },
   fog:        { x: 372, y: 400, label: 'Mosquito Fog', via: [[236, 192], [304, 210], [312, 300]], name: 'left' },
   blockade:   { x: 452, y: 114, label: 'Blockade', via: [[346, 326], [338, 250], [326, 200], [352, 158], [404, 132]], name: 'right' },
@@ -72,10 +73,10 @@ export const ISLES = [
   [748, 550, 6, 2.5, 0], [764, 548, 5, 2.5, 0], [778, 550, 4, 2, 0], // ABC isles
 ];
 export const HILLS = [[80, 350], [130, 425], [60, 240], [200, 445], [250, 470], [110, 300], [40, 330], [330, 470],
-  [612, 676], [985, 640], [470, 172], [540, 196], [700, 282], [742, 298], [248, 300]];
+  [612, 676], [985, 640], [540, 196], [700, 282], [232, 336]];
 export const LANDNAMES = [
   ['NUEVA ESPAÑA', 132, 400, -10, 13], ['YUCATÁN', 246, 268, -78, 10], ['CUBA', 482, 182, 12, 12],
-  ['HISPANIOLA', 714, 292, 4, 10], ['FLORIDA', 470, 34, 62, 9], ['TIERRA FIRME', 640, 640, -4, 13],
+  ['HISPANIOLA', 714, 292, 4, 10], ['FLORIDA', 470, 34, 62, 9], ['TIERRA FIRME', 654, 642, -4, 13],
 ];
 export const SEANAMES = [['Mar del Sur', 200, 640, -8], ['Mar del Norte', 846, 64, 0]];
 
@@ -115,9 +116,10 @@ export function legPaths(ids, nodes = NODES) {
 
 // Boxes (in map units, unrotated) of a battle's name label and star row, for the layout checks. Nodes and names
 // keep their pixel size while the map scales, so at map scale `scale` they cover 1/scale as many map units.
-export const nodeRadius = (id, scale = 1) => (NODES[id].boss ? 26 : 20) / scale;
-export function nameBox(id, won, scale = 1) {
-  const n = NODES[id], r = nodeRadius(id, scale), w = (n.label.length * 6.1 + 6) / scale, h = 15 / scale;
+// `nodes` is the plate's node table (this one by default).
+export const nodeRadius = (id, scale = 1, nodes = NODES) => (nodes[id].boss ? 26 : 20) / scale;
+export function nameBox(id, won, scale = 1, nodes = NODES) {
+  const n = nodes[id], r = nodeRadius(id, scale, nodes), w = (n.label.length * 6.1 + 6) / scale, h = 15 / scale;
   const gap = (won ? 15 : 5) / scale;
   switch (n.name) {
     case 'above': return { x: n.x - w / 2, y: n.y - r - 5 / scale - h, w, h };
@@ -126,7 +128,7 @@ export function nameBox(id, won, scale = 1) {
     default: return { x: n.x - w / 2, y: n.y + r + gap - 2 / scale, w, h };
   }
 }
-export function starBox(id, scale = 1) {
-  const n = NODES[id], r = nodeRadius(id, scale), w = 34 / scale;
+export function starBox(id, scale = 1, nodes = NODES) {
+  const n = nodes[id], r = nodeRadius(id, scale, nodes), w = 34 / scale;
   return { x: n.x - w / 2, y: n.y + r, w, h: 12 / scale };
 }

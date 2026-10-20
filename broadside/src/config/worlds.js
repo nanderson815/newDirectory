@@ -11,6 +11,8 @@
 //   unlock    { won: battle id } that opens it (none: open from the start)
 //   finale    the title on the results sheet when its last battle is won
 //   faction   the default enemy faction of its battles (see src/config/factions.js)
+//   opening   for a world that opens later: the note in the captain's log that lays its chart on the table the
+//             first time the chart is opened after it opens (src/ui/screens.js)
 export const WORLDS = [
   {
     id: 'caribbean', name: 'The West Indies', short: 'West Indies', years: '1655–1665',
@@ -21,6 +23,7 @@ export const WORLDS = [
     id: 'med', name: 'The Mediterranean', short: 'Mediterranean', years: '1666–1670',
     blurb: 'Tangier, the Barbary corsairs, the Knights of Malta, the war of Candia and the Kapudan Pasha.',
     unlock: { won: 'armada' }, finale: 'Peace in the Middle Sea!', faction: 'barbary',
+    opening: 'Orders from the Admiralty, and a new chart for my table: the Middle Sea, from the Straits to the Dardanelles. The old chart of the Indies is in the drawer, should I want it.',
   },
 ];
 
