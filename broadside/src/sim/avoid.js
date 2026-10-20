@@ -25,7 +25,7 @@ export const AVOID = {
   ally: 0.62,        // friends keep (L1 + L2) * ally between centres: about half a length of open water end to end
   // In action (an enemy inside her gun range) a captain fights his ship and only keeps clear of his friends'
   // hulls: a tighter ring, watched less far ahead.
-  allyAction: 0.45, actionHorizon: 2,
+  allyAction: 0.45, actionHorizon: 2, actionSlow: true, // (actionSlow: may she ease sail to let a friend by in action)
   foe: 0.36,         // enemies may come to (L1 + L2) * foe: alongside, inside boarding reach (0.45), outside the hulls (0.34)
   fan: [0, 0.18, -0.18, 0.4, -0.4, 0.65, -0.65, 0.95, -0.95, 1.25, -1.25], // heading offsets tried (radians)
   slow: 0.55,        // the reduced-sail candidates: this share of her way
@@ -134,7 +134,7 @@ export function avoidShips(s, desired, dt) {
       let m = 0;
       for (const k of [1, AVOID.slow]) {
         for (const off of AVOID.fan) {
-          if (!off && k === 1) continue;
+          if ((!off && k === 1) || (k < 1 && action && !AVOID.actionSlow)) continue;
           const a = base + off, v = vs * k;
           const cost = Math.abs(off) - (off > 0 ? AVOID.starboard : 0) + (k < 1 ? AVOID.slowCost : 0) + AVOID.stick * Math.abs(off - prev) + riskOf(Math.cos(a) * v, Math.sin(a) * v, n, k < 1 ? 1 : 0);
           if (cost < keep) { CAND[m++] = cost; CAND[m++] = off; CAND[m++] = k; }
