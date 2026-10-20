@@ -96,6 +96,29 @@ expectCaught('gun loading a shot that does not exist', () => ({ GUNS: { ...C.GUN
   expectCaught('class whose default loadout is overweight', () => { const T = clone(C.TYPES); T[id].tons = 20; return { TYPES: T }; }, 'the default loadout weighs');
 }
 
+// Looks (src/config/looks.js): a ship def's `look`, and the catalogue's own tables.
+console.log('looks:');
+expectCaught('look with an unknown paint', (B) => { B.enemy[0].look = { paint: 'tartan' }; }, "look: unknown paint \"tartan\"");
+expectCaught('look with an unknown field', (B) => { B.enemy[0].look = { cape: 'velvet' }; }, "look: unknown field 'cape'");
+expectCaught('look with too many lanterns', (B) => { B.enemy[0].look = { lanterns: 7 }; }, 'look: lanterns must be 1, 2 or 3');
+{
+  const L = C.LOOK_CATALOGUE, P = [];
+  for (const [field, cat] of Object.entries(L)) {
+    for (const [id, it] of Object.entries(cat)) {
+      if (!it.name) P.push(`${field}.${id} has no name`);
+      if (!it.foe && !it.about) P.push(`${field}.${id} has no line for the ledger`);
+      if (!it.foe && it.hat === undefined && typeof it.cost !== 'number') P.push(`${field}.${id} needs a cost or a hat`);
+      if (it.hat && !C.HATS[it.hat]) P.push(`${field}.${id}: unknown hat '${it.hat}'`);
+    }
+  }
+  for (const [fac, pal] of Object.entries(C.FACTION_LOOKS)) for (const [k, list] of Object.entries(pal)) for (const v of list) P.push(...C.checkLook({ [k]: v }, { foe: true }).map((m) => `FACTION_LOOKS.${fac}: ${m}`));
+  for (const [hat, look] of Object.entries(C.BOSS_LOOKS)) { if (!C.HATS[hat]) P.push(`BOSS_LOOKS.${hat}: no such hat`); P.push(...C.checkLook(look, { foe: true }).map((m) => `BOSS_LOOKS.${hat}: ${m}`)); }
+  for (const p of P) console.log('       ' + p);
+  check(P.length === 0, `the looks catalogue, faction palettes and boss looks are sound (${P.length} problems)`, failures);
+  const save = C.checkLook({ paint: 'spain' });
+  check(save.some((m) => m.includes('only for the enemy')), `a save may not dress your ship in the enemy's fashions ("${save[0]}")`, failures);
+}
+
 // Land (src/config/lands.js, src/sim/land.js LANDMARKS): a battle's own `land` is checked like a LANDS entry.
 console.log('land:');
 expectCaught('unknown landmark kind', (B) => { B.land = { landmarks: [{ kind: 'pyramid', island: 0 }] }; }, 'unknown kind "pyramid"');

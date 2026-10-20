@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { TYPES } from '../config/ships.js';
 import { GUNS } from '../config/guns.js';
-import { COL, TAU, lerp } from '../util.js';
+import { COL, TAU, lerp, clamp } from '../util.js';
+import { PAINTS, CLOTHS, LOOK_DEFAULT, cleanLook, enemyLook } from '../config/looks.js';
 import { R, toon, withOutline } from './gl.js';
 import { hullShape, pearShape, liftedExtrude, sailGeometry, sailPatch } from './shapes.js';
 
@@ -16,6 +17,8 @@ const PI = Math.PI;
 // `bulge` attribute (a sail) writes that, carried into the baked space, into aTag.xyz instead.
 // opts.indexed keeps each part's index (smooth shapes share their vertices), so the bake comes out indexed. A
 // geometry's own vertex colours tint the material colour; rgba ones (soft-edged flats) tint its opacity too.
+// opts.partFor(mesh) may return a number for each part: it becomes a per-vertex aPart attribute (the 3D yard
+// lights up the part you tap with it).
 const _bi = new THREE.Matrix4(), _bn = new THREE.Matrix3(), _bm = new THREE.Matrix3(), _bv = new THREE.Vector3();
 export function bakeStatic(root, skip, uvFor, tagFor, opts) {
   root.updateMatrixWorld(true);
@@ -29,7 +32,7 @@ export function bakeStatic(root, skip, uvFor, tagFor, opts) {
       if (g !== o.geometry) temp.push(g);
       const part = {
         g, m: new THREE.Matrix4().multiplyMatrices(_bi, o.matrixWorld), mats: Array.isArray(o.material) ? o.material : [o.material],
-        uv: uvFor ? uvFor(o) : null, tag: tagFor ? tagFor(o) : null,
+        uv: uvFor ? uvFor(o) : null, tag: tagFor ? tagFor(o) : null, part: opts && opts.partFor ? opts.partFor(o) : null,
       };
       (o.material === R.inkMat ? ink : part.mats[0].transparent ? glass : solid).push(part);
     }
@@ -47,6 +50,7 @@ function mergeParts(parts, colorSize, indexed) {
   for (const p of parts) { n += p.g.attributes.position.count; ni += p.g.index ? p.g.index.count : p.g.attributes.position.count; }
   const full = colorSize > 0;
   const tagged = parts.some((p) => p.tag || p.g.attributes.bulge);
+  const parted = parts.some((p) => p.part != null), part = parted ? new Float32Array(n) : null;
   const pos = new Float32Array(n * 3), nor = full ? new Float32Array(n * 3) : null;
   const uv = full ? new Float32Array(n * 2) : null, col = full ? new Float32Array(n * colorSize) : null;
   const tag = tagged ? new Float32Array(n * 4) : null;
@@ -65,6 +69,7 @@ function mergeParts(parts, colorSize, indexed) {
       }
       oi += m;
     }
+    if (parted) part.fill(p.part || 0, o, o + cnt);
     for (let i = 0; i < cnt; i++) {
       _bv.fromBufferAttribute(P, i).applyMatrix4(p.m).toArray(pos, (o + i) * 3);
       if (tagged) {
@@ -106,14 +111,15 @@ function mergeParts(parts, colorSize, indexed) {
     g.setAttribute('color', new THREE.BufferAttribute(col, colorSize));
   }
   if (tagged) g.setAttribute('aTag', new THREE.BufferAttribute(tag, 4));
+  if (parted) g.setAttribute('aPart', new THREE.BufferAttribute(part, 1));
   if (index) g.setIndex(new THREE.BufferAttribute(index, 1));
   g.computeBoundingSphere();
   return g;
 }
 
 // Replaces a group's static children with merged meshes; children matching skip stay as they are.
-export function bakeChildren(group, mat, skip, uvFor, tagFor) {
-  const b = bakeStatic(group, skip, uvFor, tagFor);
+export function bakeChildren(group, mat, skip, uvFor, tagFor, opts) {
+  const b = bakeStatic(group, skip, uvFor, tagFor, opts);
   for (const c of [...group.children]) if (!skip || !skip(c)) group.remove(c);
   const out = {};
   if (b.solid) { out.solid = new THREE.Mesh(b.solid, mat); group.add(out.solid); }
@@ -122,16 +128,19 @@ export function bakeChildren(group, mat, skip, uvFor, tagFor) {
 }
 
 // ---------- Looks ----------
-// Paint, canvas and colours by allegiance. 'merchant' is an escorted friendly trader; the pirate looks fly
-// black canvas with a skull and crossbones (the boss trimmed in red).
+// Allegiance first: a ship's side fixes the colours that say whose she is (her rail, the flag at the main, the
+// edge of her canvas), whatever she wears. 'merchant' is an escorted friendly trader; the pirate looks fly black
+// colours (the boss trimmed in red). Her cosmetics (src/config/looks.js) set everything else: paint, cloth, the
+// device on her courses, figurehead, colours, lanterns and gilding.
 const LOOKS = {
-  player: { sail: '#fbf3dc', side: '#a5672f', castle: '#c28145', rail: COL.blue, trim: COL.blue, flag: COL.blue },
-  enemy: { sail: '#fbf3dc', side: '#7a3a28', castle: '#93483a', rail: COL.red, trim: '#c9a227', flag: COL.red },
-  boss: { sail: '#a8262a', side: '#4a2622', castle: '#6b2f2a', rail: '#f2b632', trim: '#e2b13a', flag: '#f2b632' },
-  pirate: { sail: '#332e33', side: '#3a2c28', castle: '#4c3934', rail: '#7a2620', trim: '#b8a888', flag: 'roger' },
-  pirateBoss: { sail: '#241f25', side: '#2a1e1e', castle: '#402728', rail: '#c0302a', trim: '#d23c2c', flag: 'rogerBoss' },
-  merchant: { sail: '#f7eed6', side: '#a8743f', castle: '#c4925a', rail: '#3d7a52', trim: '#3d7a52', flag: COL.blue },
+  player: { rail: COL.blue, flag: COL.blue, edge: COL.blue },
+  enemy: { rail: COL.red, flag: COL.red, edge: COL.red },
+  boss: { rail: '#f2b632', flag: '#f2b632', edge: '#f2b632' },
+  pirate: { rail: '#7a2620', flag: 'roger', edge: null },
+  pirateBoss: { rail: '#c0302a', flag: 'rogerBoss', edge: '#c0302a' },
+  merchant: { rail: '#3d7a52', flag: COL.blue, edge: '#3d7a52' },
 };
+const MERCHANT_LOOK = { paint: 'merchant', cloth: 'merchant', emblem: 'merchant', figurehead: 'scroll', flag: 'colours', lanterns: 1, gilding: 'plain' };
 
 // faction: the battle's faction, for enemy ships the sim didn't tag themselves.
 export function shipLook(s, faction) {
@@ -143,41 +152,174 @@ export function shipLook(s, faction) {
   return side === 'player' ? 'player' : 'enemy';
 }
 
+// Everything the model needs to dress a ship: her allegiance, the look entries she wears and their colours.
+// `key` names it for the template cache, `sailKey` for her canvas.
+export function shipDress(s, faction) {
+  const base = shipLook(s, faction);
+  const T = TYPES[s.type] || {};
+  const fac = base === 'pirate' || base === 'pirateBoss' ? 'pirate' : base === 'player' || base === 'merchant' ? 'english' : s.faction || T.faction || faction || 'spain';
+  let ids;
+  if (base === 'merchant') ids = { ...MERCHANT_LOOK };
+  else if (base === 'player') ids = { ...LOOK_DEFAULT, ...cleanLook(s.look) };
+  else ids = { ...LOOK_DEFAULT, ...enemyLook(s, fac), ...cleanLook(s.look, { foe: true }) };
+  const Lk = LOOKS[base];
+  const paint = PAINTS[ids.paint], cloth = CLOTHS[ids.cloth];
+  const sailKey = [base, ids.cloth, ids.emblem, fac].join('|');
+  return {
+    base, fac, ids, Lk, paint, cloth, sailKey,
+    key: [sailKey, ids.paint, ids.figurehead, ids.flag, ids.lanterns, ids.gilding].join('|'),
+    dark: luma(cloth.color) < 0.35,
+  };
+}
+const luma = (hex) => { const c = new THREE.Color(hex); return 0.3 * c.r + 0.59 * c.g + 0.11 * c.b; };
+
 // ---------- Sails and flags ----------
 const sailTex = {};
-// One 128px canvas per look: seams, the look's device and an ink (or trim) border. torn = shot-through canvas
-// with ragged, scorched holes, used below half hull (and always on fireships); the holes are alpha-tested out.
-export function sailTexture(look, torn) {
-  const key = look + (torn ? ':torn' : '');
+// One canvas per canvas look: the cloth (striped or plain) with its seams, her device, a row of reef points and
+// an edge in her side's colour inside an ink line (an ink edge alone with the squadron's band). torn = shot-through canvas with ragged, scorched holes, used
+// below half hull (and always on fireships); the holes are alpha-tested out. hd = a 256px canvas for the yard.
+// The spars sample the texel at (0.4, 0.15), about (51, 109) on a 128px canvas: a reef point sits on it, so it is
+// plain white whatever the cloth and the wood keeps its own colour.
+export function sailTexture(dress, torn, hd) {
+  const key = dress.sailKey + (torn ? ':torn' : '') + (hd ? ':hd' : '');
   if (sailTex[key]) return sailTex[key];
-  const Lk = LOOKS[look] || LOOKS.enemy;
-  const dark = look === 'pirate' || look === 'pirateBoss';
-  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const { cloth, ids, Lk, dark, base } = dress;
+  const n = hd ? 256 : 128;
+  const c = document.createElement('canvas'); c.width = c.height = n;
   const x = c.getContext('2d');
-  x.fillStyle = Lk.sail; x.fillRect(0, 0, 128, 128);
-  x.fillStyle = look === 'boss' ? 'rgba(60,10,10,0.25)' : dark ? 'rgba(255,255,255,0.07)' : 'rgba(200,180,130,0.35)';
-  for (let i = 1; i < 4; i++) x.fillRect(i * 32 - 1, 0, 2, 128);
-  // The yards sample the texel at (0.4, 0.15), about (51, 109) on the canvas, so devices stay clear of it.
-  if (look === 'player') {
-    x.fillStyle = COL.blue; x.fillRect(0, 50, 128, 26);
-  } else if (look === 'merchant') {
-    x.fillStyle = 'rgba(205,140,80,0.45)';
-    for (const sx of [10, 74]) x.fillRect(sx, 0, 22, 128);
-    x.fillStyle = '#3d7a52'; x.fillRect(0, 12, 128, 8);
-  } else if (dark) {
-    drawRoger(x, 64, 56, 1, '#efe6d2', Lk.sail);
-  } else {
-    x.strokeStyle = look === 'boss' ? '#f2b632' : COL.red; x.lineWidth = 14; x.lineCap = 'round';
-    x.beginPath(); x.moveTo(26, 22); x.lineTo(102, 106); x.moveTo(102, 22); x.lineTo(26, 106); x.stroke();
-  }
-  x.strokeStyle = look === 'boss' ? '#f2b632' : look === 'pirateBoss' ? '#c0302a' : COL.ink;
-  x.lineWidth = look === 'pirateBoss' ? 12 : 8; x.strokeRect(0, 0, 128, 128);
+  x.scale(n / 128, n / 128);
+  x.fillStyle = cloth.color; x.fillRect(0, 0, 128, 128);
+  if (cloth.stripe) { x.fillStyle = cloth.stripe; for (let i = 1; i < 8; i += 2) x.fillRect(i * 16, 0, 16, 128); }
+  x.fillStyle = dark ? 'rgba(255,255,255,0.07)' : 'rgba(150,120,70,0.28)';
+  for (let i = 1; i < 8; i++) x.fillRect(i * 16 - 0.5, 0, 1, 128);
+  drawEmblem(x, ids.emblem, dress);
+  // Reef points across the lower sail (the spars' texel is one of them).
+  x.fillStyle = dark ? '#d8d0c0' : 'rgba(120,96,60,0.55)';
+  for (let px = 3; px < 128; px += 12) { x.beginPath(); x.arc(px + 0.2, 108.8, 1.5, 0, TAU); x.fill(); }
+  x.fillStyle = '#ffffff'; x.fillRect(49.2, 106.8, 4, 4);
+  // The edge: her side's colour inside an ink line (bosses keep a broad gilt or red edge).
+  const boss = base === 'boss' || base === 'pirateBoss';
+  // (The squadron's band already says whose she is: her canvas keeps the plain ink edge with it.)
+  const edge = ids.emblem === 'band' ? null : Lk.edge;
+  if (edge) { x.strokeStyle = edge; x.lineWidth = boss ? 14 : 12; x.strokeRect(0, 0, 128, 128); }
+  x.strokeStyle = COL.ink; x.lineWidth = edge ? 4 : 8; x.strokeRect(0, 0, 128, 128);
   if (torn) tearCanvas(x, dark);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
   sailTex[key] = t;
   return t;
+}
+
+const GILT = '#e2b13a', GILT_DEEP = '#b8862b', INK_DOT = '#1d1714';
+// The device on her courses, centred about (64, 56) of the 128px sail.
+function drawEmblem(x, id, dress) {
+  const ink = dress.dark ? '#efe6d2' : COL.ink, team = dress.Lk.edge || COL.ink;
+  const boss = dress.base === 'boss';
+  const outline = (w = 1.6) => { x.strokeStyle = 'rgba(33,26,20,0.75)'; x.lineWidth = w; x.stroke(); };
+  x.save();
+  switch (id) {
+    case 'band': x.fillStyle = team; x.fillRect(0, 50, 128, 26); break;
+    case 'george': x.fillStyle = '#c0302a'; x.fillRect(53, 0, 22, 128); x.fillRect(0, 46, 128, 22); break;
+    case 'saltire': {
+      x.strokeStyle = boss ? '#f2b632' : dress.dark ? '#c0302a' : COL.red; x.lineWidth = 14; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(26, 22); x.lineTo(102, 100); x.moveTo(102, 22); x.lineTo(26, 100); x.stroke();
+      break;
+    }
+    case 'santiago': {
+      x.fillStyle = '#b8231c';
+      x.beginPath(); x.moveTo(58, 26); x.lineTo(70, 26); x.lineTo(69, 88); x.lineTo(64, 104); x.lineTo(59, 88); x.closePath(); x.fill();
+      x.fillRect(36, 42, 56, 9);
+      for (const [cx, cy] of [[64, 22], [34, 46.5], [94, 46.5]]) { x.beginPath(); x.arc(cx, cy, 7, 0, TAU); x.fill(); }
+      break;
+    }
+    case 'rose': {
+      x.translate(64, 56);
+      x.fillStyle = '#3f7a43';
+      for (let i = 0; i < 5; i++) { x.save(); x.rotate((i + 0.5) * TAU / 5); x.beginPath(); x.moveTo(-5, -14); x.lineTo(0, -31); x.lineTo(5, -14); x.fill(); x.restore(); }
+      x.fillStyle = '#c0302a';
+      for (let i = 0; i < 5; i++) { const a = i * TAU / 5 - PI / 2; x.beginPath(); x.arc(Math.cos(a) * 15, Math.sin(a) * 15, 13, 0, TAU); x.fill(); outline(); }
+      x.fillStyle = '#fbf6ea';
+      for (let i = 0; i < 5; i++) { const a = (i + 0.5) * TAU / 5 - PI / 2; x.beginPath(); x.arc(Math.cos(a) * 8, Math.sin(a) * 8, 8, 0, TAU); x.fill(); outline(1.2); }
+      x.fillStyle = GILT; x.beginPath(); x.arc(0, 0, 6, 0, TAU); x.fill(); outline(1.2);
+      break;
+    }
+    case 'lion': {
+      x.translate(64, 56);
+      x.fillStyle = GILT_DEEP; x.beginPath();
+      for (let i = 0; i < 24; i++) { const a = i * TAU / 24, r = i % 2 ? 24 : 33; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+      x.closePath(); x.fill(); outline();
+      x.fillStyle = GILT; x.beginPath(); x.arc(0, 2, 18, 0, TAU); x.fill(); outline();
+      for (const ex of [-15, 15]) { x.beginPath(); x.arc(ex, -14, 5, 0, TAU); x.fill(); outline(1.2); }
+      x.fillStyle = COL.ink;
+      for (const ex of [-7, 7]) { x.beginPath(); x.arc(ex, -2, 2.6, 0, TAU); x.fill(); }
+      x.beginPath(); x.moveTo(-5, 6); x.lineTo(5, 6); x.lineTo(0, 11); x.closePath(); x.fill();
+      x.strokeStyle = COL.ink; x.lineWidth = 1.8; x.beginPath(); x.moveTo(0, 11); x.lineTo(0, 14); x.moveTo(-7, 16); x.quadraticCurveTo(0, 20, 7, 16); x.stroke();
+      break;
+    }
+    case 'sun': {
+      x.translate(64, 56);
+      x.fillStyle = GILT;
+      for (let i = 0; i < 16; i++) { x.save(); x.rotate(i * TAU / 16); x.beginPath(); x.moveTo(-5, -20); x.lineTo(0, i % 2 ? -32 : -38); x.lineTo(5, -20); x.fill(); x.restore(); }
+      x.fillStyle = '#f2c440'; x.beginPath(); x.arc(0, 0, 21, 0, TAU); x.fill(); outline();
+      x.fillStyle = COL.ink;
+      for (const ex of [-7, 7]) { x.beginPath(); x.arc(ex, -4, 2.4, 0, TAU); x.fill(); }
+      x.strokeStyle = COL.ink; x.lineWidth = 1.8; x.beginPath(); x.moveTo(-8, 7); x.quadraticCurveTo(0, 13, 8, 7); x.stroke();
+      break;
+    }
+    case 'anchor': {
+      x.translate(64, 56);
+      x.strokeStyle = dress.dark ? '#efe6d2' : dress.base === 'player' ? COL.blue : COL.ink; x.lineCap = 'round';
+      x.lineWidth = 7; x.beginPath(); x.moveTo(0, -24); x.lineTo(0, 30); x.moveTo(-16, -16); x.lineTo(16, -16); x.stroke();
+      x.beginPath(); x.arc(0, 4, 26, 0.25 * PI, 0.75 * PI); x.stroke();
+      x.lineWidth = 4; x.beginPath(); x.arc(0, -31, 6, 0, TAU); x.stroke();
+      x.fillStyle = x.strokeStyle;
+      for (const s of [-1, 1]) { x.beginPath(); x.moveTo(s * 18, 22); x.lineTo(s * 25, 10); x.lineTo(s * 26, 26); x.closePath(); x.fill(); }
+      x.strokeStyle = GILT_DEEP; x.lineWidth = 2.4; x.beginPath(); x.moveTo(-6, -31);
+      x.bezierCurveTo(-26, -20, 20, -6, -8, 6); x.bezierCurveTo(-24, 16, 10, 22, 22, 18); x.stroke();
+      break;
+    }
+    case 'skull': drawRoger(x, 64, 54, 1, ink, dress.cloth.color); break;
+    case 'crown': {
+      x.translate(64, 60);
+      x.fillStyle = GILT; x.beginPath(); x.moveTo(-30, 14); x.lineTo(-32, -14); x.lineTo(-16, 0); x.lineTo(0, -22); x.lineTo(16, 0); x.lineTo(32, -14); x.lineTo(30, 14); x.closePath(); x.fill(); outline(1.8);
+      x.fillRect(-30, 12, 60, 9); x.beginPath(); x.rect(-30, 12, 60, 9); outline(1.6);
+      for (const [cx, cy] of [[-32, -17], [0, -26], [32, -17]]) { x.beginPath(); x.arc(cx, cy, 4, 0, TAU); x.fill(); outline(1.2); }
+      x.fillStyle = '#c0302a'; for (const cx of [-17, 0, 17]) { x.beginPath(); x.arc(cx, 16.5, 3, 0, TAU); x.fill(); }
+      break;
+    }
+    case 'swords': {
+      x.translate(64, 56); x.lineCap = 'round';
+      for (const s of [-1, 1]) {
+        x.save(); x.scale(s, 1);
+        x.strokeStyle = ink; x.lineWidth = 6; x.beginPath(); x.moveTo(-26, 28); x.quadraticCurveTo(-4, 4, 26, -30); x.stroke();
+        x.strokeStyle = GILT; x.lineWidth = 5; x.beginPath(); x.moveTo(-30, 18); x.lineTo(-16, 32); x.stroke();
+        x.restore();
+      }
+      break;
+    }
+    case 'hourglass': {
+      x.translate(64, 56); x.fillStyle = ink;
+      x.fillRect(-20, -32, 40, 6); x.fillRect(-20, 26, 40, 6);
+      x.beginPath(); x.moveTo(-15, -26); x.lineTo(15, -26); x.lineTo(2, 0); x.lineTo(15, 26); x.lineTo(-15, 26); x.lineTo(-2, 0); x.closePath(); x.fill();
+      break;
+    }
+    case 'crescent': {
+      x.translate(60, 56); x.fillStyle = dress.cloth.color === '#a8262a' ? '#fbf3dc' : '#b8231c';
+      x.beginPath(); x.arc(0, 0, 28, 0, TAU); x.arc(9, -2, 23, 0, TAU, true); x.fill('evenodd');
+      x.beginPath();
+      for (let i = 0; i < 10; i++) { const a = i * TAU / 10 - PI / 2, r = i % 2 ? 4 : 10; x.lineTo(24 + Math.cos(a) * r, Math.sin(a) * r); }
+      x.closePath(); x.fill();
+      break;
+    }
+    case 'merchant': {
+      x.fillStyle = 'rgba(205,140,80,0.45)'; for (const sx of [10, 74]) x.fillRect(sx, 0, 22, 128);
+      x.fillStyle = '#3d7a52'; x.fillRect(0, 12, 128, 8);
+      break;
+    }
+    default: break;
+  }
+  x.restore();
 }
 
 // Skull and crossbones centred on (cx, cy), about 60px wide at k = 1.
@@ -222,18 +364,52 @@ function tearCanvas(x, dark) {
   x.globalCompositeOperation = 'source-over';
 }
 
+// The flag at the main: 'roger'/'rogerBoss' (black, skull and crossbones), 'pennant'/'pennantRoger' and 'admiral'
+// (in the side's colour, the English ones with a St George canton), keyed by kind and colour.
 const flagTex = {};
-function flagTexture(kind) {
-  if (flagTex[kind]) return flagTex[kind];
-  const c = document.createElement('canvas'); c.width = 128; c.height = 72;
+function flagTexture(kind, color) {
+  const key = kind + (color || '');
+  if (flagTex[key]) return flagTex[key];
+  const pen = kind === 'pennant' || kind === 'pennantRoger';
+  const c = document.createElement('canvas'); c.width = pen ? 256 : 128; c.height = pen ? 32 : 80;
   const x = c.getContext('2d');
-  x.fillStyle = '#17141a'; x.fillRect(0, 0, 128, 72);
-  drawRoger(x, 64, 26, 0.95, '#f4ecdc', '#17141a');
-  if (kind === 'rogerBoss') { x.strokeStyle = '#d23c2c'; x.lineWidth = 10; x.strokeRect(0, 0, 128, 72); }
+  const english = color === COL.blue;
+  if (kind === 'roger' || kind === 'rogerBoss') {
+    x.fillStyle = '#17141a'; x.fillRect(0, 0, 128, 80);
+    drawRoger(x, 64, 30, 1, '#f4ecdc', '#17141a');
+    if (kind === 'rogerBoss') { x.strokeStyle = '#d23c2c'; x.lineWidth = 10; x.strokeRect(0, 0, 128, 80); }
+  } else if (pen) {
+    x.fillStyle = kind === 'pennantRoger' ? '#17141a' : color; x.fillRect(0, 0, 256, 32);
+    if (english) { x.fillStyle = '#fbf6ea'; x.fillRect(0, 0, 40, 32); x.fillStyle = '#c0302a'; x.fillRect(15, 0, 10, 32); x.fillRect(0, 11, 40, 10); }
+    else if (kind === 'pennantRoger') { drawRoger(x, 22, 9, 0.32, '#f4ecdc', '#17141a'); }
+    else { x.fillStyle = 'rgba(255,240,200,0.85)'; x.fillRect(0, 13, 256, 6); }
+  } else {
+    // An admiral's flag: a field in her colour, a gilt fouled anchor (a gilt saltire for the enemy).
+    x.fillStyle = color; x.fillRect(0, 0, 128, 80);
+    if (english) {
+      x.fillStyle = '#fbf6ea'; x.fillRect(0, 0, 46, 32); x.fillStyle = '#c0302a'; x.fillRect(18, 0, 10, 32); x.fillRect(0, 11, 46, 10);
+      x.strokeStyle = GILT; x.lineWidth = 6; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(84, 18); x.lineTo(84, 66); x.moveTo(72, 26); x.lineTo(96, 26); x.stroke();
+      x.beginPath(); x.arc(84, 46, 20, 0.2 * PI, 0.8 * PI); x.stroke();
+    } else {
+      x.strokeStyle = color === '#f2b632' ? '#c0302a' : GILT; x.lineWidth = 10; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(24, 14); x.lineTo(104, 66); x.moveTo(104, 14); x.lineTo(24, 66); x.stroke();
+    }
+    x.strokeStyle = 'rgba(33,26,20,0.6)'; x.lineWidth = 3; x.strokeRect(0, 0, 128, 80);
+  }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
-  flagTex[kind] = t;
+  flagTex[key] = t;
   return t;
+}
+// A long swallow-tailed pennant, hoist at the origin, streaming along +x.
+function pennantGeometry(len, h) {
+  const sh = new THREE.Shape();
+  sh.moveTo(0, h / 2); sh.lineTo(len, h * 0.18); sh.lineTo(len * 0.9, 0); sh.lineTo(len, -h * 0.18); sh.lineTo(0, -h / 2); sh.closePath();
+  const g = new THREE.ShapeGeometry(sh);
+  const p = g.attributes.position, uv = g.attributes.uv;
+  for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i) / len, (p.getY(i) + h / 2) / h);
+  return g;
 }
 
 // ---------- Ship shaders ----------
@@ -356,75 +532,305 @@ function twoSided(geo) {
   return [geo, back];
 }
 
+// Half her breadth at x along her length, at the top of her sides, for a hull drawn on hullShape/pearShape.
+const halfCache = new Map();
+function hullHalf(L, B, pear) {
+  const key = `${L}:${B}:${pear ? 1 : 0}`;
+  if (halfCache.has(key)) return halfCache.get(key);
+  const pts = (pear ? pearShape(L, B) : hullShape(L, B)).getPoints(24);
+  const f = (x) => {
+    let best = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      if (a.x !== b.x && (a.x - x) * (b.x - x) <= 0) best = Math.max(best, Math.abs(lerp(a.y, b.y, (x - a.x) / (b.x - a.x))));
+    }
+    return best;
+  };
+  halfCache.set(key, f);
+  return f;
+}
+
+// ---------- Figureheads ----------
+// A carving at the stem head, in its own frame: x forward, y up, base at the origin, k = her scale (about a
+// sixth of her beam). gilded: the Almirante's gold leaf over everything.
+function figurehead(kind, k, gilded, hd) {
+  const g = new THREE.Group();
+  const c = (col) => toon(gilded && col !== INK_DOT ? GILT : col);
+  const add = (geo, col, x, y, z, rot, sc, ink = 0.1) => {
+    const m = new THREE.Mesh(geo, c(col));
+    m.position.set(x * k, y * k, z * k);
+    if (rot) m.rotation.set(rot[0] || 0, rot[1] || 0, rot[2] || 0);
+    if (sc) m.scale.set(sc[0], sc[1], sc[2]);
+    if (ink) withOutline(m, ink);
+    g.add(m);
+    return m;
+  };
+  // At sea the carving is a few pixels high: fewer facets there than in the yard.
+  const ball = (r) => new THREE.SphereGeometry(r * k, hd ? 12 : 7, hd ? 9 : 5);
+  const rod = (r0, r1, len) => new THREE.CylinderGeometry(r0 * k, r1 * k, len * k, hd ? 8 : 5);
+  const eyes = (x, y, dz, r = 0.055) => { for (const z of [-dz, dz]) add(ball(r), INK_DOT, x, y, z, null, null, 0); };
+  switch (kind) {
+    case 'lion': {
+      // Crouched to spring off the stem: haunch, chest, a ruff of mane round a snouted head, forepaws out.
+      add(ball(0.42), GILT, -0.42, 0.02, 0, null, [1.1, 0.95, 0.9]);
+      add(ball(0.5), GILT, 0.18, 0.12, 0, null, [1.35, 0.85, 0.82]);
+      add(ball(0.5), GILT_DEEP, 0.78, 0.5, 0, null, [0.75, 1, 1]);
+      for (let i = 0; i < 10; i++) {
+        const a = i * TAU / 10;
+        add(new THREE.ConeGeometry(0.15 * k, 0.5 * k, 5), GILT_DEEP, 0.72, 0.5 + Math.cos(a) * 0.42, Math.sin(a) * 0.42, [a, 0, 0], null, 0.08);
+      }
+      add(ball(0.33), GILT, 1.02, 0.52, 0);
+      add(new THREE.BoxGeometry(0.34 * k, 0.24 * k, 0.32 * k), '#f0c860', 1.3, 0.42, 0, null, null, 0.1);
+      add(ball(0.07), INK_DOT, 1.48, 0.5, 0, null, null, 0);
+      eyes(1.24, 0.62, 0.13);
+      for (const z of [-0.2, 0.2]) add(new THREE.ConeGeometry(0.1 * k, 0.2 * k, 5), GILT, 0.96, 0.84, z, null, null, 0.1);
+      for (const z of [-0.24, 0.24]) {
+        add(rod(0.11, 0.13, 0.8), GILT, 0.78, -0.18, z, [0, 0, 1.0]);
+        add(ball(0.15), GILT, 1.12, -0.42, z, null, [1.3, 0.8, 1]);
+      }
+      add(new THREE.TorusGeometry(0.32 * k, 0.07 * k, 5, 10, PI * 1.2), GILT, -0.86, 0.32, 0, [0, 0, 0.9], null, 0.12);
+      break;
+    }
+    case 'unicorn': {
+      // Rearing: body, an arched neck and long head, the gilt horn, a mane of tufts, forelegs tucked.
+      add(ball(0.46), '#f3eee2', 0.05, 0.06, 0, null, [1.45, 0.8, 0.72]);
+      add(rod(0.2, 0.3, 0.9), '#f3eee2', 0.68, 0.48, 0, [0, 0, -0.75]);
+      add(new THREE.BoxGeometry(0.62 * k, 0.28 * k, 0.28 * k), '#f3eee2', 1.15, 0.86, 0, [0, 0, -0.45], null, 0.1);
+      add(ball(0.17), '#f3eee2', 1.42, 0.7, 0);
+      add(new THREE.ConeGeometry(0.07 * k, 0.8 * k, 6), GILT, 1.12, 1.28, 0, [0, 0, -0.75], null, 0.2);
+      eyes(1.18, 0.95, 0.13);
+      for (let i = 0; i < 5; i++) add(new THREE.ConeGeometry(0.09 * k, 0.32 * k, 4), GILT, 0.42 + i * 0.13, 0.62 + i * 0.12, 0, [0, 0, 0.7], null, 0.1);
+      for (const z of [-0.2, 0.2]) {
+        add(rod(0.08, 0.1, 0.55), '#f3eee2', 0.68, -0.12, z, [0, 0, 0.6]);
+        add(rod(0.08, 0.08, 0.42), '#f3eee2', 0.98, -0.22, z, [0, 0, -0.6]);
+        add(ball(0.09), GILT, 1.12, -0.36, z, null, null, 0.1);
+      }
+      break;
+    }
+    case 'mermaid': {
+      // She leans out ahead, one arm forward, her hair streaming back and her tail curling down the stem.
+      add(rod(0.26, 0.2, 0.75), '#3e8a74', -0.25, 0.12, 0, [0, 0, 1.25]);
+      add(rod(0.2, 0.08, 0.7), '#3e8a74', -0.72, -0.14, 0, [0, 0, 2.0]);
+      add(new THREE.BoxGeometry(0.12 * k, 0.5 * k, 0.6 * k), '#3e8a74', -0.98, -0.4, 0, [0, 0, 0.4]);
+      add(rod(0.2, 0.25, 0.72), '#e9b88f', 0.4, 0.42, 0, [0, 0, -0.75]);
+      add(ball(0.21), '#e9b88f', 0.78, 0.86, 0);
+      eyes(0.97, 0.9, 0.08, 0.04);
+      add(ball(0.24), '#c4622d', 0.68, 0.94, 0, null, [1, 1, 1.05], 0.08);
+      for (let i = 0; i < 4; i++) add(ball(0.15 - i * 0.02), '#c4622d', 0.48 - i * 0.2, 0.86 - i * 0.12, 0, null, [1.3, 1, 0.9], 0.1);
+      add(rod(0.07, 0.07, 0.75), '#e9b88f', 0.86, 0.56, 0.2, [0, 0, -1.25]);
+      add(rod(0.07, 0.07, 0.55), '#e9b88f', 0.54, 0.24, -0.2, [0, 0, -0.3]);
+      add(ball(0.08), GILT, 0.42, 0.62, 0.21, null, null, 0);
+      break;
+    }
+    case 'eagle': {
+      // Wings spread up and back, white head and a hooked gilt beak.
+      add(ball(0.42), '#5a3c22', 0.25, 0.12, 0, null, [1.4, 0.82, 0.75]);
+      add(ball(0.24), '#f1ece0', 0.86, 0.48, 0);
+      add(new THREE.ConeGeometry(0.1 * k, 0.32 * k, 6), GILT, 1.12, 0.42, 0, [0, 0, -2.0], null, 0.18);
+      eyes(0.95, 0.56, 0.14, 0.045);
+      for (const z of [-1, 1]) {
+        for (let f = 0; f < 4; f++) {
+          add(new THREE.BoxGeometry((0.95 - f * 0.12) * k, 0.07 * k, 0.32 * k), f === 3 ? GILT : '#4a3220', 0.3 + f * 0.04, 0.55 + f * 0.17, z * (0.42 + f * 0.17), [z * (0.5 + f * 0.12), 0, 0.2 + f * 0.08], null, 0.12);
+        }
+      }
+      add(new THREE.BoxGeometry(0.42 * k, 0.08 * k, 0.4 * k), '#f1ece0', -0.48, 0.0, 0, [0, 0, 0.3], null, 0.12);
+      break;
+    }
+    case 'wyvern': {
+      // A black wyvern: a long neck, a horned head with a red eye, ribbed wings half open.
+      add(ball(0.42), '#2a2f2a', 0.1, 0.1, 0, null, [1.45, 0.75, 0.72]);
+      add(rod(0.13, 0.22, 1.0), '#2a2f2a', 0.72, 0.56, 0, [0, 0, -0.75]);
+      add(new THREE.BoxGeometry(0.62 * k, 0.24 * k, 0.28 * k), '#2a2f2a', 1.3, 0.98, 0, [0, 0, -0.2], null, 0.1);
+      add(new THREE.BoxGeometry(0.48 * k, 0.1 * k, 0.22 * k), '#2a2f2a', 1.36, 0.82, 0, [0, 0, -0.42], null, 0.1);
+      for (const z of [-0.1, 0.1]) add(new THREE.ConeGeometry(0.05 * k, 0.32 * k, 4), '#efe6d2', 1.08, 1.2, z, [0, 0, 0.9], null, 0.12);
+      for (const z of [-0.15, 0.15]) add(ball(0.065), '#e0573c', 1.42, 1.06, z, null, null, 0);
+      for (const z of [-1, 1]) {
+        for (let f = 0; f < 3; f++) add(new THREE.BoxGeometry((1.0 - f * 0.18) * k, 0.06 * k, 0.24 * k), '#3a4a3a', 0.25 + f * 0.02, 0.62 + f * 0.1, z * (0.45 + f * 0.2), [z * (0.85 - f * 0.1), 0, 0.3 + f * 0.2], null, 0.12);
+      }
+      add(new THREE.TorusGeometry(0.34 * k, 0.07 * k, 5, 10, PI * 1.1), '#2a2f2a', -0.66, -0.04, 0, [0, 0, 1.6], null, 0.12);
+      break;
+    }
+    case 'saint':
+      add(new THREE.ConeGeometry(0.38 * k, 1.4 * k, 8), '#3b4e86', 0.35, 0.6, 0, [0, 0, -0.35]);
+      add(ball(0.22), '#e9b88f', 0.62, 1.36, 0);
+      eyes(0.82, 1.4, 0.08, 0.04);
+      add(new THREE.TorusGeometry(0.3 * k, 0.05 * k, 6, 16), GILT, 0.5, 1.42, 0, [0, PI / 2, 0], null, 0);
+      add(rod(0.06, 0.06, 0.6), '#e9b88f', 0.7, 0.9, 0.18, [0, 0, -1.1]);
+      break;
+    default: // the plain scroll
+      add(new THREE.TorusGeometry(0.5 * k, 0.2 * k, 6, 14, PI * 1.5), gilded ? GILT : '#c79a52', 0.45, 0.5, 0, [0, 0, -0.6]);
+      break;
+  }
+  return g;
+}
+
+// ---------- The great ensign ----------
+// A flag on the stern staff, in her side's colours, hoist at the origin and flying aft (-x); thin boxes, so it
+// bakes with the hull and shows from both sides.
+function ensign(dress, w, h) {
+  const g = new THREE.Group();
+  const box = (bw, bh, depth, col, x, y, rz = 0) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(bw, bh, depth), toon(col));
+    m.position.set(x, y, 0); m.rotation.z = rz; g.add(m); return m;
+  };
+  const { base, fac } = dress;
+  const english = base === 'player' || base === 'merchant';
+  if (english) {
+    box(w, h, 0.3, COL.blue, -w / 2, -h / 2);
+    box(w * 0.42, h * 0.5, 0.42, '#fbf6ea', -w * 0.21, -h * 0.25);
+    box(w * 0.42, h * 0.11, 0.56, '#c0302a', -w * 0.21, -h * 0.25);
+    box(w * 0.09, h * 0.5, 0.56, '#c0302a', -w * 0.21, -h * 0.25);
+  } else if (fac === 'pirate') {
+    box(w, h, 0.3, '#17141a', -w / 2, -h / 2);
+    const a = Math.atan2(h * 0.5, w * 0.5);
+    for (const s of [-1, 1]) box(w * 0.55, h * 0.08, 0.44, '#efe6d2', -w / 2, -h * 0.58, s * a);
+    const sk = new THREE.Mesh(new THREE.SphereGeometry(h * 0.16, 8, 6), toon('#efe6d2'));
+    sk.position.set(-w / 2, -h * 0.4, 0); g.add(sk);
+  } else if (fac === 'barbary' || fac === 'ottoman') {
+    box(w, h, 0.3, COL.red, -w / 2, -h / 2);
+    const cr = new THREE.Mesh(new THREE.TorusGeometry(h * 0.24, h * 0.07, 5, 14, PI * 1.3), toon('#fbf6ea'));
+    cr.position.set(-w * 0.45, -h / 2, 0); cr.rotation.z = 1.2; g.add(cr);
+  } else {
+    // The Cross of Burgundy: a red saltire on white (on gold for a boss).
+    box(w, h, 0.3, base === 'boss' ? '#f2b632' : '#f4efe2', -w / 2, -h / 2);
+    const a = Math.atan2(h, w), len = Math.hypot(w, h) * 0.92;
+    for (const s of [-1, 1]) box(len, h * 0.15, 0.44, COL.red, -w / 2, -h / 2, s * a);
+  }
+  return g;
+}
+
 // One model per class, look, gun count and fit-out, built once and cloned per ship
 // (geometry is shared; materials are per ship so it can flash, scorch, tear and fade on its own).
+// opts.parts builds the 3D yard's model: every part tagged for picking and lighting up (aPart, tpl.partCodes),
+// its bounds kept (tpl.anchors), and 256px canvas. The yard drops these when it closes (dropTemplates).
 const templates = new Map();
-export function shipTemplate(s, faction) {
-  const look = shipLook(s, faction);
+export function shipTemplate(s, faction, opts = {}) {
+  const dress = shipDress(s, faction);
+  const look = dress.base, ids = dress.ids, paint = dress.paint, Lk = dress.Lk;
   const T = TYPES[s.type] || TYPES.brig;
   const sp = SPEC[s.type] || {};
   const ab = (k) => (s.abilities && s.abilities[k]) || (T.abilities && T.abilities[k]) || s[k] || T[k];
   const mortar = !!ab('mortar');
+  const parts = !!opts.parts;
   // Her guns as built from her batteries (src/sim/guns.js): kind and count per slot.
   const guns = s.batteries ? s.batteries.map((b) => `${b.slot}=${b.gun}${b.count}`).join(',') : `${s.guns}/${s.chasers}`;
-  const key = [s.type, look, guns, mortar ? 1 : 0].join(':');
+  // Her look is in the key, so each look bakes once (and still draws as one hull, one outline, a rig a mast).
+  const key = [s.type, dress.key, guns, mortar ? 1 : 0].join(':') + (parts ? ':yard' : '');
   if (templates.has(key)) return templates.get(key);
-  const Lk = LOOKS[look];
   const L = T.L, B = T.B, d = B * (sp.depth || 0.5);
   const boss = look === 'boss' || look === 'pirateBoss';
+  const gilt = ids.gilding !== 'plain', almirante = ids.gilding === 'almirante';
+  const PARTS = ['', 'hull', 'stern', 'figurehead', 'flags', 'sails', ...(s.batteries || []).map((b) => 'slot:' + b.slot)];
+  const part = (m, p) => { m.userData.part = p; return m; };
   const root = new THREE.Group();
   const body = new THREE.Group(); body.name = 'body';
   root.add(body);
   const base = -d * 0.32;
   const shape = (k) => (sp.pear ? pearShape(L * k, B * (k > 1 ? 1.06 : 1)) : hullShape(L * k, B * (k > 1 ? 1.06 : 1)));
-  const sideC = sp.tar ? '#2b2422' : Lk.side, deckC = sp.tar ? '#5c4734' : '#e0ad6b';
-  const castleC = sp.tar ? '#382c27' : Lk.castle, trim = sp.tar ? '#5a4a3a' : Lk.trim;
-  const hull = new THREE.Mesh(liftedExtrude(shape(1), d, 1.4, sp.pear ? 0.6 : 0.72), [toon(deckC), toon(sideC)]);
+  const sideC = sp.tar ? '#2b2422' : paint.side, deckC = sp.tar ? '#5c4734' : '#e0ad6b';
+  const castleC = sp.tar ? '#382c27' : paint.castle, trim = sp.tar ? '#5a4a3a' : paint.wale;
+  const hull = part(new THREE.Mesh(liftedExtrude(shape(1), d, 1.4, sp.pear ? 0.6 : 0.72), [toon(deckC), toon(sideC)]), 'hull');
   hull.position.y = base;
   withOutline(hull, 0.05);
   body.add(hull);
-  const wale = new THREE.Mesh(liftedExtrude(shape(1.025), 2.2, 0, 0), toon(trim));
+  const wale = part(new THREE.Mesh(liftedExtrude(shape(1.025), 2.2, 0, 0), toon(trim)), 'hull');
   wale.position.y = base + d * 0.55;
   body.add(wale);
   const deckY = base + d + 1.4;
+  if (almirante && !sp.tar) {
+    // A gilt moulding along her sheer.
+    const sheer = part(new THREE.Mesh(liftedExtrude(shape(1.03), 0.9, 0, 0), toon(GILT)), 'hull');
+    sheer.position.y = deckY - 2.2;
+    body.add(sheer);
+  }
   const [cl, ch, cw] = sp.castle || [0.2, 0.75, 0.74];
   const cx = -L * (0.49 - cl / 2);
-  const castle = new THREE.Mesh(new THREE.BoxGeometry(L * cl, d * ch, B * cw), toon(castleC));
+  const castle = part(new THREE.Mesh(new THREE.BoxGeometry(L * cl, d * ch, B * cw), toon(castleC)), 'stern');
   castle.position.set(cx, deckY + d * ch * 0.4, 0);
   withOutline(castle, 0.08);
   body.add(castle);
-  const rail = new THREE.Mesh(new THREE.BoxGeometry(L * (cl + 0.01), 1.6, B * (cw + 0.04)), toon(sp.tar ? '#4a3a30' : Lk.rail));
+  // The rail is her side's colour, whatever her paint (blue English, red enemy, gilt boss).
+  const rail = part(new THREE.Mesh(new THREE.BoxGeometry(L * (cl + 0.01), 1.6, B * (cw + 0.04)), toon(sp.tar ? '#4a3a30' : Lk.rail)), 'stern');
   rail.position.set(cx, deckY + d * ch * 0.93, 0);
   body.add(rail);
-  // Stern lantern
-  const lantern = new THREE.Mesh(new THREE.SphereGeometry(2.2, 8, 6), toon('#ffd65a'));
-  lantern.position.set(-L * 0.5, deckY + d * ch * 1.2, 0);
-  withOutline(lantern, 0.15);
-  body.add(lantern);
-  const gunMat = toon('#2a2522');
+  // The stern: windows, then the gilding she wears (a gilt band, quarter-badges, a taffrail arch and a name board;
+  // the Almirante's adds a gallery).
+  const sternX = -L * 0.49, cW = B * cw, cH = d * ch;
+  const stern = (geo, col, x, y, z, ink) => { const m = part(new THREE.Mesh(geo, toon(col)), 'stern'); m.position.set(x, y, z); if (ink) withOutline(m, ink); body.add(m); return m; };
+  if (!sp.tar) {
+    const nWin = B > 26 ? 3 : 2;
+    for (let i = 0; i < nWin; i++) stern(new THREE.BoxGeometry(0.9, cH * 0.22, cW * 0.13), '#2b3440', sternX - 0.2, deckY + cH * 0.42, (i - (nWin - 1) / 2) * cW * 0.26);
+  }
+  if (gilt && !sp.tar) {
+    stern(new THREE.BoxGeometry(L * cl + 0.4, Math.max(0.9, cH * 0.07), cW + 0.4), GILT, cx, deckY + cH * 0.8, 0);
+    for (const z of [-1, 1]) stern(new THREE.BoxGeometry(L * cl * 0.3, cH * 0.62, 1.2), GILT, cx - L * cl * 0.28, deckY + cH * 0.38, z * (cW / 2 + 0.3), 0.08);
+    stern(new THREE.TorusGeometry(cW * 0.3, Math.max(0.6, B * 0.02), 5, 12, PI).rotateY(PI / 2), GILT, sternX - 0.3, deckY + cH * 0.93, 0, 0.12);
+    stern(new THREE.BoxGeometry(1.2, cH * 0.2, cW * 0.78), GILT, sternX - 0.25, deckY + cH * 0.12, 0);
+    stern(new THREE.BoxGeometry(1.0, cH * 0.13, cW * 0.68), '#3a281c', sternX - 0.6, deckY + cH * 0.12, 0);
+    if (almirante) {
+      stern(new THREE.BoxGeometry(2.4, cH * 0.08, cW * 0.92), GILT, sternX - 1.2, deckY + cH * 0.27, 0, 0.06);
+      for (let i = -3; i <= 3; i++) stern(new THREE.BoxGeometry(0.5, cH * 0.12, 0.5), GILT, sternX - 2.1, deckY + cH * 0.34, i * cW * 0.13);
+      stern(new THREE.BoxGeometry(2.4, cH * 0.05, cW * 0.92), GILT, sternX - 1.2, deckY + cH * 0.41, 0);
+    }
+  }
+  // Stern lanterns: one on the taffrail, two on the quarters, or all three.
+  const lr = clamp(L * 0.024, 1.6, 2.8), nl = clamp(ids.lanterns | 0, 1, 3);
+  const lanternAt = [];
+  if (nl !== 2) lanternAt.push([sternX - 0.6, deckY + cH * 1.2, 0]);
+  if (nl >= 2) for (const z of [-1, 1]) lanternAt.push([sternX + 0.6, deckY + cH * 1.08, z * cW * 0.42]);
+  for (const [lx, ly, lz] of lanternAt) {
+    stern(new THREE.SphereGeometry(lr, 8, 6), '#ffd65a', lx, ly, lz, 0.15);
+    stern(new THREE.ConeGeometry(lr * 0.75, lr * 0.8, 6), '#2a2522', lx, ly + lr * 1.15, lz);
+  }
+  // The great ensign at the stern staff (every flag but the plain one).
+  if (ids.flag !== 'colours' && !sp.tar) {
+    const sh = clamp(L * 0.2, 12, 22), lean = 0.25;
+    const staff = part(new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.45, sh, 5), toon('#7a4a22')), 'flags');
+    staff.position.set(sternX - 0.8 - Math.sin(lean) * sh / 2, deckY + cH * 0.85 + Math.cos(lean) * sh / 2, 0);
+    staff.rotation.z = lean;
+    body.add(staff);
+    const en = part(ensign(dress, clamp(L * 0.17, 10, 19), clamp(L * 0.11, 6.5, 12.5)), 'flags');
+    en.position.set(sternX - 0.8 - Math.sin(lean) * sh, deckY + cH * 0.85 + Math.cos(lean) * sh - 0.4, 0);
+    en.rotation.set(0, 0.18, 0.3);
+    body.add(en);
+  }
+  const gunMat = toon('#2a2522'), portMat = toon(paint.ports);
   // A gun's barrel from its render hint (src/config/guns.js): length and bore relative to a long gun.
   const barrelGeo = (rh, len, axis) => {
     const g = new THREE.CylinderGeometry(1.5 * rh.bore, 1.9 * rh.bore, len * rh.barrel, 8);
     return axis === 'side' ? g.rotateX(PI / 2) : g.rotateZ(-PI / 2);
   };
+  // How far out her side is at x, at height y (her sides tumble home toward the keel).
+  const half = hullHalf(L, B, sp.pear), taper = sp.pear ? 0.6 : 0.72;
+  const sideAt = (x, y) => { const t = clamp((y - base) / d, 0, 1); return half(x / lerp(0.92, 1, t)) * lerp(taper, 1, t) + 1.1; };
+  const slope = (x, y) => (sideAt(x + 1, y) - sideAt(x - 1, y)) / 2;
   const deckMounts = [];
   for (const bt of s.batteries || []) {
-    const rh = (GUNS[bt.gun] && GUNS[bt.gun].render) || { barrel: 1, bore: 1 }, n = bt.count;
+    const rh = (GUNS[bt.gun] && GUNS[bt.gun].render) || { barrel: 1, bore: 1 }, n = bt.count, sl = 'slot:' + bt.slot;
     const along = (i) => L * (n === 1 ? (bt.at[0] + bt.at[1]) / 2 : lerp(bt.at[0], bt.at[1], i / (n - 1)));
     if (bt.pos === 'broadside') {
       // Ports along her side: the lower tier low on the hull, the upper a tier above; swivels sit on the rail.
       const side = bt.side === 0 ? -1 : 1, geo = barrelGeo(rh, 6, 'side'); // local +z is starboard
-      const y = bt.gun === 'swivel' ? deckY + 1.6 : bt.tier === 'lower' ? deckY - d * 0.45 : bt.tier === 'upper' ? deckY - d * 0.12 : deckY - d * 0.35;
+      const swivel = bt.gun === 'swivel';
+      const y = swivel ? deckY + 1.6 : bt.tier === 'lower' ? deckY - d * 0.45 : bt.tier === 'upper' ? deckY - d * 0.12 : deckY - d * 0.35;
+      const pw = 3.3 * Math.max(0.85, rh.bore), portGeo = swivel ? null : new THREE.BoxGeometry(pw, pw * 0.9, 1.4);
       for (let i = 0; i < n; i++) {
-        const gun = new THREE.Mesh(geo, gunMat);
-        gun.position.set(along(i), y, side * (B / 2 + 0.5 + (rh.barrel * 6 - 6) * 0.25));
+        const x = along(i), out = sideAt(x, swivel ? deckY : y);
+        const gun = part(new THREE.Mesh(geo, gunMat), sl);
+        gun.position.set(x, y, side * (swivel ? out - 0.5 : out + rh.barrel * 6 * 0.2));
         body.add(gun);
+        if (portGeo) {
+          const port = part(new THREE.Mesh(portGeo, portMat), sl);
+          port.position.set(x, y, side * (out - 0.35));
+          port.rotation.y = -Math.atan(side * slope(x, y));
+          body.add(port);
+        }
       }
     } else if (bt.pos === 'bow' || bt.pos === 'stern') {
       // Chase guns poke out over the bow, or from the great cabin's windows astern.
       const fwd = bt.pos === 'bow' ? 1 : -1, geo = barrelGeo(rh, 6, 'long');
       for (let i = 0; i < n; i++) {
-        const gun = new THREE.Mesh(geo, gunMat);
+        const gun = part(new THREE.Mesh(geo, gunMat), sl);
         gun.position.set(fwd * L * (fwd > 0 ? 0.42 : 0.47), fwd > 0 ? deckY + 0.6 : deckY + d * 0.25, n === 1 ? 0 : (i ? 1 : -1) * B * 0.18);
         withOutline(gun, 0.12);
         body.add(gun);
@@ -435,19 +841,28 @@ export function shipTemplate(s, faction) {
   const spritLen = L * (sp.sprit || 0.3);
   const spritButt = [L * 0.44, deckY + 1.5], spritDir = [Math.cos(0.28), Math.sin(0.28)];
   const spritTip = [spritButt[0] + spritDir[0] * spritLen, spritButt[1] + spritDir[1] * spritLen];
-  const sprit = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.3, spritLen, 6), wood);
+  const sprit = part(new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.3, spritLen, 6), wood), 'sails');
   sprit.rotation.z = -PI / 2 + 0.28;
   sprit.position.set((spritButt[0] + spritTip[0]) / 2, (spritButt[1] + spritTip[1]) / 2 + 1, 0);
   body.add(sprit);
+  // The figurehead at her stem head, under the bowsprit (on a xebec, at the end of her beak).
+  if (!sp.tar) {
+    const k = clamp(B * 0.15, 2.4, 6.6);
+    const fh = part(figurehead(ids.figurehead, k, almirante, parts), 'figurehead');
+    if (sp.beak) fh.position.set(L * 0.6, base + d * 0.9, 0);
+    else fh.position.set(L * 0.5 + k * 0.2, deckY - d * (sp.pear ? 0.2 : 0.32), 0);
+    fh.rotation.z = 0.42;
+    body.add(fh);
+  }
 
   if (sp.beak) {
     // A xebec's long, low beak and an overhanging stern platform.
-    const beak = new THREE.Mesh(new THREE.ConeGeometry(B * 0.16, L * 0.2, 6).rotateZ(-PI / 2), toon(sideC));
+    const beak = part(new THREE.Mesh(new THREE.ConeGeometry(B * 0.16, L * 0.2, 6).rotateZ(-PI / 2), toon(sideC)), 'hull');
     beak.scale.z = 0.7;
     beak.position.set(L * 0.56, base + d * 0.75, 0);
     withOutline(beak, 0.08);
     body.add(beak);
-    const plat = new THREE.Mesh(new THREE.BoxGeometry(L * 0.1, 1.4, B * 0.56), toon(deckC));
+    const plat = part(new THREE.Mesh(new THREE.BoxGeometry(L * 0.1, 1.4, B * 0.56), toon(deckC)), 'stern');
     plat.position.set(-L * 0.53, deckY + 0.2, 0);
     withOutline(plat, 0.08);
     body.add(plat);
@@ -458,7 +873,7 @@ export function shipTemplate(s, faction) {
     for (let i = 0; i < n; i++) {
       const ax = lerp(-L * 0.27, L * 0.25, i / (n - 1));
       for (const side of [-1, 1]) {
-        const og = new THREE.Group();
+        const og = part(new THREE.Group(), 'hull');
         og.position.set(ax, deckY - 0.9, side * (B / 2 + 0.2));
         og.rotation.x = side * 0.42;
         og.userData.tag = [ax, deckY - 0.9, side * (B / 2 + 0.2), side > 0 ? 11 : 10];
@@ -472,42 +887,44 @@ export function shipTemplate(s, faction) {
     }
   }
   // A squat iron mortar on a round bed, cocked up toward the bow, with a few shells beside it.
-  const addMortar = (mx) => {
+  const addMortar = (mx, p) => {
     const r = Math.min(B * 0.2, 6.5);
+    const grp = part(new THREE.Group(), p);
+    body.add(grp);
     const bed = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.45, r * 1.6, 3, 12), toon('#6b4424'));
     bed.position.set(mx, deckY + 1.5, 0);
     withOutline(bed, 0.06);
-    body.add(bed);
+    grp.add(bed);
     const barrel = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.05, r * 0.9, r * 1.7, 12), toon('#34302e'));
     barrel.position.set(mx + r * 0.25, deckY + 3 + r * 0.7, 0);
     barrel.rotation.z = -0.5;
     withOutline(barrel, 0.08);
-    body.add(barrel);
+    grp.add(barrel);
     const band = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.12, r * 1.12, r * 0.3, 12), toon('#b08a3a'));
     band.position.copy(barrel.position); band.rotation.z = -0.5;
-    body.add(band);
+    grp.add(band);
     const bore = new THREE.Mesh(new THREE.CircleGeometry(r * 0.72, 12).rotateX(-PI / 2), toon('#0f0d0c'));
     bore.position.set(mx + r * 0.25 + Math.sin(0.5) * r * 0.86, deckY + 3 + r * 0.7 + Math.cos(0.5) * r * 0.86 + 0.05, 0);
     bore.rotation.z = -0.5;
-    body.add(bore);
+    grp.add(bore);
     for (let k = 0; k < 3; k++) {
       const ball = new THREE.Mesh(new THREE.SphereGeometry(1.7, 8, 6), gunMat);
       ball.position.set(mx - r * 1.9, deckY + 1.6 + (k === 2 ? 2.4 : 0), (k === 2 ? 0 : k ? 1.8 : -1.8) + B * 0.18);
-      body.add(ball);
+      grp.add(ball);
     }
   };
-  if (mortar) addMortar(L * (sp.mortarX || 0.145));
+  if (mortar) addMortar(L * (sp.mortarX || 0.145), 'hull');
   for (const bt of deckMounts) {
-    const mx = L * (bt.at[0] + bt.at[1]) / 2;
-    if (bt.gun === 'mortar') addMortar(mx);
+    const mx = L * (bt.at[0] + bt.at[1]) / 2, sl = 'slot:' + bt.slot;
+    if (bt.gun === 'mortar') addMortar(mx, sl);
     else if (bt.gun === 'firepot') {
       // A fire-pot engine: a timber sling frame with a pot of pitch glowing in its cup.
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(7, 5, 6), toon('#6b4424'));
+      const frame = part(new THREE.Mesh(new THREE.BoxGeometry(7, 5, 6), toon('#6b4424')), sl);
       frame.position.set(mx, deckY + 2.5, 0);
       withOutline(frame, 0.06);
-      const arm = new THREE.Mesh(new THREE.BoxGeometry(12, 1.1, 1.1), toon('#7a4a22'));
+      const arm = part(new THREE.Mesh(new THREE.BoxGeometry(12, 1.1, 1.1), toon('#7a4a22')), sl);
       arm.position.set(mx, deckY + 6.5, 0); arm.rotation.z = 0.55;
-      const pot = new THREE.Mesh(new THREE.SphereGeometry(1.9, 8, 6), toon('#e0573c'));
+      const pot = part(new THREE.Mesh(new THREE.SphereGeometry(1.9, 8, 6), toon('#e0573c')), sl);
       pot.position.set(mx + 5, deckY + 9.6, 0);
       withOutline(pot, 0.12);
       body.add(frame, arm, pot);
@@ -515,7 +932,7 @@ export function shipTemplate(s, faction) {
       // Swivels on posts at the rail.
       const rh = (GUNS[bt.gun] && GUNS[bt.gun].render) || { barrel: 0.45, bore: 0.4 }, geo = barrelGeo(rh, 6, 'long');
       for (let i = 0; i < bt.count; i++) {
-        const gun = new THREE.Mesh(geo, gunMat);
+        const gun = part(new THREE.Mesh(geo, gunMat), sl);
         gun.position.set(mx, deckY + 2.2, (i % 2 ? 1 : -1) * B * 0.4);
         body.add(gun);
       }
@@ -526,7 +943,7 @@ export function shipTemplate(s, faction) {
     const fg = new THREE.CylinderGeometry(1.5, 1.5, B * 0.5, 6).rotateX(PI / 2);
     for (let r = 0; r < 6; r++) {
       for (let k = 0; k < 2; k++) {
-        const f = new THREE.Mesh(fg, toon((r + k) % 2 ? '#a8813f' : '#8d6a33'));
+        const f = part(new THREE.Mesh(fg, toon((r + k) % 2 ? '#a8813f' : '#8d6a33')), 'hull');
         f.position.set(lerp(-L * 0.24, L * 0.3, r / 5) + k * L * 0.045, deckY + 1.5 + k * 2.6, (k ? 1 : -1) * B * 0.04);
         f.rotation.y = (r % 2 ? 0.12 : -0.1) + k * 0.2;
         withOutline(f, 0.12);
@@ -534,7 +951,7 @@ export function shipTemplate(s, faction) {
       }
     }
     for (const z of [-1, 1]) {
-      const bar = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.1, 4.4, 8), toon('#1d1917'));
+      const bar = part(new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.1, 4.4, 8), toon('#1d1917')), 'hull');
       bar.position.set(-L * 0.3, deckY + 2.2, z * B * 0.2);
       withOutline(bar, 0.12);
       body.add(bar);
@@ -542,37 +959,35 @@ export function shipTemplate(s, faction) {
   }
   if (sp.cargo) {
     // Merchantman: a hatch, crates and barrels amidships and a carved stern gallery on her high stern.
-    const hatch = new THREE.Mesh(new THREE.BoxGeometry(L * 0.12, 0.8, B * 0.36), toon('#5a3a1e'));
+    const hatch = part(new THREE.Mesh(new THREE.BoxGeometry(L * 0.12, 0.8, B * 0.36), toon('#5a3a1e')), 'hull');
     hatch.position.set(L * 0.17, deckY + 0.4, 0);
     body.add(hatch);
     const crateGeo = new THREE.BoxGeometry(5.5, 4.6, 5.5);
     [[0.15, -0.2, 0], [0.19, 0.2, 0], [0.15, 0.2, 1], [-0.1, -0.2, 0], [-0.07, 0.04, 0]].forEach(([fx, fz, up], i) => {
-      const c = new THREE.Mesh(crateGeo, toon(i % 2 ? '#c99a5a' : '#b5864c'));
+      const c = part(new THREE.Mesh(crateGeo, toon(i % 2 ? '#c99a5a' : '#b5864c')), 'hull');
       c.position.set(L * fx, deckY + 2.3 + up * 4.6, B * fz);
       c.rotation.y = i * 0.35;
       withOutline(c, 0.08);
       body.add(c);
     });
     for (const [fx, fz] of [[-0.13, 0.22], [-0.17, 0.12], [0.31, -0.18]]) {
-      const b = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 4.2, 8), toon('#8a5a2e'));
+      const b = part(new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 4.2, 8), toon('#8a5a2e')), 'hull');
       b.position.set(L * fx, deckY + 2.1, B * fz);
       withOutline(b, 0.1);
       body.add(b);
     }
-    const gallery = new THREE.Mesh(new THREE.BoxGeometry(1.4, d * ch * 0.45, B * cw * 0.8), toon('#e2b13a'));
-    gallery.position.set(-L * 0.495, deckY + d * ch * 0.45, 0);
-    body.add(gallery);
+    stern(new THREE.BoxGeometry(1.4, d * ch * 0.45, B * cw * 0.8), '#e2b13a', -L * 0.495, deckY + d * ch * 0.45, 0);
   }
 
   const masts = sp.masts || defaultMasts(T);
-  const rigTex = sailTexture(look, !!sp.torn);
+  const rigTex = sailTexture(dress, !!sp.torn, parts);
   const sailMat = toon('#ffffff', { map: rigTex, side: THREE.DoubleSide });
   const breakH = new THREE.Vector4(1e4, 1e4, 1e4, 0);
-  let top = 0, mainIdx = 0, flagX = 0;
+  let top = 0, mainIdx = 0, flagMesh = null;
   masts.forEach((M, mi) => {
     const rig = M.rig || 'square', fa = rig !== 'square' ? 1 : 0;
     const mh = L * M.h, mx = L * M.x;
-    const mast = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.7, mh, 7, 3), wood);
+    const mast = part(new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.7, mh, 7, 3), wood), 'sails');
     mast.position.set(mx, deckY + mh / 2, 0);
     mast.userData.tag = [mx, deckY, 0, mi + 1];
     withOutline(mast, 0.25);
@@ -607,9 +1022,9 @@ export function shipTemplate(s, faction) {
       add(spar([A[0] * 1.06, A[1] - 0.6], [P[0] * 1.04, P[1] + 0.8], 0.7, wood), 0);
     }
     if (M.main) {
-      mainIdx = mi; flagX = mx;
+      mainIdx = mi;
       if (rig === 'square') {
-        const nest = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 2.6, 2.6, 10), wood);
+        const nest = part(new THREE.Mesh(new THREE.CylinderGeometry(3.2, 2.6, 2.6, 10), wood), 'sails');
         nest.position.set(mx, deckY + mh * 0.86, 0);
         nest.userData.tag = mast.userData.tag;
         withOutline(nest, 0.12);
@@ -619,12 +1034,17 @@ export function shipTemplate(s, faction) {
       const flagPivot = new THREE.Group();
       flagPivot.name = 'flag';
       flagPivot.position.set(mx, top - 1, 0);
+      // The colours at the main: a plain flag, a long pennant or an admiral's flag, always in her side's colour.
       const fk = Lk.flag, roger = fk === 'roger' || fk === 'rogerBoss';
-      const flagMat = roger ? toon('#ffffff', { map: flagTexture(fk), side: THREE.DoubleSide }) : toon(fk, { side: THREE.DoubleSide });
-      const flag = new THREE.Mesh(new THREE.PlaneGeometry(14, 8, 4, 1).translate(7, 0, 0), flagMat);
-      if (boss) flag.scale.setScalar(1.6); // a boss flies a long command pennant
-      else if (roger) flag.scale.setScalar(1.25);
-      flagPivot.add(flag);
+      const kind = ids.flag === 'pennant' ? (roger ? 'pennantRoger' : 'pennant') : ids.flag === 'admiral' && !roger ? 'admiral' : roger ? fk : 'plain';
+      const tex = kind === 'plain' ? null : flagTexture(kind, roger ? null : fk);
+      const flagMat = tex ? toon('#ffffff', { map: tex, side: THREE.DoubleSide }) : toon(fk, { side: THREE.DoubleSide });
+      const geo = kind === 'pennant' || kind === 'pennantRoger' ? pennantGeometry(boss ? 52 : 40, boss ? 8 : 6)
+        : kind === 'admiral' ? new THREE.PlaneGeometry(22, 14, 4, 1).translate(11, -2, 0) : new THREE.PlaneGeometry(14, 8, 4, 1).translate(7, 0, 0);
+      flagMesh = part(new THREE.Mesh(geo, flagMat), 'flags');
+      if (kind === 'plain' && boss) flagMesh.scale.setScalar(1.6); // a boss flies a long command pennant
+      else if (kind === 'roger' || kind === 'rogerBoss') flagMesh.scale.setScalar(1.25);
+      flagPivot.add(flagMesh);
       body.add(flagPivot);
     }
   });
@@ -632,13 +1052,31 @@ export function shipTemplate(s, faction) {
     // Schooner headsail: a fixed jib from the bowsprit to the foremast head (it stays with the hull bake).
     const fm = masts[0], head = [L * fm.x + 1.5, deckY + L * fm.h * 0.94];
     const tack = [spritTip[0] * 0.97, spritTip[1] + 1.5], clew = [L * 0.27, deckY + 6];
-    for (const g of twoSided(sailPatch(tack, clew, head, head, 2.2, 4, 3))) body.add(new THREE.Mesh(g, toon(Lk.sail)));
-    body.add(spar([spritTip[0] * 0.97, spritTip[1] + 1], head, 0.35, toon(COL.ink)));
+    for (const g of twoSided(sailPatch(tack, clew, head, head, 2.2, 4, 3))) body.add(part(new THREE.Mesh(g, toon(dress.cloth.color)), 'sails'));
+    body.add(part(spar([spritTip[0] * 0.97, spritTip[1] + 1], head, 0.35, toon(COL.ink)), 'sails'));
+  }
+  // The yard's model keeps where each part is (in her own frame) for its hotspots.
+  const partOf = (o) => { for (let p = o; p && p !== root; p = p.parent) if (p.userData.part) return p.userData.part; return ''; };
+  let anchors = null;
+  if (parts) {
+    root.updateMatrixWorld(true);
+    anchors = {};
+    const bb = new THREE.Box3();
+    root.traverse((o) => {
+      if (!o.isMesh || o.material === R.inkMat) return;
+      let p = partOf(o);
+      if (!p && o.parent && o.parent.name === 'pivot') p = 'sails';
+      if (!p) return;
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+      (anchors[p] = anchors[p] || new THREE.Box3()).union(bb);
+    });
   }
   // Bake: the static body becomes one toon mesh + one outline; each mast's sails and spars become one mesh.
   const animated = (o) => o.name === 'pivot' || o.name === 'flag';
   const tagUp = (o) => { for (let p = o; p && p !== body; p = p.parent) if (p.userData.tag) return p.userData.tag; return null; };
-  const baked = bakeChildren(body, toon('#ffffff', { vertexColors: true }), animated, null, tagUp);
+  const partFor = parts ? (o) => Math.max(0, PARTS.indexOf(partOf(o))) : null;
+  const baked = bakeChildren(body, toon('#ffffff', { vertexColors: true }), animated, null, tagUp, { partFor });
   baked.solid.name = 'hullBody';
   if (baked.ink) baked.ink.name = 'hullInk';
   const rigMat = toon('#ffffff', { map: rigTex, side: THREE.DoubleSide, vertexColors: true, alphaTest: 0.5 });
@@ -648,13 +1086,50 @@ export function shipTemplate(s, faction) {
     bakeChildren(pv, rigMat, null, (m) => (m.material === wood ? [0.4, 0.15] : null), rigTag).solid.name = 'rig';
   }
   sailMat.dispose(); // only used while building; the baked rig has its own material
-  const tpl = { root, top, deckY, breakH, mainIdx, flagY: top - 1, brokenFlagY: breakH.getComponent(mainIdx) - 1, look, torn: !!sp.torn, oars: !!sp.oars };
+  // What she was built with, for tests and the yard: her look and, slot by slot, the guns and how they're drawn.
+  const info = {
+    key, look: { ...ids }, base: look, faction: dress.fac,
+    guns: (s.batteries || []).map((b) => ({ slot: b.slot, gun: b.gun, count: b.count, ...((GUNS[b.gun] && GUNS[b.gun].render) || {}) })),
+  };
+  const tpl = {
+    root, top, deckY, breakH, mainIdx, flagY: top - 1, brokenFlagY: breakH.getComponent(mainIdx) - 1, look, dress, hd: parts,
+    torn: !!sp.torn, oars: !!sp.oars, info, L, B, d,
+    partCodes: parts ? Object.fromEntries(PARTS.map((p, i) => [p, i]).filter(([p]) => p)) : null, anchors, flagMesh,
+  };
   templates.set(key, tpl);
   return tpl;
 }
 
-export function buildShipMesh(s, faction) {
-  const tpl = shipTemplate(s, faction);
+// Disposes the templates whose key passes `test` (the yard's, when it closes) and their 256px canvases.
+export function dropTemplates(test) {
+  for (const [key, tpl] of [...templates]) {
+    if (!test(key)) continue;
+    templates.delete(key);
+    tpl.root.traverse((o) => {
+      if (!o.isMesh) return;
+      o.geometry.dispose();
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) if (m !== R.inkMat && !m.userData.shared) m.dispose();
+    });
+  }
+  for (const k of Object.keys(sailTex)) if (k.endsWith(':hd')) { sailTex[k].dispose(); delete sailTex[k]; }
+}
+export const templateKeys = () => [...templates.keys()];
+
+// The yard lights up the part you tap: aPart (from the bake) inside the range uPart, by uGlow, warms the part's paint
+// toward gilt and turns its outline gilt.
+const HI_DECL = 'attribute float aPart;\nuniform vec2 uPart;\nvarying float vHi;\n';
+function hiShader(sh, u, ink) {
+  Object.assign(sh.uniforms, { uPart: u.uPart, uGlow: u.uGlow });
+  sh.vertexShader = sh.vertexShader.replace('void main() {', HI_DECL + 'void main() {')
+    .replace('#include <begin_vertex>', '#include <begin_vertex>\n\tvHi = step(uPart.x - 0.5, aPart) * step(aPart, uPart.y + 0.5);');
+  sh.fragmentShader = sh.fragmentShader.replace('void main() {', 'uniform float uGlow;\nvarying float vHi;\nvoid main() {');
+  sh.fragmentShader = ink
+    ? sh.fragmentShader.replace('#include <color_fragment>', '#include <color_fragment>\n\tdiffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.99, 0.9, 0.62), vHi * min(1.0, uGlow * 1.8));')
+    : sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n\ttotalEmissiveRadiance += vHi * uGlow * vec3(0.42, 0.3, 0.1);');
+}
+
+export function buildShipMesh(s, faction, opts) {
+  const tpl = shipTemplate(s, faction, opts);
   const g = tpl.root.clone(true);
   const u = {
     uFade: { value: 1 }, uMast: { value: new THREE.Vector4(0, 0, 0, -1) },
@@ -664,6 +1139,13 @@ export function buildShipMesh(s, faction) {
     g, u, tpl, rigs: [], pivots: [], body: null, flagPivot: null, hullMat: null, rigMat: null, inkMat: null,
     top: tpl.top, vis: 1, boom: 0, oar: 0, torn: tpl.torn, mats: [],
   };
+  // The yard's model: the body shaders also light up a part (see hiShader).
+  let bodyObc = bodyShader, inkObc = bodyShader;
+  if (tpl.partCodes) {
+    u.uPart = { value: new THREE.Vector2(-9, -9) }; u.uGlow = { value: 0 };
+    bodyObc = function (sh) { bodyShader.call(this, sh); hiShader(sh, u, false); };
+    inkObc = function (sh) { bodyShader.call(this, sh); hiShader(sh, u, true); };
+  }
   g.traverse((o) => {
     if (o.name === 'body') ref.body = o;
     else if (o.name === 'rig') {
@@ -672,8 +1154,8 @@ export function buildShipMesh(s, faction) {
       ref.rigs.push(o);
     } else if (o.name === 'pivot') ref.pivots.push(o);
     else if (o.name === 'flag') ref.flagPivot = o;
-    else if (o.name === 'hullBody') o.material = ref.hullMat = shipMaterial(o.material, u, bodyShader);
-    else if (o.name === 'hullInk') o.material = ref.inkMat = shipMaterial(o.material, u, bodyShader);
+    else if (o.name === 'hullBody') o.material = ref.hullMat = shipMaterial(o.material, u, bodyObc);
+    else if (o.name === 'hullInk') o.material = ref.inkMat = shipMaterial(o.material, u, inkObc);
   });
   ref.mats = [ref.hullMat, ref.rigMat, ref.inkMat].filter(Boolean);
   if (ref.rigMat) ref.rigMat.alphaTest = tpl.torn ? 0.5 : 0;
@@ -696,7 +1178,7 @@ export function setShipFading(ref, on) {
 export function setShipTorn(ref, torn) {
   if (ref.torn === torn || !ref.rigMat) return;
   ref.torn = torn;
-  ref.rigMat.map = sailTexture(ref.tpl.look, torn);
+  ref.rigMat.map = sailTexture(ref.tpl.dress, torn, ref.tpl.hd);
   ref.rigMat.alphaTest = torn ? 0.5 : 0;
   ref.rigMat.needsUpdate = true;
 }

@@ -38,11 +38,12 @@ register('data:text/javascript,' + encodeURIComponent(HOOKS));
 const src = (p) => new URL('../src/' + p, import.meta.url).href;
 
 export async function loadContent() {
-  const [battles, ships, hats, endless, goals, abilities, events, terrain, hazards, land, lands, guns, slots, ammo, flagship] = await Promise.all([
+  const [battles, ships, hats, endless, goals, abilities, events, terrain, hazards, land, lands, guns, slots, ammo, flagship, looks] = await Promise.all([
     import(src('config/battles.js')), import(src('config/ships.js')), import(src('config/hats.js')), import(src('config/endless.js')),
     import(src('sim/goals/index.js')), import(src('sim/abilities/index.js')), import(src('sim/events.js')),
     import(src('sim/terrain.js')), import(src('sim/hazards.js')), import(src('sim/land.js')), import(src('config/lands.js')),
     import(src('config/guns.js')), import(src('config/slots.js')), import(src('config/ammo.js')), import(src('config/flagship.js')),
+    import(src('config/looks.js')),
   ]);
   return {
     BATTLES: battles.BATTLES, REGIONS: battles.REGIONS, FLEET_SLOTS: battles.FLEET_SLOTS,
@@ -57,5 +58,7 @@ export async function loadContent() {
     GUNS: guns.GUNS, GUN_PARAMS: guns.GUN_PARAMS, POSITIONS: slots.POSITIONS, SLOT_PARAMS: slots.SLOT_PARAMS, WEIGHT: slots.WEIGHT,
     checkLoadout: slots.checkLoadout, checkSlots: slots.checkSlots, loadoutWeight: slots.loadoutWeight, accepts: slots.accepts, FLAGSHIP: flagship.FLAGSHIP,
     AMMO: ammo.AMMO,
+    // Ship looks (src/config/looks.js).
+    LOOK_CATALOGUE: looks.LOOK_CATALOGUE, LOOK_FIELDS: looks.LOOK_FIELDS, checkLook: looks.checkLook, FACTION_LOOKS: looks.FACTION_LOOKS, BOSS_LOOKS: looks.BOSS_LOOKS,
   };
 }
