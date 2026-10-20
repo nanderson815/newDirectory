@@ -90,14 +90,14 @@ export const BATTLES = [
       { x: 0.5, y: 0.7, r: 54, stretch: 3, angle: 0 }, { x: 0.94, y: 0.52, r: 34, stretch: 1.4, angle: 90 },
       { x: 0.1, y: 0.62, r: 34, stretch: 1.8, angle: 70 }, { x: 0.86, y: 0.8, r: 30, stretch: 1.6, angle: -30 },
     ],
-    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.72, hpMul: 1.8 },
+    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.72, hpMul: 1.45 },
   },
   {
     id: 'rojo', region: 'windward', roman: 'III', year: 1656, name: 'La Bruja', foe: 'Capitán Rojo',
     goal: 'boss', hat: 'rojo', reward: 220, wind: 20,
     brief: 'Capitán Rojo’s galleon La Bruja carries bow chasers, so don’t linger in front of her. Sink her and his red tricorne is yours.',
     enemy: [
-      { type: 'galleon', name: 'La Bruja', x: 0.82, y: 0.42, h: 90, hp: 350, chasers: 2, reloadMul: 0.9,
+      { type: 'galleon', name: 'La Bruja', x: 0.82, y: 0.42, h: 90, hp: 420, chasers: 2, reloadMul: 0.9,
         boss: { captain: 'Capitán Rojo', title: 'La Bruja', hat: 'rojo' } },
       { type: 'brig', name: 'El Lobo', x: 0.24, y: 0.18, h: 90 },
     ],
@@ -157,7 +157,7 @@ export const BATTLES = [
     goal: 'boss', hat: 'comodoro', reward: 320, wind: 0,
     brief: 'El Comodoro keeps his flagship between two forts. Take the forts first, or dash in and sink him.',
     enemy: [
-      { type: 'galleon', name: 'San Cristóbal', x: 0.5, y: 0.12, h: 90, hp: 455, chasers: 1,
+      { type: 'galleon', name: 'San Cristóbal', x: 0.5, y: 0.12, h: 90, hp: 420, chasers: 1,
         boss: { captain: 'El Comodoro', title: 'San Cristóbal', hat: 'comodoro' } },
       { type: 'brig', name: 'El Alcón', x: 0.3, y: 0.2, h: 90 },
       { type: 'brig', name: 'La Garza', x: 0.7, y: 0.2, h: 90 },
@@ -175,7 +175,7 @@ export const BATTLES = [
       { island: 0, name: 'Fort Santa Fe', hp: 110, guns: 2, need: 10 },
       { island: 1, name: 'Fort Santa Inés', hp: 110, guns: 2, need: 10 },
     ],
-    ai: { spread: 0.12, reloadMul: 1.05, dmgMul: 0.78, hpMul: 1.3 },
+    ai: { spread: 0.12, reloadMul: 1.05, dmgMul: 0.78, hpMul: 1.15 },
   },
 
   {
@@ -219,17 +219,17 @@ export const BATTLES = [
       { x: 0.614, y: 0.525, r: 13, stretch: 7.32, angle: 158 },
     ],
     forts: [
-      { island: 0, name: 'North Tower', hp: 180, guns: 3, need: 10 },
-      { island: 1, name: 'South Tower', hp: 180, guns: 3, need: 10 },
+      { island: 0, name: 'North Tower', hp: 240, guns: 3, need: 10 },
+      { island: 1, name: 'South Tower', hp: 240, guns: 3, need: 10 },
     ],
-    ai: { spread: 0.09, reloadMul: 1, dmgMul: 1.0, hpMul: 1.5 },
+    ai: { spread: 0.09, reloadMul: 1, dmgMul: 1.0, hpMul: 1.8 },
   },
   {
     id: 'oro', region: 'golden', roman: 'IX', year: 1659, name: 'Santísima Trinidad', foe: 'Almirante de Oro',
     goal: 'boss', hat: 'oro', reward: 500, wind: 0,
     brief: 'The Almirante’s man-o’-war lays sea mines in her wake and carries bow chasers. Beat her and Spain’s Caribbean squadron is broken.',
     enemy: [
-      { type: 'manowar', name: 'Santísima Trinidad', x: 0.5, y: 0.1, h: 90, hp: 450, chasers: 2, abilities: { mineLayer: { every: 7 } },
+      { type: 'manowar', name: 'Santísima Trinidad', x: 0.5, y: 0.1, h: 90, hp: 400, chasers: 2, abilities: { mineLayer: { every: 7 } },
         boss: { captain: 'Almirante de Oro', title: 'Santísima Trinidad', hat: 'oro' } },
       { type: 'galleon', name: 'San Lorenzo', x: 0.2, y: 0.12, h: 90 },
       { type: 'galleon', name: 'San Nicolás', x: 0.8, y: 0.12, h: 90 },
@@ -243,7 +243,7 @@ export const BATTLES = [
       { x: 0.08, y: 0.64, r: 50 }, { x: 0.92, y: 0.65, r: 50 }, { x: 0.56, y: 0.24, r: 52, stretch: 2.2, angle: 10 },
       { x: 0.12, y: 0.25, r: 50 }, { x: 0.91, y: 0.26, r: 46 },
     ],
-    ai: { spread: 0.11, reloadMul: 1.1, dmgMul: 0.9, hpMul: 1 },
+    ai: { spread: 0.11, reloadMul: 1.1, dmgMul: 0.9, hpMul: 0.8 },
   },
 
   // ---------- The Pirate Coast ----------
@@ -273,7 +273,7 @@ export const BATTLES = [
       { enemiesLeft: 1, banner: ['The Black Dog!', 'The smugglers’ brig joins the hunt'],
         spawn: [{ type: 'brig', name: 'Black Dog', x: 0.5, y: 0.17, h: 90 }] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.52, hpMul: 2.75 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.52, hpMul: 2.3 },
   },
   {
     id: 'wreck', region: 'pirate', roman: 'XI', year: 1660, name: 'The Treasure Wreck', foe: 'pirate salvors',
@@ -368,7 +368,7 @@ export const BATTLES = [
       { x: 0.93, y: 0.18, r: 28, stretch: 3, angle: 80 }, { x: 0.94, y: 0.48, r: 28, stretch: 3, angle: 95 }, { x: 0.93, y: 0.76, r: 28, stretch: 3, angle: 85 },
     ],
     shoals: [{ x: 0.8, y: 0.26, r: 34, stretch: 1.6, angle: 30 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.49, hpMul: 1.5 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.25, hpMul: 1.5 },
   },
   {
     id: 'siege', region: 'campeche', roman: 'XIV', year: 1662, name: 'The Siege of Port Royal', foe: 'Spanish siege fleet',
@@ -395,14 +395,14 @@ export const BATTLES = [
     fleetAt: { slots: [[0.58, 0.74], [0.78, 0.76], [0.38, 0.76], [0.68, 0.84], [0.48, 0.84]], h: 180 },
     coast: { side: 'bottom', depth: 0.08, rough: 0.3, seed: 12 },
     islands: [{ x: 0.38, y: 0.6, r: 50 }, { x: 0.78, y: 0.62, r: 30, stretch: 7, angle: 4 }, { x: 0.2, y: 0.3, r: 26 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.46, hpMul: 1.7 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.46, hpMul: 1.5 },
   },
   {
     id: 'hierro', region: 'campeche', roman: 'XV', year: 1663, name: 'The Iron Marquis', foe: 'Marqués de Hierro',
     goal: 'boss', hat: 'morion', reward: 640, wind: 0,
     brief: 'The Marqués de Hierro has fitted his galleon with mortars. Watch for the red rings: that is where his shells will land. Close in fast.',
     enemy: [
-      { type: 'galleon', name: 'San Jerónimo', x: 0.5, y: 0.12, h: 90, hp: 680, chasers: 1,
+      { type: 'galleon', name: 'San Jerónimo', x: 0.5, y: 0.12, h: 90, hp: 800, chasers: 1,
         abilities: { mortar: { range: 480, reload: 5, dmg: 26, radius: 40 } },
         boss: { captain: 'Marqués de Hierro', title: 'San Jerónimo', hat: 'morion' } },
       { type: 'bomb', name: 'El Martillo', x: 0.25, y: 0.14, h: 90 },
@@ -424,7 +424,7 @@ export const BATTLES = [
       { x: 0.52, y: 0.43, r: 70, stretch: 2.6, angle: -6, tidal: true },
     ],
     tide: { level: 0.5, turns: [{ at: 45, to: 0.9, secs: 14 }] },
-    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.05, hpMul: 1.4 },
+    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.05, hpMul: 1.6 },
   },
 
   // ---------- The Last Armada ----------
@@ -434,11 +434,11 @@ export const BATTLES = [
     brief: 'A thick fog hides a squadron of oared xebecs off the Mosquito Coast, and you have sailed into the middle of the bay. Your lookouts see only so far; keep the fleet together and watch every side, astern too.',
     fleetAt: 'center',
     enemy: [
-      { type: 'xebec', name: 'La Sombra', x: 0.2, y: 0.14, h: 90 },
-      { type: 'xebec', name: 'La Niebla', x: 0.6, y: 0.12, h: 90 },
-      { type: 'brig', name: 'San Cristóbal', x: 0.32, y: 0.24, h: 90 },
-      { type: 'xebec', name: 'El Fantasma', x: 0.66, y: 0.8, h: -90 },
-      { type: 'brig', name: 'San Rafael', x: 0.16, y: 0.76, h: -90 },
+      { type: 'xebec', name: 'La Sombra', x: 0.2, y: 0.12, h: 90 },
+      { type: 'xebec', name: 'El Fantasma', x: 0.5, y: 0.08, h: 90 },
+      { type: 'xebec', name: 'La Niebla', x: 0.66, y: 0.14, h: 90 },
+      { type: 'brig', name: 'San Cristóbal', x: 0.32, y: 0.2, h: 90 },
+      { type: 'brig', name: 'San Rafael', x: 0.6, y: 0.2, h: 90 },
     ],
     // A cape in fog: you start mid-bay with xebecs ahead and astern. The lighthouse on Bluefields Point lifts the
     // fog for a wide circle round it, but the cape has a reef off it and the current sets round the point onto it.
@@ -467,18 +467,18 @@ export const BATTLES = [
       { type: 'xebec', name: 'El Venablo', x: 0.7, y: 0.46, h: 180 },
       { type: 'bomb', name: 'El Bronce', x: 0.5, y: 0.1, h: 90 },
     ],
-    // A long thin strait: shores on both hands pinch to the narrows under El Morro at the top, a reef line crosses
-    // it, and a current sets up the middle toward the exit. Ride the stream through the middle gap past the
-    // galleons, or slip a small ship through a side gap by the shore out of their reach.
-    sea: 1.1,
-    fleetAt: { slots: [[0.5, 0.82], [0.38, 0.86], [0.62, 0.86], [0.44, 0.93], [0.56, 0.93]], h: -90 },
+    // A long thin strait: shores on both hands pinch to the narrows under El Morro at the top, a reef splits it into
+    // two channels with the galleons waiting above, and a current sets up the middle toward the exit. Feint at one
+    // channel and run the other, or ride the stream past the island and take them both on.
+    sea: 1.3,
+    fleetAt: { slots: [[0.5, 0.68], [0.38, 0.72], [0.62, 0.72], [0.44, 0.78], [0.56, 0.78]], h: -90 },
     coast: [
-      { side: 'left', depth: 0.15, rough: 0.25, seed: 3, capes: [{ at: 0.13, width: 0.18, depth: 0.11 }] },
-      { side: 'right', depth: 0.15, rough: 0.25, seed: 11, capes: [{ at: 0.15, width: 0.18, depth: 0.11 }] },
+      { side: 'left', depth: 0.14, rough: 0.25, seed: 3, capes: [{ at: 0.13, width: 0.18, depth: 0.09 }] },
+      { side: 'right', depth: 0.14, rough: 0.25, seed: 11, capes: [{ at: 0.15, width: 0.18, depth: 0.09 }] },
     ],
-    reefs: [{ x: 0.29, y: 0.37, r: 12, stretch: 4.4, angle: -6 }, { x: 0.71, y: 0.35, r: 12, stretch: 4.4, angle: 8 }],
-    islands: [{ x: 0.5, y: 0.56, r: 34, stretch: 1.8, angle: 0 }],
-    currents: [{ x: 0.5, y: 0.5, r: 90, stretch: 7, angle: -90, speed: 16 }],
+    reefs: [{ x: 0.5, y: 0.36, r: 12, stretch: 5, angle: 0 }],
+    islands: [{ x: 0.5, y: 0.55, r: 30, stretch: 1.8, angle: 90 }],
+    currents: [{ x: 0.5, y: 0.45, r: 80, stretch: 7, angle: -90, speed: 15 }],
     events: [
       { at: 18, wind: 0, banner: ['The wind veers!', 'A fresh breeze on the beam: crack on for the gap'] },
       { at: 30, banner: ['A galley from the shore!', 'La Jabalina rows out to close the gap'],

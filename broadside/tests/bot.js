@@ -19,8 +19,9 @@
   const blocked = (s, p) => !!(B().blockedAt && B().blockedAt(s, p.x, p.y));
   // Water in the lee of high land (src/sim/land.js), where the wind drops.
   const calm = (p) => !!(B().land && B().land.leeAt(p.x, p.y) < 0.8);
-  // Can she get within gun range of t? (The route planner, src/sim/navgrid.js; only asked when land lies between.)
-  const reachable = (s, t) => !B().nav || Math.hypot(t.x - s.x, t.y - s.y) < s.range || !!B().nav.planRoute(s.L, s.x, s.y, t.x, t.y, s.range * 0.8);
+  // Can she get at t: sail right up to her? (The route planner, src/sim/navgrid.js.) A ship behind a closed boom or
+  // up water too shallow for her is not worth circling, even in gun range: the boom or the land stops the shot.
+  const reachable = (s, t) => !B().nav || !!B().nav.planRoute(s.L, s.x, s.y, t.x, t.y, 70);
   function circle(s, t, G) {
     // Each ship swings round at her own angle, so two sent at one target do not ride together shoving each other.
     const a = Math.atan2(s.y - t.y, s.x - t.x) + 0.9 + ((s.id % 3) - 1) * 0.45;
@@ -55,7 +56,7 @@
     // Beat off any ship that closes in before pounding the fort, rather than let her rake you from astern.
     capture(s, o, c) {
       if (!c.hostileForts.length) return null;
-      const near = nearest(s, c.enemies);
+      const near = nearest(s, c.enemies.filter((e) => reachable(s, e)));
       if (near && Math.hypot(near.x - s.x, near.y - s.y) < s.range * 1.3) return { target: near };
       return { target: nearest(s, c.hostileForts) };
     },
