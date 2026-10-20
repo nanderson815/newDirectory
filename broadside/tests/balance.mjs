@@ -18,7 +18,7 @@ import path from 'path';
 import { launch, ROOT, PAGE } from './lib.mjs';
 import { BATTLES } from '../src/config/battles.js';
 import { TYPES } from '../src/config/ships.js';
-import { save, resetSave, buyRefit, buyUpgrade, buyHire, nextHire, refitOffer, upgradeOffer, fleetStats } from '../src/save.js';
+import { save, resetSave, buyRefit, buyUpgrade, buyHire, nextHire, refitOffer, upgradeOffer, fleetStats, greatOffer, buyGreatShip, upgradesFor } from '../src/save.js';
 
 const RUNS = Math.max(6, +(process.env.RUNS || 16));
 const MAX_T = +(process.env.MAX_T || 420);      // game seconds before a run counts as a stalemate (loss)
@@ -47,6 +47,7 @@ const WISHLIST = [
 // grow into frigates and then ships of the line. These are only bought once a Mediterranean battle is won, so they
 // never change the West Indies' numbers.
 const WISHLIST_MED = [
+  ['Resolute', 'great'], // the great ship (src/config/flagship.js) opens once the Armada is beaten
   ['Merlin', 'refit'], ['Osprey', 'refit'], ['Merlin', 'guns'], ['Osprey', 'guns'], ['Merlin', 'hull'], ['Osprey', 'hull'],
   ['Swift', 'marines'], ['Kestrel', 'marines'], ['Resolute', 'marines'], ['Swift', 'refit'], ['Kestrel', 'refit'],
   ['Merlin', 'marines'], ['Osprey', 'marines'], ['Swift', 'sails'], ['Kestrel', 'sails'], ['Resolute', 'sails'],
@@ -59,6 +60,8 @@ function wishCost([name, what]) {
   const f = save.fleet.find((s) => s.name === name);
   if (!f) return null;
   if (what === 'refit') { const o = refitOffer(f); return o ? o.cost : null; }
+  if (what === 'great') { const o = greatOffer(f); return o ? o.cost : null; }
+  if (!upgradesFor(f).some((U) => U.id === what)) return null; // the great ship's guns are her slots, not upgrades
   return upgradeOffer(f, what).cost;
 }
 
@@ -73,7 +76,7 @@ function shop(state, world) {
     if (save.gold < cost) break;                          // save up for it
     const [name, what] = w;
     const i = save.fleet.findIndex((s) => s.name === name);
-    const ok = name === 'hire' ? buyHire() : what === 'refit' ? buyRefit(i) : buyUpgrade(i, what);
+    const ok = name === 'hire' ? buyHire() : what === 'refit' ? buyRefit(i) : what === 'great' ? buyGreatShip(i) : buyUpgrade(i, what);
     if (!ok) throw new Error('purchase failed: ' + w.join(' '));
     bought.push(name === 'hire' ? `hire ${save.fleet[save.fleet.length - 1].name}` : `${name} ${what === 'refit' ? '→' + save.fleet[i].cls : what}`);
     state.next++;

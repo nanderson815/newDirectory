@@ -9,8 +9,9 @@ import { factionOf } from '../config/factions.js';
 // the ship strikes her colours and joins your squadron as a prize for the rest of the battle.
 // The Spanish do the same to crippled English ships that drift too close.
 
-// The defenders' strength: their surviving marines, stiffened by whatever hull they have left.
-export const defence = (e) => Math.max(1, Math.round(e.marines * (0.6 + 0.4 * e.hp / e.maxHp)));
+// The defenders' strength: their surviving marines, stiffened by whatever hull they have left, and by the swivel
+// guns on her rails (`repel` in src/config/guns.js; s.repel sums them).
+export const defence = (e) => Math.max(1, Math.round(e.marines * (0.6 + 0.4 * e.hp / e.maxHp))) + (e.repel || 0);
 
 // `frac`: how hurt she must be (corsairs with the grapple ability board sooner than BOARDING.hpFrac).
 export function canBoard(s, e, frac = BOARDING.hpFrac) {

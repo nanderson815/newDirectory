@@ -42,6 +42,30 @@ dramatic when ships trade broadsides. Every element earns its place on a phone s
 - **Geography:** shoals that ground big ships but let sloops through, reefs, coastlines along a map edge,
   narrow channels. Varied start setups (ambush from the flank, an enemy astern).
 
+### Guns and slots
+The reward for beating the Armada is a ship to tinker with: the **great ship**, a first rate, the one class whose
+guns are fitted slot by slot (the rest of the fleet keeps the simple ledger upgrades, so the early game stays
+quick). Each gun is a real trade, never a straight upgrade (numbers in `src/config/guns.js`):
+- **Long guns** (culverins) reach furthest; the dependable line. **Demi-cannon** for the lower tier hit half again
+  as hard but load slowly and weigh half again as much.
+- **Carronades** for the upper tier: half the reach, nearly twice the ball, quick to load, light. They hold fire
+  until the enemy is close, so a carronade ship has to be sailed in. Fitting one side with carronades and the other
+  with long guns makes which side you show a decision.
+- **Swivel guns** on rails and decks fire grape on their own at pistol shot, cut down crews and stiffen her against
+  boarders: a deterrent, not a weapon.
+- **Chase guns** fore and aft fire on their own in narrow arcs: bow chasers for the ship you are running down,
+  stern chasers for whoever tries to cross your stern (the move the game teaches; now it has a price).
+- On deck, a **sea mortar** (the bomb ketch's, with its least range) or a **fire-pot engine**, short-ranged, whose
+  pots set ships burning. Both are heavy enough that you can't have everything.
+- **Weight** is the budget: the great ship carries 92 tons of guns, and every ton slows her and widens her turn.
+  A carronade brawler is the fastest great ship; demi-cannon and a mortar make the slowest.
+- Enemies use the same pieces: Calico Kate's carronades to larboard, Spain's own great ship at the Armada.
+
+The battle HUD shows this without new chrome: the Fire tile's reload rule splits into one segment per battery on
+that side, each lit gilt as it loads (a tap fires what is loaded), and the chosen ship's arcs show a rim for each
+reach. The shipyard lists the gun decks in the ledger (see Composition); a 3D shipyard (rotate, zoom, tap a part)
+will supersede that view later, on the same data (`loadout` and `look` in the save, `render` hints on each gun).
+
 ### Look
 - One palette: the sea, cream sails and warm wood in the world; ink, rag paper and one printer's red for everything
   read or pressed; enemy red, English blue.
@@ -137,6 +161,11 @@ leg ahead) on the chart. In battle red means the enemy (see Battle HUD). Everyth
 - **Shipyard**: a chandler's ledger. Text tabs on a rule for the fleet; the ship as "Resolute, *a frigate*"; its
   particulars in two columns with dot leaders; then one line per fitting: name (with "1 of 3"), an italic note, the
   price as a Fell figure, and one small ruled *buy*. Too dear: price and buy fade to 36%. Fitted: an italic "fitted".
+  A great ship adds *The gun decks* (Fell, with "65 of 92 tons" set right) after the refit line: small-capital heads
+  for the larboard and starboard broadsides, chase guns and the deck, one line a slot ("Lower tier *five guns*", the
+  fitted gun in italic) with a ruled *change*. An open slot (its *close* inked solid) lists the guns it takes one
+  step in under a hairline: name, the italic note, a line of figures in `ink3` (reach, reload, ball, tons), the price
+  and a ruled *fit*. A fit that would overload her says "too heavy" in italic ink and fades like a dear one.
 - **Results**: kicker (battle name), "Victory!" in red or "Defeat" in ink, three ink stars, "+840 gold", one sentence,
   the hat won (if any) between rules, the log entry signed "From the log, 18 April 1661", the stats as one ruled row.
 - **Pause** is "Hove to": orders, settings as ruled rows of words, Resume / Restart, a small-caps retreat link.
@@ -215,7 +244,8 @@ a touch target or a paragraph needs one (buttons, tips, toasts).
   rule marks that row). Words appear only when they say something (Sunk, Captured, Through,
   Prize), in small capitals. Merchantmen or allies share one compact row of short bars.
 - **Action bar:** 52 px stacked tiles, ink slips with the icon over a Fell small-capital label. A reload is a fine
-  paper rule filling along the bottom; a loaded gun inverts its tile to paper with ink type and a faint glow, so what
+  paper rule filling along the bottom (split into a segment per battery on a great ship, each gilt once loaded); a
+  side wholly loaded inverts its tile to paper with ink type and a faint glow, so what
   you can fire now is the brightest thing on the bar. Toggled (anchored) also inverts. The one main action (Board or
   Land when it will work) is a paper slip. Shot shows every shot she carries with the loaded one ringed.
 - **On the water:** thin lines with a soft ink underlay (`seaStroke`), never wedges or fills: the gun-range rim with

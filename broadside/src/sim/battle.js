@@ -3,6 +3,8 @@ import { FLEET_SLOTS } from '../config/battles.js';
 import { battleDef, ENDLESS_ID, randomIslands, waveEnemies, waveAI } from '../config/endless.js';
 import { PI, TAU, rand } from '../util.js';
 import { initAbilities } from './abilities/index.js';
+import { makeBatteries, summarize } from './guns.js';
+import { weightFactors } from '../config/slots.js';
 import { makeCapsule, makeCoast, capsuleRadius, coastList, fleetLayout } from './terrain.js';
 import { setupGoals } from './goals/index.js';
 import { setupLand } from './land.js';
@@ -17,14 +19,18 @@ export function makeShip(def, team, place, rot, id, ai) {
   const up = def.up || {};
   const [x, y] = place(def.x, def.y);
   const sails = 1 + 0.07 * (up.sails || 0);
+  // A great ship's guns weigh on her (src/config/slots.js): heavy metal slows her, light quickens her.
+  const wt = weightFactors(T, def.loadout || {});
   const hp = Math.round(def.hp || (team === 'enemy' ? T.hp * ai.hpMul : T.hp * (1 + 0.2 * (up.hull || 0))));
   const s = {
     id, team, origTeam: team, name: def.name, type: def.type, label: def.boss ? 'Boss' : T.label,
     L: T.L, B: T.B, masts: T.masts, range: T.range,
     guns: T.guns + (up.guns || 0),
     reloadTime: T.reload * (def.reloadMul || 1),
-    speed: T.speed * sails, turn: T.turn * sails,
-    chasers: def.chasers ?? (up.chasers || T.chasers || 0), chaseT: rand(0.5, 1.5),
+    speed: T.speed * sails * wt.speed, turn: T.turn * sails * wt.turn, weight: wt.weight,
+    chasers: def.chasers || up.chasers || 0,
+    // Her guns, one battery per slot (src/sim/guns.js); summarize() below sets guns, chasers, range, reload from them.
+    batteries: makeBatteries(T, def, up), loadout: def.loadout || null,
     mines: 2 * (up.mines || 0), minesMax: 2 * (up.mines || 0),
     marines: T.marines + 10 * (up.marines || 0),
     passive: !!def.passive, boss: def.boss || null,
@@ -41,6 +47,7 @@ export function makeShip(def, team, place, rot, id, ai) {
     rig: T.rig || 'square', shallow: !!T.shallow, escort: !!def.escort, ally: !!def.ally, exits: !!(def.escort || def.exits), flag: false,
     faction: def.faction || null, hidden: false,
   };
+  summarize(s, T);
   initAbilities(s, { ...T.abilities, ...def.abilities });
   return s;
 }
@@ -72,7 +79,7 @@ export function createBattle(idx, size, fleet) {
   // fleetAt puts the campaign fleet somewhere other than the bottom of the chart (an ambush, an enemy astern).
   const lay = fleetLayout(B, FLEET_SLOTS);
   const playerDefs = B.player || fleet.map((f, i) => ({
-    type: f.cls, name: f.name, x: lay.slots[i][0], y: lay.slots[i][1], h: lay.h, up: f.up,
+    type: f.cls, name: f.name, x: lay.slots[i][0], y: lay.slots[i][1], h: lay.h, up: f.up, loadout: f.loadout,
   }));
   for (const d of playerDefs) ships.push(makeShip(d, 'player', place, rot, id++, B.ai));
   for (const d of B.enemy) ships.push(makeShip({ ...d, faction: B.faction }, 'enemy', place, rot, id++, B.ai));
