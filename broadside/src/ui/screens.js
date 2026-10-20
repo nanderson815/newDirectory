@@ -511,7 +511,7 @@ function renderEnd() {
   const lost = shipsLost(G);
   $('endEyebrow').textContent = a && a.lab ? `Battle lab · ${B.name}` : B.name;
   // The last battle of a world has its own title (src/config/worlds.js).
-  const finale = typeof G.battle === 'number' && lastOfWorld(G.battle) && !a.lab;
+  const finale = typeof G.battle === 'number' && lastOfWorld(G.battle) && !(a && a.lab);
   $('endTitle').textContent = win ? (finale ? worldById(B.world).finale : 'Victory!') : 'Defeat';
   $('endTitle').classList.toggle('won', win);
   $('endStars').hidden = !win;

@@ -58,7 +58,7 @@ export const MED_BATTLES = [
     ],
     islands: [{ x: 0.62, y: 0.76, r: 30, stretch: 3.6, angle: -12 }, { x: 0.2, y: 0.5, r: 38, stretch: 1.4, angle: 30 }],
     forts: [{ island: 0, name: 'York Castle', hp: 260, guns: 3, need: 10, team: 'player' }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.7, hpMul: 2.1 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 2.02, hpMul: 2.5 },
   },
   {
     id: 'gibraltar', world: W, region: 'straits', roman: 'II', year: 1666, name: 'Under the Rock', foe: 'Salé rovers',
@@ -88,7 +88,7 @@ export const MED_BATTLES = [
     reefs: [{ x: 0.5, y: 0.72, r: 14, stretch: 5, angle: 90 }],
     shoals: [{ x: 0.66, y: 0.46, r: 44, stretch: 1.8, angle: 80 }],
     islands: [],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.4, hpMul: 2.2 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 2.0, hpMul: 3.14 },
   },
   {
     id: 'sale', world: W, region: 'straits', roman: 'III', year: 1666, name: 'The Rover of Salé', foe: 'Reis Ibrahim',
@@ -116,7 +116,7 @@ export const MED_BATTLES = [
     shoals: [{ x: 0.5, y: 0.34, r: 36, stretch: 3, angle: 0 }],
     islands: [{ x: 0.19, y: 0.18, r: 28 }, { x: 0.82, y: 0.6, r: 40 }, { x: 0.16, y: 0.5, r: 32, stretch: 1.6, angle: 60 }],
     forts: [{ island: 0, name: 'the Kasbah', hp: 300, guns: 3, need: 15 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.4, hpMul: 1.85 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.54, hpMul: 2.04 },
   },
 
   // ---------- The Barbary Coast ----------
@@ -143,7 +143,7 @@ export const MED_BATTLES = [
     coast: { side: 'top', depth: 0.16, rough: 0.3, seed: 8, capes: [{ at: 0.84, width: 0.28, depth: 0.12 }], coves: [{ at: 0.28, width: 0.34, depth: 0.09 }] },
     islands: [{ x: 0.2, y: 0.5, r: 46 }, { x: 0.82, y: 0.66, r: 38, stretch: 1.6, angle: 30 }, { x: 0.5, y: 0.84, r: 34 }],
     shoals: [{ x: 0.52, y: 0.36, r: 50, stretch: 2.4, angle: -10 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.95, hpMul: 2.55 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 2.38, hpMul: 3.12 },
   },
   {
     id: 'bagnio', world: W, region: 'barbary', roman: 'V', year: 1667, name: 'The Bagnio of Algiers', foe: 'the Algiers squadron',
@@ -173,7 +173,7 @@ export const MED_BATTLES = [
     islands: [{ x: 0.57, y: 0.44, r: 40 }, { x: 0.16, y: 0.6, r: 40, stretch: 1.6, angle: 70 }],
     reefs: [{ x: 0.32, y: 0.3, r: 14, stretch: 5, angle: 25 }],
     forts: [{ island: 0, name: 'the Mole Battery', hp: 280, guns: 3, need: 10 }],
-    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 2.3, hpMul: 2.85 },
+    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 2.68, hpMul: 3.33 },
   },
   {
     id: 'goletta', world: W, region: 'barbary', roman: 'VI', year: 1668, name: 'Fireships at La Goletta', foe: 'the Tunis corsairs',
@@ -203,7 +203,7 @@ export const MED_BATTLES = [
     islands: [{ x: 0.4, y: 0.36, r: 28, stretch: 5, angle: 0 }, { x: 0.73, y: 0.36, r: 34 }],
     shoals: [{ x: 0.62, y: 0.36, r: 30, stretch: 2.4, angle: 0 }],
     forts: [{ island: 1, name: 'La Goletta', hp: 300, guns: 3, need: 15 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.8, hpMul: 2.4 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 2.06, hpMul: 2.75 },
   },
   {
     id: 'algiers', world: W, region: 'barbary', roman: 'VII', year: 1668, name: 'The Admiral of Algiers', foe: 'Kara Hasan Reis',
@@ -230,7 +230,7 @@ export const MED_BATTLES = [
     coast: { side: 'left', depth: 0.18, rough: 0.25, seed: 7, coves: [{ at: 0.16, width: 0.3, depth: 0.1 }] },
     islands: [{ x: 0.7, y: 0.48, r: 40, stretch: 4.5, angle: 90 }, { x: 0.3, y: 0.9, r: 40 }],
     reefs: [{ x: 0.86, y: 0.28, r: 14, stretch: 4, angle: -40 }],
-    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 1.55, hpMul: 2.3 },
+    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 2.17, hpMul: 3.22 },
   },
 
   // ---------- Malta and Sicily ----------
@@ -263,7 +263,7 @@ export const MED_BATTLES = [
     coast: { side: 'bottom', depth: 0.32, rough: 0.12, seed: 1, coves: [{ at: 0.5, width: 0.5, depth: 0.24 }] },
     islands: [{ x: 0.3, y: 0.72, r: 26 }, { x: 0.22, y: 0.2, r: 70, stretch: 1.8, angle: -10 }, { x: 0.64, y: 0.27, r: 34 }],
     forts: [{ island: 0, name: 'Fort St Elmo', hp: 240, guns: 3, need: 10, team: 'player' }],
-    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 1.7, hpMul: 2.3 },
+    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 1.56, hpMul: 2.12 },
   },
   {
     id: 'passero', world: W, region: 'malta', roman: 'IX', year: 1668, name: 'Storm off Cape Passero', foe: 'Tripoli rovers',
@@ -291,7 +291,7 @@ export const MED_BATTLES = [
     coast: { side: 'right', depth: 0.22, rough: 0.3, seed: 12, capes: [{ at: 0.6, width: 0.3, depth: 0.22 }] },
     islands: [{ x: 0.32, y: 0.66, r: 40 }, { x: 0.12, y: 0.86, r: 42, stretch: 1.5, angle: -20 }],
     reefs: [{ x: 0.28, y: 0.44, r: 14, stretch: 5, angle: 60 }, { x: 0.58, y: 0.34, r: 16, stretch: 2, angle: 10 }, { x: 0.36, y: 0.58, r: 12, stretch: 3, angle: 90 }],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 2.55, hpMul: 3.1 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 2.93, hpMul: 3.56 },
   },
   {
     id: 'tripoli', world: W, region: 'malta', roman: 'X', year: 1669, name: 'The Reefs of Tripoli', foe: 'Osman Reis',
@@ -316,7 +316,7 @@ export const MED_BATTLES = [
     islands: [{ x: 0.24, y: 0.15, r: 28 }, { x: 0.8, y: 0.74, r: 40 }],
     reefs: [{ x: 0.21, y: 0.42, r: 26, stretch: 8, angle: 0 }, { x: 0.79, y: 0.53, r: 26, stretch: 8, angle: 0 }, { x: 0.86, y: 0.3, r: 12, stretch: 3, angle: 30 }],
     forts: [{ island: 0, name: 'the Red Castle', hp: 280, guns: 3, need: 15 }],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.65, hpMul: 2.35 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 2.05, hpMul: 2.91 },
   },
 
   // ---------- The Morea ----------
@@ -349,7 +349,7 @@ export const MED_BATTLES = [
     // TODO(current): a current up the channel would carry the convoy and make the corsairs row against it.
     coast: { side: 'left', depth: 0.16, rough: 0.3, seed: 14, coves: [{ at: 0.3, width: 0.16, depth: 0.07 }, { at: 0.68, width: 0.14, depth: 0.07 }] },
     islands: [{ x: 0.8, y: 0.32, r: 46, stretch: 7, angle: 92 }, { x: 0.82, y: 0.8, r: 60, stretch: 1.5, angle: 60 }, { x: 0.44, y: 0.55, r: 34 }],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.3, hpMul: 2.0 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.64, hpMul: 2.53 },
   },
   {
     id: 'navarino', world: W, region: 'morea', roman: 'XII', year: 1669, name: 'Navarino Bay', foe: 'the Ottoman squadron',
@@ -379,7 +379,7 @@ export const MED_BATTLES = [
     coast: { side: 'top', depth: 0.34, rough: 0.12, seed: 15, coves: [{ at: 0.45, width: 0.8, depth: 0.24 }] },
     islands: [{ x: 0.38, y: 0.32, r: 30, stretch: 5, angle: 0 }, { x: 0.8, y: 0.72, r: 40 }],
     shoals: [{ x: 0.17, y: 0.33, r: 36, stretch: 1.6, angle: 0 }],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.65, hpMul: 2.35 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.62, hpMul: 2.3 },
   },
 
   // ---------- Candia ----------
@@ -411,7 +411,7 @@ export const MED_BATTLES = [
     coast: { side: 'bottom', depth: 0.22, rough: 0.12, seed: 16, capes: [{ at: 0.26, width: 0.2, depth: 0.1 }], coves: [{ at: 0.64, width: 0.3, depth: 0.12 }] },
     islands: [{ x: 0.26, y: 0.66, r: 28 }, { x: 0.64, y: 0.38, r: 52, stretch: 1.4, angle: 20 }],
     fleetAt: { slots: [[0.5, 0.66], [0.4, 0.6], [0.62, 0.62], [0.46, 0.72], [0.58, 0.74]], h: -90 },
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.3, hpMul: 2.0 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.42, hpMul: 2.19 },
   },
   {
     id: 'dia', world: W, region: 'candia', roman: 'XIV', year: 1669, name: 'Night off Dia', foe: 'the Dia battery',
@@ -468,7 +468,7 @@ export const MED_BATTLES = [
       { island: 0, name: 'Kilitbahir', hp: 280, guns: 2, need: 15 },
       { island: 1, name: 'Çanakkale', hp: 280, guns: 2, need: 15 },
     ],
-    ai: { spread: 0.09, reloadMul: 1.05, dmgMul: 0.65, hpMul: 1.4 },
+    ai: { spread: 0.09, reloadMul: 1.05, dmgMul: 1.21, hpMul: 2.6 },
   },
   {
     id: 'kapudan', world: W, region: 'dardanelles', roman: 'XVI', year: 1670, name: 'The Kapudan Pasha', foe: 'Bahri Ömer Pasha',
@@ -499,6 +499,6 @@ export const MED_BATTLES = [
     islands: [{ x: 0.22, y: 0.36, r: 80, stretch: 1.8, angle: -20 }, { x: 0.62, y: 0.6, r: 40 }],
     reefs: [{ x: 0.26, y: 0.66, r: 14, stretch: 5, angle: 30 }],
     shoals: [{ x: 0.44, y: 0.5, r: 46, stretch: 2, angle: 40 }],
-    ai: { spread: 0.085, reloadMul: 1.0, dmgMul: 1.05, hpMul: 1.6 },
+    ai: { spread: 0.085, reloadMul: 1.0, dmgMul: 1.11, hpMul: 1.68 },
   },
 ];
