@@ -64,7 +64,10 @@ per world: inside a world each battle opens once the one before it is won, and a
 `unlock: { won: id }` battle is won. The chart shows one world at a time (`save.world`, else the latest open world
 with battles to win) and the results sheet's *Next battle* runs on into the next world. A new world is a battles
 file merged in `battles.js`, a `WORLDS` entry, its regions, story (`story-*.js`), land (`lands-*.js`), hats with
-`world`, and a chart plate (`src/ui/chart-map-med.js` shows the shape).
+`world`, an `opening` note for its chart, and a chart plate: a geometry module like `src/ui/chart-map-med.js` (its
+own `W` x `H`, coasts in degrees through `lonLat()`, nodes with `via` points and name sides, region labels, rivers
+and towns, the rose, cartouche and vignettes) added to `PLATES` in `src/ui/chart.js` and to `tests/chart-check.mjs`,
+which must pass.
 
 A battle may also set `where` (the briefing's "off ..." line, else its region's), `weather` (a preset in
 `src/config/weather.js`), `faction` (`src/config/factions.js`: spain, pirate, barbary, ottoman; the world's by

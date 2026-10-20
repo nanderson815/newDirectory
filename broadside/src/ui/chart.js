@@ -1,11 +1,11 @@
-// The campaign sea chart: an illustrated parchment map of the Caribbean drawn as inline SVG, with the battles
-// as tappable buttons laid over it and the voyage drawn between them in campaign order: legs already sailed in
-// terracotta ink, the leg ahead dotted, the rest of the voyage not yet charted. The map is drawn in a
-// 1000 x 700 coordinate space (geometry in chart-map.js) and scaled to cover the screen; whatever doesn't fit
-// pans (drag or scroll).
+// The campaign sea chart: an illustrated printed plate drawn as inline SVG, with the battles as tappable buttons
+// laid over it and the voyage drawn between them in campaign order: legs already sailed in inked dashes, the leg
+// ahead dotted in red, the rest of the voyage not yet charted. Each plate is drawn in its own map units (W x H in
+// its geometry module) and scaled to cover the screen, never below 1:1; whatever doesn't fit pans (drag or scroll).
 //
-// Worlds: the chart shows one world at a time (save.js currentWorld; the West Indies plate from chart-map.js, the
-// Mediterranean's placeholder plate from chart-map-med.js), and a link in the chart's nav sails to the other.
+// Worlds: the chart shows one world's plate at a time (save.js currentWorld): the West Indies from chart-map.js
+// (1000 x 700), the Middle Sea from chart-map-med.js (a long plate, 1300 x 700). screens.js sets the plates' names
+// above it as tabs.
 import { BATTLES, REGIONS } from '../config/battles.js';
 import { worldById } from '../config/worlds.js';
 import * as CARIB from './chart-map.js';

@@ -181,7 +181,7 @@ leg ahead) on the chart. In battle red means the enemy (see Battle HUD). Everyth
 
 ### Composition
 - **Title page**: the live sea is the picture. Under it: the wordmark in red, one italic line ("The sea-fights of an
-  English captain in the West Indies, and the hats he took."), one fleuron, one ink button (Continue / Set sail), two
+  English captain in the West Indies and the Middle Sea, and the hats he took."), one fleuron, one ink button (Continue / Set sail), two
   small-caps links (New campaign, Settings) and the imprint ("Port Royal: printed for the Admiralty, 1655."). Settings
   live on their own small sheet.
 - **Brief**: kicker, title, an italic dateline ("off the Pirate Coast, 18 April 1661"), then the captain's log as the
@@ -315,4 +315,18 @@ a touch target or a paragraph needs one (buttons, tips, toasts).
   ring once the hat is won); locked ones are dashed. The next battle is the red one, with the dotted red leg ahead
   and the little ship beside it. Legs already sailed are inked dashes.
 - Legs stay off land and clear of other battles and names: `node tests/chart-check.mjs` checks it (battle names are
-  13 px Garamond 600, which fits the boxes it measures).
+  13 px Garamond 600, which fits the boxes it measures), for every plate, along with region, sea, land and town names,
+  the hills, rivers, the rose, cartouche, vignettes and the little ship, which must not overlap each other.
+- Two plates of one atlas, in one hand. *The West Indies* (1000 x 700, "Drawn for the Admiral, 1655": a sea serpent
+  and a whale). *The Middle Sea* (a long plate, 1300 x 700, "Printed for the Admiralty, 1666"): the whole sea from
+  Biscay and the Atlantic to Constantinople, coasts in degrees smoothed into engraved curves, longitude stretched east
+  of 22°E so the Archipelago has room and the Straits and the Dardanelles drawn wider than they are, as the portolans
+  drew them; English names of the day (Barbary, Barca, Romelia, Natolia, the Morea), a few rivers and port towns the
+  battles don't already name, a galley under her lateen in the Gulf of Lion and a dolphin in the Libyan Sea. Small
+  screens pan; the plate is never shrunk below 1:1.
+- **The plates as tabs.** Above the plate (beside the nav in landscape) the plates' names are small-capital tabs on a
+  hairline: the plate shown in paper with a 1.5 px underline, another open plate paler; a plate not yet open shows a
+  lock and, under it in italic, what opens it ("Beat La Gran Armada"), and a tap says so in a toast. The plate shown is
+  remembered in the save. The first time the chart is opened after a new world opens (nothing won there yet), it turns
+  to that plate and lays a paper slip on it: "A new chart" and a line from the captain's log (`opening` in
+  `src/config/worlds.js`), put away with *Very good* or a touch on the chart.
