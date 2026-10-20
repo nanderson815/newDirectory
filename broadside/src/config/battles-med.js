@@ -382,7 +382,7 @@ export const MED_BATTLES = [
     ],
     // Two great islands and the water between: Zante's bulk fills the lower right, Cephalonia's the upper left,
     // and the convoy's road is the diagonal sound between them, past an islet that splits it, to the open sea at
-    // the top. The Morea's shore and its coves close the right-hand edge; corsairs lie in the coves and behind
+    // the top. The Morea's low shore closes the right-hand edge; corsairs lie in its bays and behind
     // Cephalonia. A current sets up the sound (src/sim/flow.js): it carries the convoy and the corsairs row
     // against it, while the inshore water off either island is slack.
     coast: { side: 'right', depth: 0.03, rough: 0.5, seed: 14, capes: [{ at: 0.18, width: 0.24, depth: 0.12 }] },
