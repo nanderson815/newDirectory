@@ -9,7 +9,8 @@ ones: [EXTENDING.md](EXTENDING.md).
 - [Abilities](#abilities): `mortar`, `fireship`, `launcher`, `mineLayer`, `oars`, `repair`, `ram`, `flee`, `rally`
 - [Event conditions](#event-conditions-when): `at`, `enemiesLeft`, `bossHp`, `fortsHeld`, `shipSunk`, `shipNear`, `goalDone`
 - [Event actions](#event-actions-do): `spawn`, `banner`, `wind`, `fog`, `say`, `retreat`, `reveal`, `heal`
-- [Ship types](#ship-types): `sloop`, `brig`, `frigate`, `manowar`, `galleon`, `schooner`, `xebec`, `bomb`, `fireship`, `merchant`
+- [Ship types](#ship-types): `sloop`, `brig`, `frigate`, `manowar`, `galleon`, `schooner`, `xebec`, `bomb`, `fireship`, `merchant`, `greatship`
+- [Guns and slots](#guns-and-slots): `long`, `demicannon`, `carronade`, `swivel`, `bowChaser`, `sternChaser`, `mortar`, `firepot`
 - [Hats](#hats): `cabin`, `rojo`, `comodoro`, `oro`, `kate`, `morion`, `armada`
 - [Geography and openings](#geography-and-openings): `islands`, `shoals`, `reefs`, `coast`, `fleetAt`
 - [Land and landmarks](#land-and-landmarks): `town`, `harbour`, `lighthouse`, `peak`, `volcano`, `church`, `windmill`, `ruin`, `castle`, `skull`, `wreck`, `stacks`, `mangroves`
@@ -337,8 +338,109 @@ length × beam. Enemy hulls are multiplied by the battle's `ai.hpMul` unless the
 | `bomb` | Bomb ketch | 95 | 2 | 3 | 44 | 0.9 | 220 | 10 | 2 | 64 × 24 | square | mortar {"range":430,"reload":6.5,"dmg":22,"radius":36} |
 | `fireship` | Fireship | 40 | 0 | 9 | 62 | 1.25 | 0 | 0 | 2 | 54 × 20 | square | fireship |
 | `merchant` | Merchantman | 130 | 1 | 4 | 36 | 0.7 | 200 | 6 | 3 | 74 × 30 | square |  |
+| `greatship` | Great ship | 320 | 9 | 3.4 | 42 | 0.58 | 300 | 40 | 3 | 116 × 42 | square |  |
 
 Other flags: `merchant`: `merchant` = `true`.
+
+Classes with gun slots (see [Guns and slots](#guns-and-slots)): `greatship`.
+
+## Guns and slots
+
+From `GUNS` in `src/config/guns.js` and `src/config/slots.js`. A class with `slots` (the great ship) fits one gun kind
+per slot, chosen slot by slot at the shipyard and saved as the fleet ship's `loadout` (`{ slotId: gunId }`); a battle ship
+def may carry a `loadout` too. Every other class has implicit slots: `port` and `starboard` broadsides of its `guns`
+long guns (firing with the class's own `range` and `reload`) and a `bow` slot when it has chasers; a battle may still
+refit those (an enemy frigate with carronades to port). Numbers are per gun; range is with the gun's first shot type
+(chain and grape scale it by their `range`), arc is the half-angle either side of the slot's facing.
+
+| gun | label | fits | fires | range | reload | dmg | weight | arc | shot | crew | cost | render | behaviour |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `long` | Long guns | broadside | ball | 300 | 3.4 | 4 | 3 | 36° | round, chain, grape | 6 | 30 | 1 × 1 |  |
+| `demicannon` | Demi-cannon | broadside | ball | 265 | 4.4 | 6.5 | 4.5 | 34° | round, chain, grape | 9 | 55 | 1.1 × 1.3 |  |
+| `carronade` | Carronades | broadside | ball | 150 | 2.3 | 7 | 1.6 | 40° | round, grape | 4 | 45 | 0.55 × 1.4 |  |
+| `swivel` | Swivel guns | broadside, bow, stern, deck | ball | 100 | 1.3 | 0.8 | 0.3 | 70° | grape | 1 | 15 | 0.45 × 0.4 | auto, pellets 3, crewKill 0.5, repel 3, traverse 1.2 |
+| `bowChaser` | Bow chasers | bow | ball | 270 | 2.4 | 4 | 2.4 | 18° | round, chain | 4 | 60 | 1.5 × 0.95 | auto, traverse 0.35 |
+| `sternChaser` | Stern chasers | stern | ball | 260 | 2.4 | 4 | 2.4 | 18° | round, chain | 4 | 60 | 1.5 × 0.95 | auto, traverse 0.35 |
+| `mortar` | Sea mortar | deck | shell | 460 | 6.5 | 22 | 8 | 180° | (its own) | 8 | 340 | 0.6 × 2.2 | auto, single, minRange 110, radius 36 |
+| `firepot` | Fire-pot engine | deck | pot | 140 | 4.5 | 2 | 1.5 | 180° | (its own) | 3 | 160 | 0.9 × 1.1 | auto, single, burn 7, traverse 3.2 |
+
+- `long`: Culverins: the long reach of the line. Steady, heavy, slow to load.
+- `demicannon`: Thirty-two pounders for the lower tier. They hit like a church falling, and load like one.
+- `carronade`: Short, fat smashers: half the reach, twice the weight of ball, quick to load. Close in or waste them.
+- `swivel`: Murderers on the rail. They sweep a deck at pistol shot on their own, and make boarders think twice.
+- `bowChaser`: Long guns run out through the bow, for the ship you are chasing.
+- `sternChaser`: Long guns in the great cabin windows, for whoever tries to cross your stern.
+- `mortar`: A bomb ketch's mortar on your own deck: shells over islands and walls onto anything in reach.
+- `firepot`: A sling that hurls pots of pitch and wildfire. Short reach, and every pot that lands sets her burning.
+
+Gun fields:
+
+| field | description |
+|---|---|
+| `label` | its name in the shipyard ledger (plural: a slot holds several) |
+| `short` | a short name for tight spaces |
+| `about` | one italic line for the ledger |
+| `fits` | positions it can be mounted in (broadside, bow, stern, deck; see POSITIONS in src/config/slots.js) |
+| `fires` | what leaves the muzzle: 'ball' (a cannonball or a spray of pellets), 'shell' (a mortar shell lobbed over everything) or 'pot' (a fire-pot that sets her burning) |
+| `range` | reach in map units with its first shot type (chain and grape scale it by AMMO[...].range) |
+| `minRange` | it cannot hit anything closer than this (optional, default 0) |
+| `reload` | seconds between shots |
+| `dmg` | hull damage per ball (or per pellet, or at the centre of a shell burst) |
+| `weight` | tons per gun; a slotted class may carry at most its `tons` in all |
+| `arc` | half-angle of its firing arc in degrees, either side of the way its slot faces (a deck mount faces every way) |
+| `shot` | shot types it can load, the first being what it fires when the ship's chosen shot does not fit (empty: its own, shells or pots) |
+| `crew` | men to work one gun (for the ledger and the 3D yard) |
+| `cost` | gold per gun to fit it |
+| `render` | { barrel, bore }: barrel length and bore relative to a long gun (1, 1), for the battle model and the 3D yard |
+| `auto` | fires on its own even when you have the guns on Manual (optional, default false) |
+| `single` | one piece takes the whole slot, however many guns the slot holds (optional, default false) |
+| `pellets` | balls in one discharge (grapeshot-style spray; optional, default 1) |
+| `crewKill` | chance each ball that lands cuts down a marine (optional; grapeshot is 0.25) |
+| `repel` | added to her defence against boarders per gun (optional, default 0) |
+| `radius` | burst radius of a shell (shell guns only) |
+| `burn` | seconds a fire-pot sets her burning (pot guns only) |
+| `traverse` | radians the gun can train either side of its slot's facing when aimed (optional; default 0.7) |
+
+Positions a slot can take:
+
+| pos | facing | description |
+|---|---|---|
+| `broadside` | abeam (port -90°, starboard 90°) | along her side: a battery that fires abeam, port or starboard (lower or upper tier) |
+| `bow` | 0° | in the bow: guns that fire dead ahead |
+| `stern` | 180° | in the stern windows: guns that fire dead astern |
+| `deck` | all round | on the open deck (forecastle, waist, quarterdeck): mounts that train all round |
+
+Slot fields:
+
+| field | description |
+|---|---|
+| `label` | its name in the ledger ("Lower tier", "Forecastle") |
+| `pos` | broadside, bow, stern or deck (POSITIONS) |
+| `side` | port or starboard (broadside slots only) |
+| `tier` | lower or upper (broadside slots, optional): the lower tier sits nearer the water |
+| `count` | how many guns it holds |
+| `accepts` | gun ids it takes; each must fit its position (optional, default every gun that fits) |
+| `default` | the gun it carries when the loadout says nothing |
+| `at` | [from, to]: where along the hull its guns sit, as fractions of her length from amidships (-0.5 the stern, 0.5 the bow; optional) |
+
+### `greatship` slots
+
+Great ship: carries at most 92 tons of guns; the default loadout weighs 64.8. Her speed (42) and turn (0.58)
+are with the default loadout; every ton more or less moves them by 0.45 and 0.5 of themselves per 92 tons.
+
+| slot | label | pos | side / tier | guns | takes | default |
+|---|---|---|---|---|---|---|
+| `portLower` | Lower tier | broadside | port / lower | 5 | long, demicannon | long |
+| `portUpper` | Upper tier | broadside | port / upper | 4 | long, carronade, swivel | long |
+| `starboardLower` | Lower tier | broadside | starboard / lower | 5 | long, demicannon | long |
+| `starboardUpper` | Upper tier | broadside | starboard / upper | 4 | long, carronade, swivel | long |
+| `bow` | Bow | bow |  | 2 | bowChaser, swivel | bowChaser |
+| `stern` | Stern | stern |  | 2 | sternChaser, swivel | sternChaser |
+| `forecastle` | Forecastle | deck |  | 2 | swivel, mortar, firepot | swivel |
+| `quarterdeck` | Quarterdeck | deck |  | 2 | swivel, mortar, firepot | swivel |
+
+The campaign offers the `greatship` once `armada` is won: a manowar rebuilds for 1000 gold, a frigate rebuilds for 1500 gold,
+one to a squadron. Fitting a slot costs the gun's price times the guns it takes.
 
 ## Hats
 

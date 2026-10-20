@@ -1,7 +1,7 @@
 import './styles.css';
 import { S } from './state.js';
 import { $ } from './util.js';
-import { save, replaceSave, writeSave, isUnlocked } from './save.js';
+import { save, replaceSave, writeSave, isUnlocked, migrate, fitGun, fitOffer, buyGreatShip, greatOffer, fleetStats } from './save.js';
 import { BATTLES, REGIONS, FLEET_SLOTS, battleIndex } from './config/battles.js';
 import { battleDef, ENDLESS, ENDLESS_ID, waveEnemies } from './config/endless.js';
 import { LAB_ID, setLab } from './config/lab.js';
@@ -28,6 +28,11 @@ import { applyCrit, RAKE, CRIT } from './sim/hazards.js';
 import { blockedAt } from './sim/steering.js';
 import { LANDMARKS, landOf, checkLand, leeAt } from './sim/land.js';
 import { LANDS } from './config/lands.js';
+import { GUNS, GUN_PARAMS } from './config/guns.js';
+import { POSITIONS, checkLoadout, checkSlots } from './config/slots.js';
+import { AMMO } from './config/ammo.js';
+import { fireBroadside, gunRange } from './sim/combat.js';
+import { sideLoad } from './sim/guns.js';
 import { shipById, fortById } from './state.js';
 import { audioTick } from './audio/director.js';
 import { ui, initUI, openMenu, openBrief, startPlay, pauseGame, restoreScreen, syncSettings } from './ui/screens.js';
@@ -107,13 +112,13 @@ function battleParam() {
 // Dev builds check the content tables against the primitive registries at boot (npm run check does the same).
 if (import.meta.env.DEV) {
   import('./config/validate.js').then(({ validateContent }) => {
-    const problems = validateContent({ BATTLES, REGIONS, FLEET_SLOTS, TYPES, HATS, HAT_ORDER, GOALS, ABILITIES, WHEN, DO, ENDLESS, waveEnemies, TERRAIN, fleetLayout, LANDS, landOf, checkLand });
+    const problems = validateContent({ BATTLES, REGIONS, FLEET_SLOTS, TYPES, HATS, HAT_ORDER, GOALS, ABILITIES, WHEN, DO, ENDLESS, waveEnemies, TERRAIN, fleetLayout, LANDS, landOf, checkLand, GUNS, GUN_PARAMS, POSITIONS, AMMO, checkLoadout, checkSlots });
     if (problems.length) console.warn(`Broadside content: ${problems.length} problem(s)\n  ${problems.join('\n  ')}`);
   });
 }
 
 // Hot reloads inside the Claude artifact viewer keep the current battle and screen.
-const SNAP = 3; // bump when the shape of G changes
+const SNAP = 4; // bump when the shape of G changes
 function snapshot() {
   if (!S.G) return {};
   return { snap: SNAP, G: JSON.parse(JSON.stringify(S.G)), selectedId: S.selected ? S.selected.id : null, screen: ui.screen, yardSel: ui.yardSel, save };
@@ -132,6 +137,8 @@ window.__broadside = {
   hazards: { applyCrit, RAKE, CRIT }, terrain: { coreDist, coastGap },
   // Land and landmarks (src/sim/land.js, src/config/lands.js), for tests.
   land: { LANDMARKS, LANDS, leeAt: (x, y) => leeAt(S.G, x, y) },
+  // Guns, slots and the great ship (src/config/guns.js, src/config/slots.js, src/save.js), for tests.
+  guns: { GUNS, fireBroadside, gunRange, sideLoad, migrate, fitGun, fitOffer, buyGreatShip, greatOffer, fleetStats },
   startBattle(id) { openBrief(typeof id === 'number' ? id : battleIndex(id)); startPlay(); },
   // Plays an ad-hoc battle definition (same shape as src/config/battles.js; see src/config/lab.js for the
   // defaults). It goes through the briefing and results screens but never touches the save. brief: true stops

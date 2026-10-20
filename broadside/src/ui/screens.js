@@ -87,7 +87,7 @@ function idle() { if (S.G) S.G.phase = 'title'; }
 // ---------- Battle descriptions ----------
 const PLURAL = {
   sloop: 'sloops', brig: 'brigs', frigate: 'frigates', galleon: 'galleons', manowar: "men-o'-war",
-  schooner: 'schooners', xebec: 'xebecs', bomb: 'bomb ketches', fireship: 'fireships', merchant: 'merchantmen',
+  schooner: 'schooners', xebec: 'xebecs', bomb: 'bomb ketches', fireship: 'fireships', merchant: 'merchantmen', greatship: 'great ships',
 };
 const enemyForts = (B) => (B.forts || []).filter((f) => f.team !== 'player');
 const ownForts = (B) => (B.forts || []).filter((f) => f.team === 'player');

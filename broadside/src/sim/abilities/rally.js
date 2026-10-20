@@ -1,4 +1,5 @@
 import { S, afloat } from '../../state.js';
+import { hasten } from '../guns.js';
 
 // A flagship's example: friendly ships within `radius` of her reload in `reload` times the usual time (0.7: 30%
 // faster). Several rally ships don't stack. The HUD rings her radius so you can keep the line close.
@@ -14,8 +15,7 @@ export default {
     for (const o of G.ships) {
       if (o === s || o.team !== s.team || !afloat(o) || o.rallied === G.t || Math.hypot(o.x - s.x, o.y - s.y) > a.radius) continue;
       o.rallied = G.t;
-      o.reload[0] -= extra; o.reload[1] -= extra;
-      if (o.chasers) o.chaseT -= extra;
+      hasten(o, extra); // every battery aboard (src/sim/guns.js)
     }
   },
   draw(s, a, api) {

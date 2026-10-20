@@ -12,6 +12,7 @@ import { drawIcon } from '../ui/icons.js';
 import { COLOR as C, PALETTE as P, EASE, CANVAS_SHADOW, LINE } from '../ui/tokens.js';
 import { shipMeshes, fortTopZ } from '../render/scene.js';
 import { sideDir } from '../sim/combat.js';
+import { sideLoad } from '../sim/guns.js';
 import { goalLines, eachGoal } from '../sim/goals/index.js';
 import { eachAbility } from '../sim/abilities/index.js';
 import { landingFor } from '../sim/forts.js';
@@ -71,28 +72,33 @@ function seaRing(x, y, r, color, { width = 1.5, dashed = false, n = 40 } = {}) {
 const DASH_RING = [7, 6], DASH_RIM = [2, 6], DASH_DOT = [1.5, 7];
 
 // Broadside arcs for the selected ship: only the rim at gun range (a fine dotted line with a short tick at each
-// end), and a sweep along it as the guns reload, gold once they're ready. No wedges, no long radials.
+// end), and a sweep along it as the guns reload, gold once they're ready. No wedges, no long radials. A great ship
+// with batteries of different reach (long guns below, carronades above) gets a rim for each.
 function drawArcs(s) {
-  const SPREAD = 0.62, N = 22;
   for (let side = 0; side < 2; side++) {
-    const dir = sideDir(s, side), rad = s.range;
-    const prog = clamp(1 - s.reload[side] / s.reloadTime, 0, 1);
+    const rims = new Map();
+    for (const g of sideLoad(s, side)) rims.set(g.range, Math.min(rims.has(g.range) ? rims.get(g.range) : 1, g.k));
+    for (const [rad, prog] of rims) drawRim(s, side, rad, prog);
+  }
+}
+function drawRim(s, side, rad, prog) {
+  const SPREAD = 0.62, N = 22;
+  const dir = sideDir(s, side);
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) { const a = dir - SPREAD + (2 * SPREAD * i) / N; seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, i === 0); }
+  seaStroke(ctx, { color: line(0.34), width: 1, dash: DASH_RIM, under: 0.14 });
+  ctx.beginPath();
+  for (let e = -1; e <= 1; e += 2) {
+    const a = dir + e * SPREAD;
+    seaTo(s.x + Math.cos(a) * rad * 0.9, s.y + Math.sin(a) * rad * 0.9, true);
+    seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, false);
+  }
+  seaStroke(ctx, { color: line(0.45), width: 1, under: 0.14 });
+  if (prog > 0.02) {
     ctx.beginPath();
-    for (let i = 0; i <= N; i++) { const a = dir - SPREAD + (2 * SPREAD * i) / N; seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, i === 0); }
-    seaStroke(ctx, { color: line(0.34), width: 1, dash: DASH_RIM, under: 0.14 });
-    ctx.beginPath();
-    for (let e = -1; e <= 1; e += 2) {
-      const a = dir + e * SPREAD;
-      seaTo(s.x + Math.cos(a) * rad * 0.9, s.y + Math.sin(a) * rad * 0.9, true);
-      seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, false);
-    }
-    seaStroke(ctx, { color: line(0.45), width: 1, under: 0.14 });
-    if (prog > 0.02) {
-      ctx.beginPath();
-      const n = Math.max(2, Math.round(N * prog));
-      for (let i = 0; i <= n; i++) { const a = dir - SPREAD + (2 * SPREAD * prog * i) / n; seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, i === 0); }
-      seaStroke(ctx, prog >= 1 ? { color: tint(MARK.chosen, 0.9), width: 1.75, under: 0.2 } : { color: line(0.6), width: 1.25, under: 0.16 });
-    }
+    const n = Math.max(2, Math.round(N * prog));
+    for (let i = 0; i <= n; i++) { const a = dir - SPREAD + (2 * SPREAD * prog * i) / n; seaTo(s.x + Math.cos(a) * rad, s.y + Math.sin(a) * rad, i === 0); }
+    seaStroke(ctx, prog >= 1 ? { color: tint(MARK.chosen, 0.9), width: 1.75, under: 0.2 } : { color: line(0.6), width: 1.25, under: 0.16 });
   }
 }
 
@@ -537,12 +543,20 @@ function act(kind, label, w) {
   return a;
 }
 
+// A Fire tile for one side. With one battery a side its reload is a single rule; with several (a great ship's
+// lower and upper tiers) the rule splits into a segment per battery, each lit as it loads, and a tap fires
+// whichever are loaded. The tile inverts to paper once the whole side is loaded.
+function fireTile(sel, side, label) {
+  const a = act('fire', label, 62), load = sideLoad(sel, side);
+  a.side = side;
+  a.ready = load.every((g) => g.k >= 1);
+  a.prog = load.length > 1 ? load : load.length ? load[0].k : 1;
+  return a;
+}
+
 function drawActionBar(sel) {
   const { cw } = S.view, hud = S.hud, manual = S.fireMode === 'manual';
-  if (manual) {
-    const a = act('fire', 'Port', 62); a.side = 0;
-    a.ready = sel.reload[0] <= 0; a.prog = clamp(1 - sel.reload[0] / sel.reloadTime, 0, 1);
-  }
+  if (manual) fireTile(sel, 0, 'Port');
   const an = act('anchor', sel.pivot != null ? 'Weigh' : 'Anchor', 60); an.on = sel.pivot != null;
   if (sel.ammoKinds.length > 1 && !S.selectAll) { act('ammo', AMMO[sel.ammo].short, 20 + sel.ammoKinds.length * 22); offerTip('ammo'); }
   if (sel.mines > 0) { const a = act('mine', 'Mine', 60); a.count = sel.mines; offerTip('mine'); }
@@ -558,10 +572,7 @@ function drawActionBar(sel) {
     a.fortId = fort.id; a.ready = ok; a.on = ok; a.gold = ok; a.sub = busy ? null : ok ? `${fort.need} men` : `need ${fort.need}`;
     offerTip('land');
   }
-  if (manual) {
-    const a = act('fire', 'Starboard', 62); a.side = 1;
-    a.ready = sel.reload[1] <= 0; a.prog = clamp(1 - sel.reload[1] / sel.reloadTime, 0, 1);
-  }
+  if (manual) fireTile(sel, 1, 'Starboard');
   const gap = K.gap, list = hud.actions;
   let total = -gap;
   for (const a of list) total += a.w + gap;

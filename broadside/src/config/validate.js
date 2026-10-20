@@ -18,6 +18,10 @@
 //   validateContent({ BATTLES, TYPES, HATS, REGIONS, GOALS, ABILITIES, WHEN, DO,
 //                     waveEnemies?, ENDLESS?, HAT_ORDER?, FLEET_SLOTS?, TERRAIN?, fleetLayout?, LANDS?, landOf?, checkLand? })
 //   (the ? ones add checks when given)
+//
+//   - guns and slots (src/config/guns.js, src/config/slots.js), when C.GUNS and C.checkLoadout are given: every gun
+//     entry against GUN_PARAMS, every class's slot table (checkSlots), and every ship def's `loadout` against its
+//     class (unknown slot or gun, a gun its slot won't take, overweight).
 
 // The numbers makeShip() reads from a ship type.
 const TYPE_STATS = ['L', 'B', 'hp', 'guns', 'reload', 'speed', 'turn', 'range', 'masts', 'marines'];
@@ -99,6 +103,9 @@ export function validateContent(C) {
       }
     }
     checkAbilities(at, d.abilities);
+    if (d.loadout !== undefined && C.checkLoadout && TYPES[d.type]) {
+      for (const m of C.checkLoadout(TYPES[d.type], d.loadout, { chasers: d.chasers || 0 })) bad(at, m);
+    }
     if (opts.B) onIsland(at, opts.B, { ...d, ship: true });
   }
   // Ships (and points like chests) mustn't start on land; a ship mustn't start aground or on a reef. p.type
@@ -317,6 +324,27 @@ export function validateContent(C) {
     if (isNum(T.masts) && T.masts !== 2 && T.masts !== 3) bad(at, `masts must be 2 or 3 (the renderer draws two or three), got ${T.masts}`);
     if (T.rig !== undefined && !isStr(T.rig)) bad(at, "rig must be a string ('square', 'fore-aft' or 'lateen'; see src/sim/wind.js)");
     checkAbilities(at, T.abilities);
+    if (C.checkSlots) for (const m of C.checkSlots(T)) bad(at, m);
+  }
+
+  // ---------- guns ----------
+  if (C.GUNS) {
+    const params = C.GUN_PARAMS || {}, positions = C.POSITIONS || {};
+    for (const [id, G] of Object.entries(C.GUNS)) {
+      const at = `GUNS.${id}`;
+      if (!isObj(G)) { bad(at, 'must be an object'); continue; }
+      for (const k of Object.keys(G)) if (!(k in params)) bad(at, `unknown field '${k}' (known: ${list(params)})`);
+      for (const k of ['label', 'short', 'about']) if (!isStr(G[k])) bad(at, `needs ${k} (text)`);
+      for (const k of ['range', 'reload', 'dmg', 'weight', 'arc', 'crew', 'cost']) if (!(isNum(G[k]) && G[k] >= 0)) bad(at, `${k} must be a number of at least 0, got ${q(G[k])}`);
+      if (!['ball', 'shell', 'pot'].includes(G.fires)) bad(at, `fires must be 'ball', 'shell' or 'pot', got ${q(G.fires)}`);
+      if (!Array.isArray(G.fits) || !G.fits.length || G.fits.some((f) => !(f in positions))) bad(at, `fits must list positions (${list(positions)})`);
+      if (!Array.isArray(G.shot)) bad(at, 'shot must be a list of shot types');
+      else if (G.fires === 'ball' && !G.shot.length) bad(at, 'a gun that fires balls must load at least one shot type');
+      else if (C.AMMO) for (const k of G.shot) if (!C.AMMO[k]) bad(at, `shot '${k}' is not in AMMO (known: ${list(C.AMMO)})`);
+      if (G.fires === 'shell' && !isNum(G.radius)) bad(at, 'a shell gun needs a burst radius');
+      if (G.fires === 'pot' && !isNum(G.burn)) bad(at, 'a fire-pot gun needs burn (seconds)');
+      if (!isObj(G.render) || !isNum(G.render.barrel) || !isNum(G.render.bore)) bad(at, 'render must be { barrel, bore }');
+    }
   }
 
   // ---------- hats ----------
