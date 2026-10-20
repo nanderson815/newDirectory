@@ -241,7 +241,7 @@ export const MED_LANDS = {
     style: 'dardanelles',
     relief: [{ island: 0, height: 1.0, cliffs: 0.4, at: 180 }, { island: 1, height: 0.8 }],
     landmarks: [
-      { kind: 'town', island: 0, at: 60, d: 0.45, houses: 6, look: 'village', name: 'Tenedos' },
+      { kind: 'town', island: 0, at: 90, d: 0.45, houses: 6, look: 'village', name: 'Tenedos' },
       { kind: 'castle', island: 0, at: -20, d: 0.5 },
       { kind: 'windmill', island: 0, at: 220, d: 0.55 },
       { kind: 'ruin', coast: 0, at: 0.56, inland: 70 },

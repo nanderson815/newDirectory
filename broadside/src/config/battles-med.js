@@ -57,7 +57,7 @@ export const MED_BATTLES = [
     // castle's end, and the castle fires down both sides of the arm. Spain is a smudge across the Straits.
     fleetAt: { slots: [[0.48, 0.85], [0.38, 0.85], [0.58, 0.86], [0.68, 0.84], [0.28, 0.86]], h: 0 },
     coast: [
-      { side: 'bottom', depth: 0.075, rough: 0.2, seed: 4, capes: [{ at: 0.16, width: 0.16, depth: 0.19 }, { at: 0.93, width: 0.16, depth: 0.36 }] },
+      { side: 'bottom', depth: 0.075, rough: 0.2, seed: 4, capes: [{ at: 0.14, width: 0.26, depth: 0.18 }, { at: 0.93, width: 0.16, depth: 0.36 }] },
       { side: 'top', depth: 0.05, rough: 0.4, seed: 5 },
     ],
     islands: [{ x: 0.54, y: 0.74, r: 38 }, { x: 0.37, y: 0.75, r: 18, stretch: 8, angle: -4 }, { x: 0.2, y: 0.42, r: 38, stretch: 1.4, angle: 30 }],
@@ -120,7 +120,7 @@ export const MED_BATTLES = [
     // and Reis Ibrahim lies in its mouth. A sandbar lies across the mouth: the light corsairs cross it, your ships
     // of the line must take the one deep channel, which runs right under the Kasbah on its rock. Or wait: the tide
     // falls at 80 s and the bar dries, and then even the corsairs must come out by the Kasbah's channel.
-    coast: { side: 'right', depth: 0.34, rough: 0.12, seed: 6, coves: [{ at: 0.43, width: 0.3, depth: 0.2 }, { at: 0.43, width: 0.14, depth: 0.1 }] },
+    coast: { side: 'right', depth: 0.42, rough: 0.1, seed: 6, coves: [{ at: 0.43, width: 0.26, depth: 0.26 }, { at: 0.43, width: 0.12, depth: 0.13 }] },
     fleetAt: { slots: [[0.16, 0.44], [0.1, 0.38], [0.1, 0.5], [0.05, 0.41], [0.05, 0.47]], h: 0 },
     shoals: [{ x: 0.67, y: 0.34, r: 34, stretch: 2.4, angle: 90, tidal: true }],
     tide: { level: 0.5, turns: [{ at: 80, to: 0.2, secs: 16 }] },
@@ -532,32 +532,32 @@ export const MED_BATTLES = [
     brief: 'Bahri Ömer Pasha, Kapudan Pasha of the Ottoman fleet, comes out of the Dardanelles in his sultana Kara Ejder with galleasses on his wings and galleys behind Tenedos. His ships fight faster near him. Break his line and sink the flagship.',
     enemy: [
       // The Kapudan's sultana carries demi-cannon on both broadsides (src/config/guns.js).
-      { type: 'sultana', name: 'Kara Ejder', x: 0.55, y: 0.14, h: 90, hp: 1100, chasers: 3, loadout: { port: 'demicannon', starboard: 'demicannon' },
+      { type: 'sultana', name: 'Kara Ejder', x: 0.5, y: 0.12, h: 90, hp: 1100, chasers: 3, loadout: { port: 'demicannon', starboard: 'demicannon' },
         abilities: { rally: { radius: 230, reload: 0.75 }, mortar: { range: 460, reload: 9, dmg: 20, radius: 34 } },
         boss: { captain: 'Bahri Ömer Pasha', title: 'Kara Ejder', hat: 'kavuk' } },
-      { type: 'galleass', name: 'Sancak', x: 0.3, y: 0.12, h: 90 },
-      { type: 'galleass', name: 'Ejder', x: 0.66, y: 0.2, h: 100 },
-      { type: 'kalyon', name: 'Arslan', x: 0.42, y: 0.22, h: 90 },
+      { type: 'galleass', name: 'Sancak', x: 0.38, y: 0.06, h: 70 },
+      { type: 'galleass', name: 'Ejder', x: 0.56, y: 0.24, h: 110 },
+      { type: 'kalyon', name: 'Arslan', x: 0.46, y: 0.2, h: 90 },
     ],
     events: [
       { at: 35, wind: 45, banner: ['The wind veers!', 'The Ottoman line loses the weather gauge'] },
       { bossHp: 0.65, banner: ['Galleys from behind Tenedos!', 'The Kapudan’s reserve rows into the fight'],
-        spawn: [{ type: 'galley', name: 'Doğan', x: 0.2, y: 0.14, h: 60 }, { type: 'galley', name: 'Şahin', x: 0.06, y: 0.56, h: 0 },
-          { type: 'firegalley', name: 'Alev', x: 0.08, y: 0.2, h: 60 }] },
+        spawn: [{ type: 'galley', name: 'Doğan', x: 0.16, y: 0.05, h: 30 }, { type: 'galley', name: 'Şahin', x: 0.06, y: 0.56, h: 0 },
+          { type: 'firegalley', name: 'Alev', x: 0.06, y: 0.36, h: 30 }] },
       { bossHp: 0.35, banner: ['Venetian galleasses!', 'San Marco and Santa Giustina join the fight'],
         spawn: [{ type: 'galleass', name: 'San Marco', team: 'player', ally: true, x: 0.12, y: 0.92, h: -60, hp: 380 },
-          { type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, x: 0.72, y: 0.94, h: -110, hp: 380 }] },
+          { type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, x: 0.56, y: 0.94, h: -110, hp: 380 }] },
     ],
-    // The great fleet action, in a wide bay: the Asian shore runs down the right with the broad, shallow sweep
-    // of Besika Bay in it and Kum Kale's point at the top where the Kapudan comes out of the Dardanelles; Tenedos
-    // is a big island on the left, hiding the galley reserve behind it. Between them is the widest open water in
-    // the Mediterranean campaign, room for the Ottoman crescent to come down on you and for you to break it, with
-    // an islet and a reef to split it and the bay's banks to drive its heavy ships onto.
+    // The great fleet action, in a wide bay: the Asian shore down the right is scooped out into the great
+    // crescent of Besika Bay, with Kum Kale's point at the top where the Kapudan comes out of the Dardanelles and
+    // Tenedos lying across the top-left corner, hiding the galley reserve behind it. The crescent's wide water is
+    // the widest in the Mediterranean campaign: room for the Ottoman line to come down on you and for you to
+    // break it, an islet and a reef to split it, and the bay's banks to drive its heavy ships onto.
     fleetAt: { slots: [[0.46, 0.84], [0.36, 0.86], [0.56, 0.86], [0.41, 0.91], [0.51, 0.91]], h: -90 },
-    coast: { side: 'right', depth: 0.16, rough: 0.3, seed: 18, capes: [{ at: 0.08, width: 0.16, depth: 0.14 }], coves: [{ at: 0.56, width: 0.46, depth: 0.12 }] },
-    islands: [{ x: 0.18, y: 0.42, r: 190, stretch: 1.5, angle: -75 }, { x: 0.6, y: 0.6, r: 42 }],
+    coast: { side: 'right', depth: 0.34, rough: 0.2, seed: 18, capes: [{ at: 0.06, width: 0.14, depth: 0.08 }], coves: [{ at: 0.56, width: 0.66, depth: 0.28 }] },
+    islands: [{ x: 0.18, y: 0.2, r: 140, stretch: 1.5, angle: -10 }, { x: 0.5, y: 0.58, r: 42 }],
     reefs: [{ x: 0.3, y: 0.68, r: 14, stretch: 5, angle: 30 }],
-    shoals: [{ x: 0.84, y: 0.56, r: 60, stretch: 2.4, angle: 90 }, { x: 0.46, y: 0.44, r: 40, stretch: 1.6, angle: 40 }],
+    shoals: [{ x: 0.84, y: 0.56, r: 60, stretch: 2.6, angle: 90 }, { x: 0.36, y: 0.48, r: 40, stretch: 1.6, angle: 40 }],
     ai: { spread: 0.085, reloadMul: 1.0, dmgMul: 1.11, hpMul: 1.68 },
   },
 ];
