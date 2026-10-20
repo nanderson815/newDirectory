@@ -7,7 +7,7 @@
 // goals: what wins the battle, a list of { kind, ...params } from src/sim/goals/ (all must be met), or the
 //   shorthand goal: 'boss'. Without either the goal is 'sink'. Kinds: sink, boss, capture, treasure, escort,
 //   hold, breakthrough, timer, protect, hunt, reach, survive.
-// Ships: { type (src/config/ships.js), name, x, y, h, hp?, chasers?, passive?, boss?, abilities? }. Boss ships
+// Ships: { type (src/config/ships.js), name, x, y, h, hp?, chasers?, passive?, boss?, abilities?, loadout? }. Boss ships
 //   carry boss: { captain, title, hat } and win you that captain's hat. abilities: { id: config } from
 //   src/sim/abilities/ (mortar, fireship, launcher, mineLayer, oars, repair, ram, flee, rally), merged over the
 //   ship type's own.
