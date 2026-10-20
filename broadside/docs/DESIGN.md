@@ -94,6 +94,22 @@ data (`loadout` and `look` in the save, `render` hints on each gun).
   and pines on the Windward Passage, whitewash and terracotta on the Main, jungle and ruins in the Golden Isles,
   shanties and Skull Rock on the Pirate Coast, mangroves and fishing villages in Campeche, El Morro and a pastel
   city for the Armada). Detail rewards zooming in: smoke, flags, gulls, people. Zoomed out the land stays quiet.
+- **The Mediterranean is its own world**, drier and brighter than the Indies, never a reskin of them. Its sea is
+  clearer and deeper blue with wide turquoise shallows and more sun dancing on it (`sparkle`, `clear` in
+  `src/config/weather.js`), each region with its own light: a Med noon in the Straits and Malta, a hot white haze on
+  the Barbary coast, the meltemi's white horses in the Morea and the Dardanelles, a low gold sun through the smoke at
+  Candia, a gale off Cape Passero and a moonlit night off Dia (lanterns, windows and fires glow; every broadside lights
+  the sea). Its land: Gibraltar's pale limestone and umbrella pines; ochre Barbary hills, date palms and whitewashed
+  kasbah towns of flat-roofed cubes under minarets; Malta's honey limestone, small fields and domed church behind
+  bastioned walls; olive orchards in rows, cypresses and white chapels in the Morea; Candia's Venetian stucco and
+  campanile behind its great walls, the Turkish trenches and tents beyond; Turkish timber towns, pencil minarets and
+  green hills on the Dardanelles. Its ruins are classical columns, its windmills white with cloth sails, its lights
+  stone lanterns. Its ships are lateen and oar: long low galleys with their rowing frames, benches, spur and striped
+  poop tents, high-charged Ottoman ships with a pavilion on the poop. The sides dress respectfully in period colours:
+  the corsairs bright-painted with striped lateens and the flags of the coast (Algiers' red, gold and green, the
+  crescent of Tunis and Tripoli, Zulfiqar), the Sultan's ships red with three crescents, the Kapudan Pasha black and
+  gilt under his dragon; your allies fly St Mark's lion (Venice) and the Order's cross (the Knights), with a
+  friend's blue rail.
 - Land that matters reads at a glance: calm water in the lee of high land, buoys round a harbour's anchorage,
   a town that burns when shot lands on it. Anything ships can't cross is inside the outline they collide with.
 
