@@ -102,7 +102,7 @@ export const MED_BATTLES = [
     where: 'off the bar of Salé',
     faction: 'barbary', goal: 'boss', hat: 'rover', reward: 840, wind: 10, sea: 1.35,
     goals: [{ kind: 'boss' }, { kind: 'hunt', ships: 'Barq', bonus: true, gold: 140 }],
-    brief: 'Reis Ibrahim lies in the river mouth behind the bar of Salé, under the guns of the Kasbah. His polacre slips over the sandbar where your big ships would stick fast: go round it. Hurt him and he will run for the open sea.',
+    brief: 'Reis Ibrahim lies in the river mouth behind the bar of Salé, under the guns of the Kasbah. His polacre slips over the sandbar where your big ships would stick fast: take the deep channel under the Kasbah, or wait for the ebb, when the bar dries and he too must come out that way. Hurt him and he will run for the open sea.',
     enemy: [
       { type: 'polacre', name: 'Burak', x: 0.8, y: 0.42, h: 180, hp: 720, chasers: 2,
         abilities: { flee: { below: 0.28, speed: 1.15, say: 'Reis Ibrahim makes for the open sea!' }, grapple: { below: 0.55 } },
@@ -231,7 +231,7 @@ export const MED_BATTLES = [
   {
     id: 'algiers', world: W, region: 'barbary', roman: 'VII', year: 1668, name: 'The Admiral of Algiers', foe: 'Kara Hasan Reis',
     faction: 'barbary', goal: 'boss', hat: 'kalpak', reward: 980, wind: 90, sea: 1.4,
-    brief: 'Kara Hasan Reis, Admiral of Algiers, comes out at the head of his line with the wind behind him. His ships fight faster near him; break them apart. The channel up to him runs between the shore and a long island.',
+    brief: 'Kara Hasan Reis, Admiral of Algiers, comes out at the head of his line with the wind behind him. His ships fight faster near him; break them apart. A chain of islets runs down the sea between you: pick your gap.',
     goals: [{ kind: 'boss' }, { kind: 'take', ships: 'Sa’ada', bonus: true, gold: 170 }],
     enemy: [
       { type: 'kalyon', name: 'Mubarak', x: 0.4, y: 0.2, h: 60, hp: 720, chasers: 2,
