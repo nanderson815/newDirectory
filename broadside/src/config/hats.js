@@ -99,7 +99,7 @@ const ART = {
     '<path d="M39 25 l2 -4 M49 21 l2 -4 M61 20 l2 -4 M73 21 l2 -4 M82 25 l2 -4 M37 39 l2 -4 M51 35 l2 -4 M66 35 l2 -4 M79 38 l2 -4 M40 51 l2 -4 M56 49 l2 -4 M71 49 l2 -4 M84 51 l2 -4" fill="none" stroke="#5c5666" stroke-width="2"/>' +
     '<path d="M28 58 Q60 68 92 58 L92 66 Q60 76 28 66 Z" fill="#f2b632"/>' +
     '<g stroke="none"><circle cx="42" cy="64" r="2.2" fill="#2f5aa8"/><circle cx="60" cy="67" r="2.4" fill="#c8402f"/><circle cx="78" cy="64" r="2.2" fill="#2f5aa8"/></g>' +
-    '<path d="M61 16 Q53 -3 66 -5 Q71 6 63 19 Z" fill="#fbf3dc"/>' +
+    '<path d="M61 16 Q53 0 65 -2 Q71 7 63 19 Z" fill="#fbf3dc"/>' +
     '<path d="M57 36 L60 15 L63 36 Z" fill="#f2b632"/><circle cx="60" cy="38" r="4.5" fill="#c8402f"/>',
   // Osman Reis of Tripoli: a full green turban wound over a red cap, a gold crescent pinned at the front and a
   // white plume.
@@ -123,9 +123,9 @@ const ART = {
   // Bahri Ömer Pasha, Kapudan Pasha: a tall kavuk wound slantwise in white muslin, a gold band, and a jewelled
   // aigrette holding heron plumes, one dyed red.
   kavuk:
-    '<path d="M56 15 Q42 -8 53 -7 Q62 0 60 17 Z" fill="#fbf3dc"/>' +
-    '<path d="M63 15 Q67 -10 78 -6 Q75 6 65 19 Z" fill="#fbf3dc"/>' +
-    '<path d="M60 17 Q55 -3 62 -5 Q67 4 63 19 Z" fill="#d23c2c"/>' +
+    '<path d="M56 15 Q43 -3 53 -2 Q61 3 60 17 Z" fill="#fbf3dc"/>' +
+    '<path d="M63 15 Q68 -3 78 -2 Q76 8 65 19 Z" fill="#fbf3dc"/>' +
+    '<path d="M60 17 Q56 0 62 -2 Q67 5 63 19 Z" fill="#d23c2c"/>' +
     '<path d="M30 64 Q26 38 34 15 Q60 7 86 15 Q94 38 90 64 Q60 72 30 64 Z" fill="#f6f0e2"/>' +
     '<path d="M35 22 Q60 14 86 28 M32 33 Q60 25 88 40 M31 45 Q60 37 89 52 M33 56 Q60 49 90 62" fill="none" stroke="#c9bfa8" stroke-width="3"/>' +
     '<path d="M28 60 Q60 70 92 60 L92 68 Q60 78 28 68 Z" fill="#f2b632"/>' +
