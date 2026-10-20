@@ -1423,7 +1423,7 @@ export function shipTemplate(s, faction, opts = {}) {
   };
   const tpl = {
     root, top, deckY, breakH, mainIdx, flagY: top - 1, brokenFlagY: breakH.getComponent(mainIdx) - 1, look, dress, hd: parts,
-    torn: !!sp.torn, oars: !!sp.oars, info, L, B, d,
+    torn: !!sp.torn, oars: !!sp.oars, info, L, B, d, lanterns: lanternAt.map(([x, y, z]) => [x, y, z, lr]),
     partCodes: parts ? Object.fromEntries(PARTS.map((p, i) => [p, i]).filter(([p]) => p)) : null, anchors, flagMesh,
   };
   templates.set(key, tpl);
