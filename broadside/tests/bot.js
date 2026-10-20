@@ -19,9 +19,20 @@
   const blocked = (s, p) => !!(B().blockedAt && B().blockedAt(s, p.x, p.y));
   // Water in the lee of high land (src/sim/land.js), where the wind drops.
   const calm = (p) => !!(B().land && B().land.leeAt(p.x, p.y) < 0.8);
-  // Can she get at t: sail right up to her? (The route planner, src/sim/navgrid.js.) A ship behind a closed boom or
-  // up water too shallow for her is not worth circling, even in gun range: the boom or the land stops the shot.
-  const reachable = (s, t) => !B().nav || !!B().nav.planRoute(s, s.x, s.y, t.x, t.y, 70);
+  // Can she get at t? Either she has her in gun range with nothing in the way of the shot (an island or a closed
+  // boom stops it; a galley over a shoal she can't follow is still fair game), or she can sail up to her (the
+  // route planner, src/sim/navgrid.js).
+  function inShot(s, t) {
+    const d = Math.hypot(t.x - s.x, t.y - s.y);
+    if (d > s.range) return false;
+    const G = B().G, walls = [...G.islands, ...(B().flow ? B().flow.activeBooms() : [])];
+    for (let k = 1, n = Math.ceil(d / 20); k < n; k++) {
+      const x = s.x + ((t.x - s.x) * k) / n, y = s.y + ((t.y - s.y) * k) / n;
+      if (walls.some((c) => B().terrain.coreDist(c, x, y) < c.r)) return false;
+    }
+    return true;
+  }
+  const reachable = (s, t) => !B().nav || inShot(s, t) || !!B().nav.planRoute(s, s.x, s.y, t.x, t.y, 70);
   function circle(s, t, G) {
     // Each ship swings round at her own angle, so two sent at one target do not ride together shoving each other.
     const a = Math.atan2(s.y - t.y, s.x - t.x) + 0.9 + ((s.id % 3) - 1) * 0.45;
