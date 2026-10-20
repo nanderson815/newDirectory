@@ -496,7 +496,7 @@ const CARIBBEAN = [
       { at: 30, banner: ['A galley from the shore!', 'La Jabalina rows out to close the gap'],
         spawn: [{ type: 'xebec', name: 'La Jabalina', x: 0.42, y: 0.07, h: 60 }] },
     ],
-    ai: { spread: 0.08, reloadMul: 1.05, dmgMul: 1.2, hpMul: 1.35 },
+    ai: { spread: 0.08, reloadMul: 1.05, dmgMul: 1.22, hpMul: 1.35 },
   },
   {
     id: 'armada', region: 'armada', roman: 'XVIII', year: 1665, name: 'La Gran Armada', foe: 'Capitán General',
