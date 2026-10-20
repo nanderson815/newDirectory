@@ -61,7 +61,7 @@ for (const [o, width, height] of [['p', 390, 844], ['l', 844, 390]]) {
   await snap(page, `hotspot-${o}`);
   // A gun slot tapped on the model itself: the larboard upper tier.
   await page.evaluate(() => window.__broadside.yard.aim('slot:portUpper')); await settle(page);
-  await page.waitForTimeout(300);
+  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   const at = await page.evaluate(() => window.__broadside.yard.partAt('slot:portUpper'));
   if (at) await page.mouse.click(at[0], at[1]);
   await page.waitForTimeout(1400); await settle(page);
