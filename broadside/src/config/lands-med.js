@@ -14,7 +14,7 @@ export const MED_LANDS = {
       { kind: 'castle', coast: 0, at: 0.1, inland: 90 },
       { kind: 'church', coast: 0, at: 0.32, inland: 70 },
       { kind: 'peak', coast: 0, at: 0.92, inland: 90, height: 55, size: 0.5, lee: 2 },
-      { kind: 'lighthouse', island: 0, at: -60, d: 0.7 },
+      { kind: 'lighthouse', island: 1, at: 180, d: 0.8 },
       { kind: 'harbour', island: 1, at: 90, rate: 2.5, stock: 140 },
       { kind: 'town', coast: 1, at: 0.6, inland: 24, houses: 3, look: 'spanish', name: 'Tarifa' },
       { kind: 'windmill', coast: 1, at: 0.3, inland: 20 },
