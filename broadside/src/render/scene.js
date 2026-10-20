@@ -9,6 +9,7 @@ import { buildShipMesh, buildFortMesh, chestGeometries, setShipFading, setShipTo
 import { WX, applyWeather, syncWeather } from './weather.js';
 import { lostMasts } from './terrain.js';
 import { buildLand, syncLand, landStats, landLife, fortLook } from './land.js';
+import { buildSeaMarks, syncSeaMarks } from './flow.js';
 
 let worldObjs = [];
 export let shipMeshes = new Map();
@@ -48,6 +49,9 @@ export function buildScene() {
   const land = buildLand(G);
   scene.add(land);
   worldObjs.push(land);
+  // Currents, tidal bars and harbour booms (render/flow.js).
+  const marks = buildSeaMarks(G);
+  if (marks) { scene.add(marks); worldObjs.push(marks); }
 
   for (const f of G.forts) {
     const m = buildFortMesh(f, wx, wz, fortLook(G));
@@ -403,6 +407,7 @@ export function syncScene() {
 
   // The land's living details: chimney smoke, lamps, burning towns, birds, people, scorch marks.
   const lo = syncLand(G, clock, dt, np, ng);
+  syncSeaMarks(G, clock);
   np = lo.np; ng = lo.ng;
   P.puff.count = np; P.glow.count = ng; P.debris.count = nd;
   P.rings.forEach((r, i) => { r.count = nr[i]; r.instanceMatrix.needsUpdate = true; });

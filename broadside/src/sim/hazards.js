@@ -3,7 +3,7 @@ import { PI, clamp, rand, angDiff, reduceMotion } from '../util.js';
 import { spawn } from './particles.js';
 import { sfx } from '../audio/sfx.js';
 import { sinkShip } from './combat.js';
-import { SHOAL, REEF, grounds, coreDist } from './terrain.js';
+import { SHOAL, REEF, coreDist, shoalsFor } from './terrain.js';
 
 // Combat with decisions: raking fire, critical hits and the sea's own hazards (shoals and reefs).
 
@@ -113,7 +113,7 @@ export function updateHazards(s, dt) {
   }
   // Shoals ground big ships: a thud as she strikes, then she crawls (and grinds) until she's off.
   let aground = false;
-  if (grounds(s)) for (const c of G.shoals || []) if (coreDist(c, s.x, s.y) < c.r) { aground = true; break; }
+  for (const c of shoalsFor(G, s)) if (coreDist(c, s.x, s.y) < c.r) { aground = true; break; } // the tide moves tidal bars (src/sim/flow.js)
   if (aground) {
     if (!s.aground) {
       s.v *= 0.5;

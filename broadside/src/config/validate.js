@@ -194,6 +194,7 @@ export function validateContent(C) {
     spawn: (v) => (Array.isArray(v) && v.length ? [] : ['should be a non-empty list of ship defs']),
     wind: (v) => (isNum(v) ? [] : [`should be a heading in degrees, got ${q(v)}`]),
     fog: (v) => (isNum(v) && v >= 0 ? [] : [`should be a sight distance of at least 0, got ${q(v)}`]),
+    tide: (v) => (isFrac(v) ? [] : [`should be a tide level from 0 (low water) to 1 (high water), got ${q(v)}`]),
   };
   function checkEvents(where, B) {
     if (B.events === undefined) return;

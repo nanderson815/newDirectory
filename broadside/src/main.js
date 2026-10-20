@@ -26,6 +26,8 @@ import { spawnShip } from './sim/spawn.js';
 import { TERRAIN, fleetLayout, coreDist, coastGap } from './sim/terrain.js';
 import { applyCrit, RAKE, CRIT } from './sim/hazards.js';
 import { blockedAt } from './sim/steering.js';
+import { currentAt, turnTide, activeBooms } from './sim/flow.js';
+import { planRoute, navGrid } from './sim/navgrid.js';
 import { LANDMARKS, landOf, checkLand, leeAt } from './sim/land.js';
 import { LANDS } from './config/lands.js';
 import { shipById, fortById } from './state.js';
@@ -132,6 +134,9 @@ window.__broadside = {
   hazards: { applyCrit, RAKE, CRIT }, terrain: { coreDist, coastGap },
   // Land and landmarks (src/sim/land.js, src/config/lands.js), for tests.
   land: { LANDMARKS, LANDS, leeAt: (x, y) => leeAt(S.G, x, y) },
+  // Currents, the tide and booms (src/sim/flow.js); the route planner (src/sim/navgrid.js).
+  flow: { currentAt: (x, y) => [...currentAt(S.G, x, y)], turnTide: (to, secs) => turnTide(S.G, to, secs), activeBooms: () => activeBooms(S.G) },
+  nav: { planRoute: (L, x0, y0, x1, y1, reach) => planRoute(L, x0, y0, x1, y1, reach), grid: (L) => navGrid(L) },
   startBattle(id) { openBrief(typeof id === 'number' ? id : battleIndex(id)); startPlay(); },
   // Plays an ad-hoc battle definition (same shape as src/config/battles.js; see src/config/lab.js for the
   // defaults). It goes through the briefing and results screens but never touches the save. brief: true stops

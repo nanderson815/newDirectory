@@ -6,6 +6,7 @@ import { initAbilities } from './abilities/index.js';
 import { makeCapsule, makeCoast, capsuleRadius, coastList, fleetLayout } from './terrain.js';
 import { setupGoals } from './goals/index.js';
 import { setupLand } from './land.js';
+import { setupFlow } from './flow.js';
 
 // Builds one ship's battle state from a battle definition plus (for the player) its shipyard upgrades.
 export function makeShip(def, team, place, rot, id, ai) {
@@ -85,7 +86,7 @@ export function createBattle(idx, size, fleet) {
     return { ...is, verts, fort, seed: Math.floor(rand(1, 1e6)) };
   });
   // Shallows, reef rocks and coastlines (src/sim/terrain.js); the renderer builds them in render/land.js.
-  const shoals = (B.shoals || []).map((d) => makeCapsule(d, place, rot));
+  const shoals = (B.shoals || []).map((d) => ({ ...makeCapsule(d, place, rot), tidal: !!d.tidal }));
   const reefs = (B.reefs || []).map((d) => makeCapsule(d, place, rot));
   const coasts = coastList(B.coast).map((d) => makeCoast(d, place));
 
@@ -117,5 +118,7 @@ export function createBattle(idx, size, fleet) {
   G.goal = G.goals[0].kind;
   // The look of the land and its landmarks (src/config/lands.js, src/sim/land.js).
   setupLand(G, B, { place, rot });
+  // Currents, the tide and harbour booms (src/sim/flow.js).
+  setupFlow(G, B, { place, rot });
   return G;
 }

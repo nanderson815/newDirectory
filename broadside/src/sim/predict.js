@@ -1,6 +1,7 @@
 import { S } from '../state.js';
 import { desiredHeading, helm, shorePush } from './ships.js';
 import { updateWind } from './wind.js';
+import { drift } from './flow.js';
 
 // Course preview: sails a stand-in for a ship along a course with the real helm (turning circle, wind,
 // waypoint skipping, island avoidance and the wind as it will wander), so the HUD can draw the track she
@@ -39,6 +40,7 @@ export function predictCourse(s, path, out) {
     const want = desiredHeading(g, dt);
     g.slowT = Math.max(0, g.slowT - dt);
     helm(g, want, dt);
+    drift(g, dt); // the current sets her along (src/sim/flow.js)
     shorePush(g, dt);
     t += dt;
     if (!g.path.length) { out.done = true; break; }

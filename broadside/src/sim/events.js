@@ -4,6 +4,7 @@ import { spawnShip } from './spawn.js';
 import { placer, chartWidth } from './battle.js';
 import { startFlee } from './exit.js';
 import { GOALS } from './goals/index.js';
+import { turnTide } from './flow.js';
 import { sfx } from '../audio/sfx.js';
 
 // Scripted moments in a battle: `events: [{ ...conditions, ...actions }]`. Each event fires once, the first
@@ -42,6 +43,7 @@ export const DO = {
     fn: (G, who) => { for (const s of G.ships) if (s.team === 'enemy' && (who === true || names(who).includes(s.name))) startFlee(s); },
   },
   reveal: { about: 'the fog lifts and every ship shows for this many seconds (true: the fog clears for good)', fn: (G, v) => { if (v === true) G.fog = 0; else G.revealUntil = G.t + v; } },
+  tide: { about: 'the tide turns now toward this level (0 low water, 1 high water; see tide)', fn: (G, to) => turnTide(G, to) },
   heal: {
     about: 'every English ship afloat patches this share (0-1) of her full hull',
     fn: (G, k) => { for (const s of G.ships) if (s.team === 'player' && afloat(s)) s.hp = Math.min(s.maxHp, s.hp + s.maxHp * k); },

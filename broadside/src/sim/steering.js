@@ -4,7 +4,9 @@ import { edgeHeading } from './exit.js';
 import { abilitySteer } from './abilities/index.js';
 import { eachGoal, hasGoalFlag } from './goals/index.js';
 import { PI, clamp, angDiff } from '../util.js';
-import { corePt, coreDist, grounds, coastGap } from './terrain.js';
+import { corePt, coreDist, grounds, coastGap, shoalsFor } from './terrain.js';
+import { navLeg, navBearing } from './navgrid.js';
+import { activeBooms } from './flow.js';
 
 // Distance a ship's centre must keep from an island's core: the drawn beach plus bevel plus most of the hull.
 export const shoreClear = (is, s) => is.r * 1.05 + s.L * 0.42;
@@ -17,10 +19,10 @@ const NONE = [];
 // Capsule obstacles for ship s: [list, clearance, kind] (0 island, 1 reef, 2 shoal).
 function obstacleLists(s) {
   const G = S.G;
-  OBS[0][0] = G.islands; OBS[1][0] = G.reefs || NONE; OBS[2][0] = grounds(s) ? G.shoals || NONE : NONE;
+  OBS[0][0] = G.islands; OBS[1][0] = G.reefs || NONE; OBS[2][0] = shoalsFor(G, s); OBS[3][0] = activeBooms(G); // tide, booms: src/sim/flow.js
   return OBS;
 }
-const OBS = [[NONE, shoreClear, 0], [NONE, reefClear, 1], [NONE, shoalClear, 2]];
+const OBS = [[NONE, shoreClear, 0], [NONE, reefClear, 1], [NONE, shoalClear, 2], [NONE, shoreClear, 0]];
 
 // How far (x, y) sits inside the room ship s must keep from the geography: <= 0 is clear water for her.
 export function penetration(s, x, y) {
@@ -32,7 +34,7 @@ export function penetration(s, x, y) {
   return pen;
 }
 export const blockedAt = (s, x, y) => penetration(s, x, y) > 0;
-const inShoal = (s, p) => (S.G.shoals || NONE).some((c) => coreDist(c, p.x, p.y) < shoalClear(c, s));
+const inShoal = (s, p) => shoalsFor(S.G, s).some((c) => coreDist(c, p.x, p.y) < shoalClear(c, s));
 // Feelers: is the way ahead on heading h clear for `look` units? Sailing out of somewhere she shouldn't be
 // (pushed against a beach, stuck on a shoal) counts as clear as long as it doesn't take her deeper in.
 function wayClear(s, h, look) {
@@ -74,6 +76,9 @@ export function followPath(s) {
       s.path.shift();
       continue;
     }
+    // Not in plain sight (a cove, an island chain): sail the route planner's waypoints first (src/sim/navgrid.js).
+    const via = navLeg(s, p);
+    if (via) { s.path.splice(0, 1, ...via, { x: p.x, y: p.y, nav: null }); continue; }
     return avoidIslands(s, want, d);
   }
   return null;
@@ -128,7 +133,7 @@ export function avoidIslands(s, desired, reach) {
 
 // Escorted merchantmen sail for the exit at the top of the chart on their own, dodging islands.
 export function escortSteer(s) {
-  return avoidIslands(s, upChart(S.G), 160);
+  return avoidIslands(s, navBearing(s, S.G.land ? S.G.W : s.x, S.G.land ? s.y : 0, true) ?? upChart(S.G), 160); // round anything in the way (src/sim/navgrid.js)
 }
 
 // How keen an enemy captain is on a target t at distance d: lower is keener. Goals add their own bias.
@@ -196,7 +201,7 @@ export function beamSteer(s, t) {
   const ship = t.kind !== 'fort';
   const fromT = Math.atan2(-dy, -dx), along = ship ? Math.abs(Math.cos(angDiff(t.h, fromT))) : 0;
   if (d > Math.max(reach, ideal) * 1.1) {
-    desired = bearing;
+    desired = navBearing(s, t.x, t.y) ?? bearing; // the planner's way round land between us (src/sim/navgrid.js)
     // Closing on her beam would take her broadside through our bow: come in at an angle, toward her stern.
     if (ship && d < t.range * 1.6 && along < 0.8) {
       const sx = t.x - Math.cos(t.h) * 80, sy = t.y - Math.sin(t.h) * 80;

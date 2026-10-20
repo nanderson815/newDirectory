@@ -8,10 +8,10 @@ ones: [EXTENDING.md](EXTENDING.md).
 - [Goals](#goals): `sink`, `boss`, `capture`, `treasure`, `escort`, `hold`, `breakthrough`, `timer`, `waves`, `protect`, `hunt`, `reach`, `survive`
 - [Abilities](#abilities): `mortar`, `fireship`, `launcher`, `mineLayer`, `oars`, `repair`, `ram`, `flee`, `rally`
 - [Event conditions](#event-conditions-when): `at`, `enemiesLeft`, `bossHp`, `fortsHeld`, `shipSunk`, `shipNear`, `goalDone`
-- [Event actions](#event-actions-do): `spawn`, `banner`, `wind`, `fog`, `say`, `retreat`, `reveal`, `heal`
+- [Event actions](#event-actions-do): `spawn`, `banner`, `wind`, `fog`, `say`, `retreat`, `reveal`, `tide`, `heal`
 - [Ship types](#ship-types): `sloop`, `brig`, `frigate`, `manowar`, `galleon`, `schooner`, `xebec`, `bomb`, `fireship`, `merchant`
 - [Hats](#hats): `cabin`, `rojo`, `comodoro`, `oro`, `kate`, `morion`, `armada`
-- [Geography and openings](#geography-and-openings): `islands`, `shoals`, `reefs`, `coast`, `fleetAt`
+- [Geography and openings](#geography-and-openings): `islands`, `shoals`, `reefs`, `coast`, `currents`, `tide`, `booms`, `fleetAt`
 - [Land and landmarks](#land-and-landmarks): `town`, `harbour`, `lighthouse`, `peak`, `volcano`, `church`, `windmill`, `ruin`, `castle`, `skull`, `wreck`, `stacks`, `mangroves`
 - [Combat rules](#combat-rules): raking fire, critical hits
 
@@ -318,6 +318,7 @@ hold (no conditions: at the start), and runs its actions in order.
 | `say` | [ship name, text]: a line spoken over that ship |
 | `retreat` | the named enemy ships (true: every enemy ship) break off and run for the edge of the chart |
 | `reveal` | the fog lifts and every ship shows for this many seconds (true: the fog clears for good) |
+| `tide` | the tide turns now toward this level (0 low water, 1 high water; see tide) |
 | `heal` | every English ship afloat patches this share (0-1) of her full hull |
 
 ## Ship types
@@ -383,6 +384,7 @@ Shallow, pale water. Ships longer than 64 (brigs and up) run aground: they crawl
 | `r` | radius in map units (half the width of a long one) |
 | `stretch` | optional: length over width, 1 = round (default 1) |
 | `angle` | optional: direction of the long axis in degrees, 0 = across the chart, 90 = down it (default 0) |
+| `tidal` | optional: true for a sandbar the tide covers and uncovers (see tide) |
 
 ### `reefs`
 
@@ -408,6 +410,42 @@ A land mass along one edge of the chart with a ragged shore, coves and capes. Sh
 | `coves` | optional: bays cut into the land, [{ at, width, depth }] (fractions: where along the edge, how wide, how deep) |
 | `capes` | optional: headlands pushed out to sea, [{ at, width, depth }] |
 | `seed` | optional: a number that reshapes the shore (default from side and depth) |
+
+### `currents`
+
+Water on the move: a zone (shaped like a shoal or reef) where the sea sets every ship, friend or foe, along at `speed` map units a second, strongest along its middle and easing off to nothing at its edge. Through a strait it hurries you one way and stems you the other; off a cape it sets you onto the reef. Shown as streaks drifting over the water; the course preview sails with it.
+
+| field | description |
+|---|---|
+| `x` | centre across the chart (portrait fraction) |
+| `y` | centre down the chart (portrait fraction) |
+| `r` | radius in map units (half the width of a long one) |
+| `stretch` | optional: length over width, 1 = round (default 1) |
+| `angle` | optional: direction of the long axis in degrees, 0 = across the chart, 90 = down it (default 0) |
+| `speed` | how hard it sets, map units a second (ships sail at 40-70; 2-40) |
+| `dir` | optional: which way it sets, degrees (0 = across the chart, 90 = down it; default along angle) |
+
+### `tide`
+
+The tide rises and falls over the battle, covering and uncovering the shoals marked `tidal`. Its level runs from 1 (high water) to 0 (low water). Above 0.66 a tidal bar is covered deep enough for any ship; between, it is an ordinary shoal (brigs and up ground, small ships pass); below 0.33 it dries and every ship, sloops too, runs aground on it. Each turn of the tide is announced and the water over the bars pales or deepens as it goes. Events can turn it too ({ at, tide: level }).
+
+| field | description |
+|---|---|
+| `level` | optional: the level at the start, 0 (low water) to 1 (high water) (default 1) |
+| `turns` | optional: [{ at, to, secs? }]: at `at` seconds the tide starts to move to level `to`, taking `secs` (default 12) |
+
+### `booms`
+
+A harbour boom: a chain of logs floated across a harbour mouth. It blocks every ship like land until it is broken: by enough of the attackers' shot landing on it (the defenders fire over it), or at once when the fort named by `fort` is silenced or taken. Captains, the route planner and the test bot treat it as land while it holds.
+
+| field | description |
+|---|---|
+| `from` | one end, [x, y] (portrait fractions), usually on a shore |
+| `to` | the other end, [x, y] |
+| `hp` | optional: how much shot it takes to break (default 60) |
+| `fort` | optional: index into forts: silencing or taking that fort lowers the boom |
+| `team` | optional: whose boom it is: 'enemy' or 'player' (default 'enemy'); only the other side's shot breaks it |
+| `name` | optional: what the banner calls it (default "the boom") |
 
 ### `fleetAt`
 
