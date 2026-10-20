@@ -16,6 +16,8 @@ export const S = {
   kick: 0,       // camera kick after the selected ship fires
   slowmo: null,  // { until, k }: brief slow motion when a boss goes down
   selectAll: false, // fleet orders: the next course goes to every ship
+  formation: store.get('formation', 'line') === 'abreast' ? 'abreast' : 'line', // the whole fleet's formation for a course
+  bumps: 0,         // ticks two hulls have spent touching (src/sim/ships.js collide; tests read it)
   hud: { cards: [], pause: null, fire: [], actions: [], ammo: [] },
   fireMode: store.get('fire', 'auto') === 'manual' ? 'manual' : 'auto',
   muted: store.get('sound', 'on') === 'off',

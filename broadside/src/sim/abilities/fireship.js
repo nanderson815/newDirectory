@@ -38,7 +38,7 @@ export default {
     for (const o of S.G.ships) {
       if (o === s || !afloat(o)) continue;
       const d = Math.hypot(o.x - s.x, o.y - s.y);
-      if (d >= a.radius + o.L * 0.3) continue;
+      if (d >= a.radius + o.L * 0.4) continue; // 0.4 L: as far as the blast reached before hulls were cut to 3/4
       const dmg = Math.round(a.splash * (1 - 0.5 * Math.min(1, d / a.radius)));
       if (dmg > 0) hitShip(o, { dmg, team: s.team === o.team ? 'none' : s.team, x: o.x, y: o.y, fire: true });
     }

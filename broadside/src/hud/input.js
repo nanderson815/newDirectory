@@ -1,18 +1,21 @@
-import { S, afloat, fortById, shipById } from '../state.js';
+import { S, afloat, fortById, shipById, showToast } from '../state.js';
 import { clamp } from '../util.js';
-import { projTo, toWorld, pxPerUnit, cam, beginPinch, movePinch, endPinch, wheelZoom, toDirector, skipIntro, gesture, nudge } from '../render/camera.js';
+import { projTo, toWorld, pxPerUnit, cam, beginPinch, movePinch, endPinch, wheelZoom, toDirector, skipIntro, gesture, nudge, beginPan, movePan, endPan } from '../render/camera.js';
 import { R } from '../render/gl.js';
 import { fireBroadside, findBroadsideTarget, dropMine } from '../sim/combat.js';
 import { startLanding } from '../sim/forts.js';
 import { startBoarding } from '../sim/boarding.js';
 import { hudCanvas } from './hud.js';
-import { clampWorld, commandable, setCourse, engage, toggleAnchor, turnTo, haptic, tapFx } from './orders.js';
+import { clampWorld, commandable, setCourse, engage, toggleAnchor, turnTo, haptic, tapFx, setFormation } from './orders.js';
+import { TYPES } from '../config/ships.js';
 
-// One-thumb controls. A ship is always selected.
+// One-thumb controls. A battle opens with the flagship selected.
 //   tap one of your ships: select it          drag anywhere on the sea: plot the selected ship's course
 //   tap the sea: sail straight there          (a drag that starts on another of your ships selects it first)
 //   tap an enemy ship or fort: engage it      anchored: a drag (or tap) turns her on the spot
 //   two fingers: pinch to zoom, drag to pan   double-tap the sea: hand the camera back to the director
+//   tap the selected ship (or her row in the dock) again: let go of her. With nothing selected a one-finger drag
+//   pans the view (and coasts on when let go), a tap on the sea orders nothing and a tap on an enemy names her.
 // Plus the fleet cards, the action bar and the pause button, all drawn by hud.js.
 const inRect = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
 const MOVE_PX = 10; // finger travel before a press counts as a drag
@@ -46,7 +49,15 @@ const selectedShip = () => (commandable(S.selected) ? S.selected : null);
 export function select(s) {
   if (!commandable(s)) return;
   if (S.selected !== s) haptic(8);
+  // Taking command again after looking round on her own: the director takes the camera back.
+  if (!commandable(S.selected) && cam.mode === 'manual') toDirector();
   S.selected = s;
+}
+// Let go of the selected ship (and the whole fleet): nothing is selected, and the sea is yours to look around.
+export function deselect() {
+  if (!S.selected && !S.selectAll) return;
+  S.selected = null; S.selectAll = false;
+  haptic(6);
 }
 
 // Does one HUD button take this press? (Buttons act on press: crisp, and no drag can start from them.)
@@ -67,11 +78,15 @@ function hudPress(p, onPause) {
   }
   for (const c of hud.cards) {
     if (!inRect(p, c)) continue;
-    if (c.fleet) {
+    if (c.formation) { setFormation(c.formation); haptic(6); } else if (c.fleet) {
       S.selectAll = !S.selectAll;
-      if (S.selectAll && !sel) S.selected = S.G.ships.find(commandable) || null;
+      if (S.selectAll && !sel) select(S.G.ships.find(commandable));
       haptic(8);
-    } else if (commandable(c.ship)) { select(c.ship); S.selectAll = false; if (cam.mode === 'manual') toDirector(); }
+    } else if (commandable(c.ship)) {
+      // Her row again (and the whole fleet off): let go of her.
+      if (c.ship === sel && !S.selectAll) deselect();
+      else { select(c.ship); S.selectAll = false; if (cam.mode === 'manual') toDirector(); }
+    }
     return true;
   }
   return false;
@@ -124,10 +139,16 @@ export function bindInput(onPause) {
     const w = toWorld(p.x, p.y);
     if (!w) return;
     const own = ownShipAt(p);
+    const wasSel = !!own && own === S.selected && !S.selectAll;
     if (own) select(own); // starting on another of your ships selects it first
     const ship = own || selectedShip();
-    if (!ship) return;
+    if (!ship) {
+      // Nothing selected: one finger looks around.
+      S.drag = { mode: 'pan', id: e.pointerId, from: w, sx: p.x, sy: p.y, moved: false, enemy: enemyAt(p), pts: [] };
+      return;
+    }
     S.drag = {
+      wasSel,
       ship, pts: [], id: e.pointerId, from: w, sx: p.x, sy: p.y, onShip: !!own, moved: false,
       enemy: own ? null : enemyAt(p), mode: ship.pivot != null ? 'rotate' : 'course', fleet: S.selectAll, t: performance.now(),
     };
@@ -144,6 +165,11 @@ export function bindInput(onPause) {
     const drag = S.drag;
     if (!drag || e.pointerId !== drag.id) return;
     if (!drag.moved && Math.hypot(q.x - drag.sx, q.y - drag.sy) < MOVE_PX) return;
+    if (drag.mode === 'pan') {
+      if (!drag.moved) { drag.moved = true; beginPan(drag.sx, drag.sy); }
+      movePan(q.x, q.y);
+      return;
+    }
     const w = toWorld(q.x, q.y);
     if (!w) return;
     if (!drag.moved) {
@@ -182,8 +208,23 @@ export function bindInput(onPause) {
     const drag = S.drag, G = S.G;
     if (!had || !drag || e.pointerId !== drag.id) return;
     S.drag = null;
+    if (drag.mode === 'pan' && drag.moved) { endPan(); return; }
     if (!G || G.phase !== 'play') return;
     const s = drag.ship;
+    if (drag.mode === 'pan') {
+      // A tap with nothing selected: an enemy says who she is; a double-tap on the sea recentres; nothing sails.
+      const now = performance.now();
+      if (drag.enemy) {
+        const u = drag.enemy;
+        showToast(u.kind === 'fort' ? u.name : `${u.name}, ${u.boss ? u.boss.captain : (TYPES[u.type] ? `a ${TYPES[u.type].label.toLowerCase()}` : u.label)}`, u, 1.6);
+        haptic(6);
+        return;
+      }
+      const dbl = now - lastTap.t < DOUBLE_MS && Math.hypot(drag.sx - lastTap.x, drag.sy - lastTap.y) < DOUBLE_PX;
+      lastTap = { t: dbl ? -1e9 : now, x: drag.sx, y: drag.sy };
+      if (dbl && cam.mode === 'manual') { toDirector(); haptic(8); }
+      return;
+    }
     if (drag.moved) {
       if (drag.mode === 'rotate') {
         if (drag.turned && G.tut && G.tut.step === 2) G.tut.rotated = true;
@@ -194,6 +235,8 @@ export function bindInput(onPause) {
     // A tap.
     const now = performance.now();
     if (drag.onShip) {
+      // A tap on the ship that was already selected lets go of her; on another, she alone is chosen.
+      if (drag.wasSel) { deselect(); return; }
       S.selectAll = false;
       if (cam.mode === 'manual') toDirector();
       return;
@@ -223,7 +266,7 @@ export function bindInput(onPause) {
   cv.addEventListener('pointercancel', (e) => {
     ptrs.delete(e.pointerId);
     if (gesture.active && ptrs.size < 2) endPinch();
-    if (S.drag && e.pointerId === S.drag.id) S.drag = null;
+    if (S.drag && e.pointerId === S.drag.id) { if (S.drag.mode === 'pan' && S.drag.moved) endPan(); S.drag = null; }
   });
   cv.addEventListener('wheel', (e) => {
     if (!playing()) return;

@@ -9,6 +9,8 @@ import { updateGuns, dropMine } from './combat.js';
 import { spawn } from './particles.js';
 import { updateHazards, hazardSpeed, hazardTurn } from './hazards.js';
 import { corePt, coastNearest } from './terrain.js';
+import { avoidShips } from './avoid.js';
+import { recordTrail } from './formation.js';
 import { sfx } from '../audio/sfx.js';
 
 // The heading a ship wants this tick (null: hold her course). Shared with the course preview.
@@ -29,7 +31,8 @@ export function desiredHeading(s, dt) {
     const dodge = avoidIslands(s, s.h, 140);
     if (dodge !== s.h) desired = dodge;
   }
-  return desired;
+  // And everyone gives other ships room (src/sim/avoid.js).
+  return avoidShips(s, desired, dt);
 }
 
 // Turns toward a heading and sails: speed from the wind, her damage and torn rigging. Shared with the preview.
@@ -37,12 +40,17 @@ export function helm(s, desired, dt) {
   const G = S.G;
   if (desired != null) {
     const tr = hazardTurn(s) * (s.pivot != null ? s.turn * 0.8 : s.turn * (0.55 + 0.45 * Math.min(1, s.v / s.speed)));
-    s.h += clamp(angDiff(s.h, desired), -tr * dt, tr * dt);
-  }
+    const turn = clamp(angDiff(s.h, desired), -tr * dt, tr * dt);
+    s.h += turn;
+    s.hRate = dt > 0 ? turn / dt : 0; // how fast she's turning (other captains read it, src/sim/avoid.js)
+  } else s.hRate = 0;
   const hpF = 0.55 + 0.45 * s.hp / s.maxHp;
   // Lashed together for boarding, anchored or a hulk: dead in the water. Torn rigging (chain shot) crawls.
   const stopped = s.pivot != null || s.passive || !!s.boarding;
-  const targetV = stopped ? 0 : s.speed * abilityWind(s, windFactor(s.h, s)) * hpF * (s.slowT > 0 ? 0.45 : 1) * hazardSpeed(s);
+  // The best she could make; a line's head (src/sim/formation.js) sails at her slowest follower's pace, a
+  // follower trims sail to hold station (fV) and anyone giving way to another ship eases off (avoidV).
+  s.vPot = s.speed * abilityWind(s, windFactor(s.h, s)) * hpF * (s.slowT > 0 ? 0.45 : 1) * hazardSpeed(s);
+  const targetV = stopped ? 0 : Math.min(s.vPot, s.vCap == null ? Infinity : s.vCap) * (s.fV == null ? 1 : s.fV) * (s.avoidV == null ? 1 : s.avoidV);
   s.v += (targetV - s.v) * Math.min(1, dt * (stopped ? 1.6 : 0.8));
   s.x += Math.cos(s.h) * s.v * dt;
   s.y += Math.sin(s.h) * s.v * dt;
@@ -77,6 +85,7 @@ export function updateShip(s, dt) {
   updateHazards(s, dt);
   if (!afloat(s)) return;
   helm(s, desired, dt);
+  if (s.team === 'player') recordTrail(s);
 
   // Brace the yards to the wind.
   const r = angDiff(s.h, G.wind.dir);
@@ -116,11 +125,15 @@ export function collide(dt) {
       const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 0.01;
       const min = (a.L + b.L) * 0.34;
       if (d < min) {
-        // Heavier ships shove lighter ones.
+        // The last resort, when avoidance (src/sim/avoid.js) couldn't keep them apart: the hulls ease apart over
+        // a few ticks (all at once only if they're well into each other), heavier ships shoving lighter ones,
+        // and both lose a little way.
         const wa = b.L / (a.L + b.L), wb = 1 - wa;
-        const push = min - d, nx = dx / d, ny = dy / d;
+        const push = (min - d) * (d < min * 0.7 ? 1 : Math.min(1, dt * 10)), nx = dx / d, ny = dy / d;
         a.x -= nx * push * wa; a.y -= ny * push * wa; b.x += nx * push * wb; b.y += ny * push * wb;
-        a.v *= 0.97; b.v *= 0.97;
+        const k = Math.pow(0.35, dt);
+        a.v *= k; b.v *= k;
+        S.bumps = (S.bumps || 0) + 1; // ticks spent touching (tests count them)
       }
     }
     shorePush(a, dt);

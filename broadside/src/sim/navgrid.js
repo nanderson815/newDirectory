@@ -220,7 +220,7 @@ export function planTo(L, x0, y0, test, hx, hy, G = S.G, minRoom = -Infinity) {
   const g = navGrid(L, G);
   const k0 = freeNear(g, x0, y0);
   if (k0 < 0) return null;
-  const cells = astar(g, k0, (k) => g.c[k] < 2 && test(cx(g, k), cy(g, k)), hx, hy, 0, minRoom);
+  const cells = astar(g, k0, (k) => g.c[k] < 2 && test(cx(g, k), cy(g, k)), hx, hy, 60, minRoom) // slack: the exit band itself lies against the edge;
   return cells ? smooth(g, cells, x0, y0) : null;
 }
 

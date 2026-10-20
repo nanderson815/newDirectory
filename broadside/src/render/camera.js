@@ -91,6 +91,7 @@ export const cam = {
   safe: { nb: -0.2, fb: 0.3, nw: 0.15, fw: 0.25 }, // the footprint inside the HUD insets
   dMin: 300, dClose: 400, dComfort: 600, dWide: 1200, dMax: 2000,
   intro: -1, // seconds into the establishing move, or -1
+  mvx: 0, mvy: 0, // map units/s the view coasts on after a one-finger pan
   idle: 0, // seconds since the last pinch/pan (manual mode returns to the director after a while)
   phase: null, frozen: false, ready: false,
 };
@@ -157,15 +158,18 @@ export function fitCamera() {
   footprint(cam.fp, 0, 0, 0, D);
   footprint(cam.safe, Math.min(INSET.top, ch * 0.22), Math.min(INSET.bottom, ch * 0.24), Math.min(INSET.side, cw * 0.08), D);
   // Zoom range from on-screen ship size: px per map unit at the look-at point, scaled for bigger screens.
+  // Since the fleet pass (hulls at 3/4, src/config/ships.js) the director sits a little further out than it
+  // did: close 1.02 (was 1.12) and comfort 0.85 (was 0.92) px a unit show about a quarter more sea, with a
+  // frigate about 64 px long on a 390 px phone at close range. A pinch can go closer than before (1.9).
   const fp = cam.fp;
   const w0 = 2 * (fp.nw + (fp.fw - fp.nw) * (-fp.nb) / (fp.fb - fp.nb)); // ground width at the centre row, per unit d
   const ref = Math.min(cw, ch) / 390;
   const dAt = (ppu) => cw / (w0 * ppu * ref);
   cam.dMax = Math.min((2 * halfU() + 2 * MARGIN) / (2 * fp.fw), (2 * halfV() + 2 * MARGIN) / (fp.fb - fp.nb));
-  cam.dMin = Math.min(dAt(1.7), cam.dMax);
-  cam.dClose = Math.min(dAt(1.12), cam.dMax);
-  cam.dComfort = Math.min(dAt(0.92), cam.dMax);
-  cam.dWide = Math.min(dAt(0.68), cam.dMax);
+  cam.dMin = Math.min(dAt(1.9), cam.dMax);
+  cam.dClose = Math.min(dAt(1.02), cam.dMax);
+  cam.dComfort = Math.min(dAt(0.85), cam.dMax);
+  cam.dWide = Math.min(dAt(0.62), cam.dMax);
   if (!cam.ready) { resetCamera(); return; }
   cam.d = clamp(cam.d, cam.dMin * 0.8, cam.dMax);
   clampPose();
@@ -255,9 +259,10 @@ function fleetShips() {
 }
 
 // Works out the director's goal (cam.gx, gy, gd) from the battle.
+let calm = false; // the overview with nothing selected eases more slowly
 function director(dt) {
   const G = S.G;
-  np = 0;
+  np = 0; calm = false;
   const sel = S.selected && afloat(S.selected) && S.selected.team === 'player' && !selfSailing(S.selected) ? S.selected : null;
   if (G.phase === 'title' || cam.intro >= 0 && cam.intro < 0.8) {
     // Establishing view: the enemy squadron and the forts, with a slow drift for the menus behind.
@@ -271,8 +276,26 @@ function director(dt) {
   }
   const fleet = S.selectAll && fleetShips() > 1;
   if (!sel && !fleet) {
-    for (const s of G.ships) if (s.team === 'player' && afloat(s)) addP(s.x, s.y, s.L * 0.7);
+    // Nothing selected: a calm overview of the fleet and the nearest of the enemy, as much of it as fits.
+    let cx = 0, cy = 0, n = 0;
+    for (const s of G.ships) if (s.team === 'player' && afloat(s)) { addP(s.x, s.y, s.L * 0.7); cx += s.x; cy += s.y; n++; }
+    if (n) {
+      cx /= n; cy /= n;
+      let picks = 0;
+      for (let k = 0; k < 2; k++) {
+        let best = null, bd = Infinity;
+        for (const e of G.ships) {
+          if (e.team === 'player' || !shown(e) || picked(e.id, picks)) continue;
+          const dd = Math.hypot(e.x - cx, e.y - cy);
+          if (dd < 650 && dd < bd) { bd = dd; best = e; }
+        }
+        if (!best) break;
+        pick[picks++] = best.id;
+        addP(best.x, best.y, best.L * 0.7);
+      }
+    }
     if (!np) addP(G.W / 2, G.H / 2, 0);
+    calm = true;
     setGoal(frame(np, cam.dComfort, cam.dWide), 0);
     return;
   }
@@ -351,14 +374,23 @@ export function updateCamera(dt) {
   if (cam.intro >= 0) { cam.intro += dt; if (cam.intro > 3.2) cam.intro = -1; }
   if (cam.mode === 'manual') {
     cam.idle += dt;
-    if (cam.idle > RETURN_AFTER && !S.drag && !gesture.active) toDirector();
-  }
+    // With a ship selected the director takes over again after a quiet spell; with nothing selected the view
+    // holds where you left it until you take command or double-tap the sea.
+    if (cam.idle > RETURN_AFTER && !S.drag && !gesture.active && (S.selected || S.selectAll)) toDirector();
+    // A one-finger pan coasts on and eases to a stop.
+    if (!pan.active && !gesture.active && (cam.mvx || cam.mvy)) {
+      const k = Math.exp(-dt * 3.2), f = (1 - k) / 3.2; // exact for any dt
+      cam.tx += cam.mvx * f; cam.ty += cam.mvy * f;
+      cam.mvx *= k; cam.mvy *= k;
+      if (Math.hypot(cam.mvx, cam.mvy) < 4) cam.mvx = cam.mvy = 0;
+    }
+  } else cam.mvx = cam.mvy = 0;
   // Holding still under a finger that is drawing a course or turning a ship.
   cam.frozen = !!S.drag || gesture.active;
   if (cam.mode === 'director' && !cam.frozen) {
     director(dt);
     const intro = cam.intro >= 0;
-    const sPos = intro ? (cam.intro < 0.8 ? 0.5 : 0.95) : 0.6, sZoom = intro ? 1.2 : 0.9;
+    const sPos = intro ? (cam.intro < 0.8 ? 0.5 : 0.95) : calm ? 1.1 : 0.6, sZoom = intro ? 1.2 : calm ? 1.4 : 0.9;
     while (dt > 1e-6) {
       const h = Math.min(dt, 1 / 30);
       cam.tx = damp(cam.tx, cam.gx, 'vx', sPos, h);
@@ -394,6 +426,7 @@ export function skipIntro() { if (cam.intro >= 0) cam.intro = -1; }
 // it, and the spread zooms. Afterwards the camera stays put (manual) until a double-tap or a quiet spell.
 export const gesture = { active: false, wx: 0, wy: 0, d0: 0, f0: 1 };
 export function beginPinch(mx, my, spread) {
+  pan.active = false; cam.mvx = cam.mvy = 0;
   const w = toWorld(mx, my);
   if (!w) return;
   gesture.active = true; gesture.wx = w.x; gesture.wy = w.y; gesture.d0 = cam.d; gesture.f0 = Math.max(20, spread);
@@ -406,6 +439,31 @@ export function movePinch(mx, my, spread) {
   cam.idle = 0;
 }
 export function endPinch() { gesture.active = false; cam.idle = 0; }
+
+// One finger with nothing selected: the sea under the finger stays under it; let go and the view coasts on.
+const pan = { active: false, wx: 0, wy: 0, t: 0, vx: 0, vy: 0 };
+export function beginPan(px, py) {
+  const w = toWorld(px, py);
+  if (!w) return;
+  pan.active = true; pan.wx = w.x; pan.wy = w.y; pan.t = performance.now(); pan.vx = pan.vy = 0;
+  cam.mode = 'manual'; cam.idle = 0; cam.intro = -1; cam.mvx = cam.mvy = 0;
+}
+export function movePan(px, py) {
+  if (!pan.active) return;
+  const x0 = cam.tx, y0 = cam.ty, now = performance.now(), dt = Math.max(0.008, (now - pan.t) / 1000);
+  keepUnder(pan.wx, pan.wy, px, py);
+  // The finger's speed, smoothed, for the coast afterwards.
+  const k = Math.min(1, dt * 12);
+  pan.vx += ((cam.tx - x0) / dt - pan.vx) * k; pan.vy += ((cam.ty - y0) / dt - pan.vy) * k;
+  pan.t = now; cam.idle = 0;
+}
+export function endPan() {
+  if (!pan.active) return;
+  pan.active = false; cam.idle = 0;
+  // A finger that stopped before lifting doesn't throw the view.
+  const still = performance.now() - pan.t > 90, sp = Math.hypot(pan.vx, pan.vy), max = 1600;
+  cam.mvx = still ? 0 : pan.vx * Math.min(1, max / (sp || 1)); cam.mvy = still ? 0 : pan.vy * Math.min(1, max / (sp || 1));
+}
 export function wheelZoom(mx, my, k) {
   const w = toWorld(mx, my);
   if (!w) return;

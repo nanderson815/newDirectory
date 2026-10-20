@@ -31,6 +31,8 @@ import { applyCrit, RAKE, CRIT } from './sim/hazards.js';
 import { blockedAt } from './sim/steering.js';
 import { currentAt, turnTide, activeBooms } from './sim/flow.js';
 import { planRoute, navGrid } from './sim/navgrid.js';
+import { AVOID } from './sim/avoid.js';
+import { FORMATION } from './sim/formation.js';
 import { LANDMARKS, landOf, checkLand, leeAt } from './sim/land.js';
 import { LANDS } from './config/lands.js';
 import { GUNS, GUN_PARAMS } from './config/guns.js';
@@ -140,6 +142,8 @@ window.__broadside = {
   get G() { return S.G; }, get S() { return S; }, get save() { return save; },
   battleIndex, openBrief, startPlay, dropMine, startLanding, landingFor, shipById, fortById, windFactor,
   GOALS, ABILITIES, events: { WHEN, DO }, spawnShip, blockedAt,
+  // Fleet handling tunables (src/sim/avoid.js, src/sim/formation.js), for tests.
+  AVOID, FORMATION,
   // Combat rules and geography (src/sim/hazards.js, src/sim/terrain.js), for tests.
   hazards: { applyCrit, RAKE, CRIT }, terrain: { coreDist, coastGap },
   // Land and landmarks (src/sim/land.js, src/config/lands.js), for tests.

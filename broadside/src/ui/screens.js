@@ -720,7 +720,7 @@ const COACH = [
   'Drag a line across the sea to the gold buoy. The pale ribbon shows the track Swift will really sail.',
   'Now just tap the open sea. Swift sails straight there.',
   'Tap Anchor at the bottom, then drag around Swift to turn her on the spot.',
-  'Tap the old hulk to engage. Swift weighs anchor and keeps her on the beam.',
+  'Tap the old hulk to engage. Swift weighs anchor and keeps her on the beam. (Tap Swift again to let go of her and look around.)',
 ];
 export function renderCoach() {
   const G = S.G;

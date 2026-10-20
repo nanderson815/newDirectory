@@ -9,7 +9,7 @@
 
 export const FLAGSHIP_TYPES = {
   greatship: {
-    label: 'Great ship', L: 116, B: 42, hp: 320, guns: 9, reload: 3.4, speed: 42, turn: 0.58, range: 300, masts: 3, marines: 40,
+    label: 'Great ship', L: 87, B: 31.5, hp: 320, guns: 9, reload: 3.4, speed: 42, turn: 0.58, range: 300, masts: 3, marines: 40,
     tons: 92,
     slots: {
       portLower: { label: 'Lower tier', pos: 'broadside', side: 'port', tier: 'lower', count: 5, accepts: ['long', 'demicannon'], default: 'long', at: [-0.3, 0.3] },

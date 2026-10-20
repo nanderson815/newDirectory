@@ -29,6 +29,7 @@ export default {
   steer(s, a) {
     if (s.boarding || s.fleeing || s.team === 'player') return null;
     const t = quarry(s, a);
+    if (t) s.closeOn = t.id; // she means to lay alongside: her avoidance (src/sim/avoid.js) lets her
     return t ? avoidIslands(s, Math.atan2(t.y - s.y, t.x - s.x), Math.hypot(t.x - s.x, t.y - s.y)) : null;
   },
   update(s, a, dt) {

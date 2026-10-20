@@ -15,6 +15,12 @@ import { landHit } from './land.js';
 import { galeScatter } from './wind.js';
 
 const FORT_SIZE = 20;        // a fort counts as in range once its walls are
+// Gunnery scatter scales with the hulls. The fleet pass cut every hull to 3/4 on the same sea
+// (src/config/ships.js), so every gun (ships, chasers, forts, both sides) lays its shot 3/4 as wide in bearing
+// and in range: a ship is then exactly as easy a mark at any range as she was, and the campaign's difficulty
+// stays where it was tuned (tests/balance.mjs).
+export const AIM = 0.75;
+const scatter = (lo, hi) => 1 + rand(lo - 1, hi - 1) * AIM; // a range error, as a factor on the distance
 
 export const sideDir = (s, side) => s.h + (side === 0 ? -PI / 2 : PI / 2); // 0 = port, 1 = starboard
 
@@ -154,14 +160,14 @@ function fireGun(p) {
     ang = dir + clamp(angDiff(dir, Math.atan2(ay - gy, ax - gx)), -trav, trav);
     dist = Math.hypot(ax - gx, ay - gy);
   }
-  const spread = (s.team === 'enemy' ? S.G.ai.spread : b.pos === 'broadside' ? 0.07 : 0.06) * galeScatter(S.G);
+  const spread = (s.team === 'enemy' ? S.G.ai.spread : b.pos === 'broadside' ? 0.07 : 0.06) * AIM * galeScatter(S.G);
   const dmg = b.dmg * enemyMul(s.team, 'dmgMul') * A.hull;
   const pellets = G.pellets || A.pellets || 1;
   const extra = G.crewKill != null || G.burn ? { crew: G.crewKill, burn: G.burn || 0 } : null;
   // Grapeshot leaves the muzzle as a spray of pellets; everything else is one ball.
   for (let k = 0; k < pellets; k++) {
     const a = ang + rand(-spread, spread) * (pellets > 1 ? 2.5 : 1);
-    launch(s.team, gx, gy, a, clamp(dist * rand(0.9, 1.12), 40, range * 1.1), dmg, z, -1, kind === 'pot' ? 'firepot' : kind, extra);
+    launch(s.team, gx, gy, a, clamp(dist * scatter(0.9, 1.12), 40, range * 1.1), dmg, z, -1, kind === 'pot' ? 'firepot' : kind, extra);
   }
   const bore = G.render ? G.render.bore : 1;
   muzzle(gx, gy, ang, z, clamp(bore, 0.4, 1.4));
@@ -185,9 +191,9 @@ function fireFortGun(p) {
   if (!t || !afloat(t)) return;
   const gx = f.x + Math.cos(f.aim) * 12, gy = f.y + Math.sin(f.aim) * 12;
   const [ax, ay] = leadPoint(t, gx, gy);
-  const spread = (f.team === 'enemy' ? S.G.ai.spread : 0.08) * galeScatter(S.G);
+  const spread = (f.team === 'enemy' ? S.G.ai.spread : 0.08) * AIM * galeScatter(S.G);
   const ang = Math.atan2(ay - gy, ax - gx) + rand(-spread, spread);
-  const dist = clamp(Math.hypot(ax - gx, ay - gy) * rand(0.92, 1.08), 40, f.range * 1.1);
+  const dist = clamp(Math.hypot(ax - gx, ay - gy) * scatter(0.92, 1.08), 40, f.range * 1.1);
   launch(f.team, gx, gy, ang, dist, BALL_DMG * FORT.dmgMul * enemyMul(f.team, 'dmgMul'), FORT.gunHeight, f.island);
   if (f.team === 'player') S.G.stats.shots++;
   muzzle(gx, gy, f.aim, FORT.gunHeight);
@@ -324,7 +330,8 @@ export function updateMines(dt) {
     if (m.arm > 0) { m.arm -= dt; continue; }
     for (const s of G.ships) {
       if (s.team === m.team || !afloat(s)) continue;
-      if (Math.hypot(s.x - m.x, s.y - m.y) < s.L * 0.42 + 8) {
+      // 0.56 L is the reach a mine had before the fleet pass cut hulls to 3/4, so mines bite as often as they did.
+      if (Math.hypot(s.x - m.x, s.y - m.y) < s.L * 0.56 + 8) {
         explodeMine(m, s);
         G.mines.splice(i, 1);
         break;

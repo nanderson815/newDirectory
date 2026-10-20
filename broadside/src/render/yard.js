@@ -84,6 +84,9 @@ export function yardDef(f) {
 export function yardShow(def, mode = 'live', changed = null) {
   if (!Y.active) return;
   const ref = buildShipMesh(def, undefined, { parts: true });
+  // The berth shows her at the model's full art size (the template's own units), not scaled to the sea's
+  // smaller hulls (MODEL_SCALE): the yard's framing, lines and foam are all measured on the template.
+  ref.g.scale.setScalar(1);
   if (Y.ship && ref.tpl.info.key === Y.key) { for (const m of ref.mats) m.dispose(); return; }
   const old = Y.ship;
   Y.ship = ref; Y.def = def; Y.key = ref.tpl.info.key;

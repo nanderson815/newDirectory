@@ -1,6 +1,7 @@
 import { S, afloat } from '../state.js';
 import { updateWind } from './wind.js';
 import { updateShip, collide } from './ships.js';
+import { paceFormations } from './formation.js';
 import { fireQueued, updateBalls, updateMines } from './combat.js';
 import { updateFort } from './forts.js';
 import { updateBoardings } from './boarding.js';
@@ -26,6 +27,7 @@ export function update(dt) {
       pending[i].t -= dt;
       if (pending[i].t <= 0) { const p = pending[i]; pending.splice(i, 1); fireQueued(p); }
     }
+    paceFormations(G, dt);
     for (const s of G.ships) updateShip(s, dt);
     for (const f of G.forts) updateFort(f, dt);
     collide(dt);

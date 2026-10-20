@@ -299,7 +299,7 @@ await shot(page, 'c-anchored');
 await page.mouse.click(anc.x + anc.w / 2, anc.y + anc.h / 2);
 check(await B(() => window.__broadside.S.selected.pivot == null), 'tapping it again weighs anchor', failures);
 
-// ---------- A ship is always selected ----------
+// ---------- The next ship steps up ----------
 console.log('Selection');
 const sel2 = await B(() => { const b = window.__broadside, s = b.S.selected; s.hp = 0; s.state = 'sunk'; b.step(1); return b.S.selected && b.S.selected.state === 'afloat' && b.S.selected.team === 'player'; });
 check(sel2, 'when the selected ship is lost, the next one is selected', failures);

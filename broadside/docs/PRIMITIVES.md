@@ -389,25 +389,25 @@ length × beam. Enemy hulls are multiplied by the battle's `ai.hpMul` unless the
 
 | type | label | hp | guns | reload | speed | turn | range | marines | masts | L × B | rig | abilities |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `sloop` | Sloop | 70 | 3 | 2.4 | 62 | 1.35 | 235 | 10 | 2 | 60 × 22 | square |  |
-| `brig` | Brig | 85 | 3 | 2.6 | 57 | 1.15 | 240 | 15 | 2 | 66 × 24 | square |  |
-| `frigate` | Frigate | 130 | 5 | 3 | 50 | 0.85 | 255 | 20 | 3 | 84 × 30 | square |  |
-| `manowar` | Man-o'-war | 210 | 7 | 3.3 | 43 | 0.62 | 280 | 30 | 3 | 104 × 38 | square |  |
-| `galleon` | Galleon | 150 | 6 | 3.4 | 42 | 0.65 | 270 | 20 | 3 | 92 × 34 | square |  |
-| `schooner` | Schooner | 60 | 2 | 2.2 | 70 | 1.5 | 220 | 12 | 2 | 56 × 18 | fore-aft |  |
-| `xebec` | Xebec | 75 | 3 | 2.5 | 58 | 1.4 | 230 | 18 | 3 | 62 × 18 | lateen | oars |
-| `bomb` | Bomb ketch | 95 | 2 | 3 | 44 | 0.9 | 220 | 10 | 2 | 64 × 24 | square | mortar {"range":430,"reload":6.5,"dmg":22,"radius":36} |
-| `fireship` | Fireship | 40 | 0 | 9 | 62 | 1.25 | 0 | 0 | 2 | 54 × 20 | square | fireship |
-| `merchant` | Merchantman | 130 | 1 | 4 | 36 | 0.7 | 200 | 6 | 3 | 74 × 30 | square |  |
-| `galley` | War galley | 85 | 1 | 3.2 | 50 | 1.25 | 210 | 34 | 2 | 72 × 16 | lateen | oars {"min":0.96}, ram {"dmg":18,"charge":220}, grapple |
-| `galleass` | Galleass | 200 | 5 | 3.4 | 38 | 0.55 | 260 | 46 | 3 | 96 × 30 | lateen | oars {"min":0.9} |
-| `polacre` | Polacre | 80 | 3 | 2.4 | 64 | 1.3 | 235 | 24 | 3 | 64 × 20 | lateen | grapple |
-| `tartane` | Tartane | 52 | 2 | 2.2 | 66 | 1.6 | 215 | 14 | 2 | 50 × 17 | lateen |  |
-| `felucca` | Felucca | 36 | 1 | 2 | 76 | 1.9 | 190 | 10 | 2 | 44 × 13 | lateen | oars {"min":0.8} |
-| `kalyon` | Kalyon | 165 | 6 | 3.3 | 44 | 0.66 | 270 | 32 | 3 | 94 × 34 | square |  |
-| `sultana` | Sultana | 235 | 7 | 3.4 | 41 | 0.58 | 285 | 44 | 3 | 108 × 38 | square |  |
-| `firegalley` | Fire galley | 44 | 0 | 9 | 58 | 1.45 | 0 | 0 | 2 | 58 × 15 | lateen | fireship {"dmg":50}, oars {"min":0.96} |
-| `greatship` | Great ship | 320 | 9 | 3.4 | 42 | 0.58 | 300 | 40 | 3 | 116 × 42 | square |  |
+| `sloop` | Sloop | 70 | 3 | 2.4 | 62 | 1.35 | 235 | 10 | 2 | 45 × 16.5 | square |  |
+| `brig` | Brig | 85 | 3 | 2.6 | 57 | 1.15 | 240 | 15 | 2 | 49.5 × 18 | square |  |
+| `frigate` | Frigate | 130 | 5 | 3 | 50 | 0.85 | 255 | 20 | 3 | 63 × 22.5 | square |  |
+| `manowar` | Man-o'-war | 210 | 7 | 3.3 | 43 | 0.62 | 280 | 30 | 3 | 78 × 28.5 | square |  |
+| `galleon` | Galleon | 150 | 6 | 3.4 | 42 | 0.65 | 270 | 20 | 3 | 69 × 25.5 | square |  |
+| `schooner` | Schooner | 60 | 2 | 2.2 | 70 | 1.5 | 220 | 12 | 2 | 42 × 13.5 | fore-aft |  |
+| `xebec` | Xebec | 75 | 3 | 2.5 | 58 | 1.4 | 230 | 18 | 3 | 46.5 × 13.5 | lateen | oars |
+| `bomb` | Bomb ketch | 95 | 2 | 3 | 44 | 0.9 | 220 | 10 | 2 | 48 × 18 | square | mortar {"range":430,"reload":6.5,"dmg":22,"radius":36} |
+| `fireship` | Fireship | 40 | 0 | 9 | 62 | 1.25 | 0 | 0 | 2 | 40.5 × 15 | square | fireship |
+| `merchant` | Merchantman | 130 | 1 | 4 | 36 | 0.7 | 200 | 6 | 3 | 55.5 × 22.5 | square |  |
+| `galley` | War galley | 85 | 1 | 3.2 | 50 | 1.25 | 210 | 34 | 2 | 54 × 12 | lateen | oars {"min":0.96}, ram {"dmg":18,"charge":220}, grapple |
+| `galleass` | Galleass | 200 | 5 | 3.4 | 38 | 0.55 | 260 | 46 | 3 | 72 × 22.5 | lateen | oars {"min":0.9} |
+| `polacre` | Polacre | 80 | 3 | 2.4 | 64 | 1.3 | 235 | 24 | 3 | 48 × 15 | lateen | grapple |
+| `tartane` | Tartane | 52 | 2 | 2.2 | 66 | 1.6 | 215 | 14 | 2 | 37.5 × 12.75 | lateen |  |
+| `felucca` | Felucca | 36 | 1 | 2 | 76 | 1.9 | 190 | 10 | 2 | 33 × 9.75 | lateen | oars {"min":0.8} |
+| `kalyon` | Kalyon | 165 | 6 | 3.3 | 44 | 0.66 | 270 | 32 | 3 | 70.5 × 25.5 | square |  |
+| `sultana` | Sultana | 235 | 7 | 3.4 | 41 | 0.58 | 285 | 44 | 3 | 81 × 28.5 | square |  |
+| `firegalley` | Fire galley | 44 | 0 | 9 | 58 | 1.45 | 0 | 0 | 2 | 43.5 × 11.25 | lateen | fireship {"dmg":50}, oars {"min":0.96} |
+| `greatship` | Great ship | 320 | 9 | 3.4 | 42 | 0.58 | 300 | 40 | 3 | 87 × 31.5 | square |  |
 
 Other flags: `merchant`: `merchant` = `true`; `galley`: `plural` = `war galleys`; `galley`: `faction` = `barbary`; `galley`: `chasers` = `3`; `galley`: `shallow` = `true`; `galleass`: `plural` = `galleasses`; `galleass`: `faction` = `ottoman`; `galleass`: `chasers` = `3`; `polacre`: `plural` = `polacres`; `polacre`: `faction` = `barbary`; `tartane`: `plural` = `tartanes`; `tartane`: `faction` = `barbary`; `felucca`: `plural` = `feluccas`; `felucca`: `faction` = `barbary`; `kalyon`: `plural` = `kalyons`; `kalyon`: `faction` = `ottoman`; `sultana`: `plural` = `sultanas`; `sultana`: `faction` = `ottoman`; `sultana`: `chasers` = `2`; `firegalley`: `plural` = `fire galleys`; `firegalley`: `faction` = `barbary`.
 
@@ -550,7 +550,7 @@ Land. Ships sail round it and shot can’t pass it; a fort stands on one. A stre
 
 ### `shoals`
 
-Shallow, pale water. Ships longer than 64 (brigs and up) run aground: they crawl at 30% speed and 60% helm, lose 4 hull as they strike and 1 a second while they grind on. Sloops, schooners, xebecs, bomb ketches and fireships sail over. Captains and drawn courses steer big ships round them.
+Shallow, pale water. Ships longer than 48 (brigs and up) run aground: they crawl at 30% speed and 60% helm, lose 4 hull as they strike and 1 a second while they grind on. Sloops, schooners, xebecs, bomb ketches and fireships sail over. Captains and drawn courses steer big ships round them.
 
 | field | description |
 |---|---|

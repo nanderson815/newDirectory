@@ -532,6 +532,11 @@ function twoSided(geo) {
   return [geo, back];
 }
 
+// Ships are drawn at their old art size (before the fleet pass cut every hull to 3/4, src/config/ships.js) and
+// scaled down as a whole, so masts, guns, lanterns and rails shrink with the hull instead of growing chunky on it.
+// A model's length on the water is still exactly its class's L.
+export const MODEL_SCALE = 0.75;
+
 // Half her breadth at x along her length, at the top of her sides, for a hull drawn on hullShape/pearShape.
 const halfCache = new Map();
 function hullHalf(L, B, pear) {
@@ -717,7 +722,7 @@ export function shipTemplate(s, faction, opts = {}) {
   // Her look is in the key, so each look bakes once (and still draws as one hull, one outline, a rig a mast).
   const key = [s.type, dress.key, guns, mortar ? 1 : 0].join(':') + (parts ? ':yard' : '');
   if (templates.has(key)) return templates.get(key);
-  const L = T.L, B = T.B, d = B * (sp.depth || 0.5);
+  const L = T.L / MODEL_SCALE, B = T.B / MODEL_SCALE, d = B * (sp.depth || 0.5);
   const boss = look === 'boss' || look === 'pirateBoss';
   const gilt = ids.gilding !== 'plain', almirante = ids.gilding === 'almirante';
   const PARTS = ['', 'hull', 'stern', 'figurehead', 'flags', 'sails', ...(s.batteries || []).map((b) => 'slot:' + b.slot)];
@@ -1131,13 +1136,14 @@ function hiShader(sh, u, ink) {
 export function buildShipMesh(s, faction, opts) {
   const tpl = shipTemplate(s, faction, opts);
   const g = tpl.root.clone(true);
+  g.scale.setScalar(MODEL_SCALE);
   const u = {
     uFade: { value: 1 }, uMast: { value: new THREE.Vector4(0, 0, 0, -1) },
     uMastH: { value: tpl.breakH.clone() }, uSail: { value: new THREE.Vector4(1, 1, 0, -1) },
   };
   const ref = {
     g, u, tpl, rigs: [], pivots: [], body: null, flagPivot: null, hullMat: null, rigMat: null, inkMat: null,
-    top: tpl.top, vis: 1, boom: 0, oar: 0, torn: tpl.torn, mats: [],
+    top: tpl.top * MODEL_SCALE, vis: 1, boom: 0, oar: 0, torn: tpl.torn, mats: [],
   };
   // The yard's model: the body shaders also light up a part (see hiShader).
   let bodyObc = bodyShader, inkObc = bodyShader;

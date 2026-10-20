@@ -175,7 +175,7 @@ console.log('navigation:');
   // The planner itself: a ship walled off from the far side of a long island is routed round its end.
   const { navCheck } = await import('./navcheck.mjs');
   const B = clone(plain);
-  B.islands = [{ x: 0.5, y: 0.5, r: 40, stretch: 6, angle: 0 }];
+  B.islands = [{ x: 0.56, y: 0.5, r: 40, stretch: 8, angle: 0 }];
   B.coast = [{ side: 'left', depth: 0.3, rough: 0 }];
   const got = await navCheck({ ...C, BATTLES: [B] });
   check(got.some((m) => m.includes('no route')), `the check catches a strait walled off by a long island (${got[0] || 'nothing caught'})`, failures);

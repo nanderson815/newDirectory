@@ -186,10 +186,20 @@ function drawPivot(s, active) {
   ctx.closePath(); ctx.fillStyle = col; ctx.fill();
 }
 
-// The chosen ship: a fine gilt ring on the water.
-function drawSelected(s) {
-  seaCircle(s.x, s.y, s.L * 0.62, 40);
-  seaStroke(ctx, { color: tint(MARK.chosen, 0.92), width: LINE.thin, under: 0.24 });
+// The chosen ship: a fine gilt ring on the water. Let go of her and it fades out (and widens a touch).
+function drawSelected(s, a = 1) {
+  seaCircle(s.x, s.y, s.L * (0.62 + 0.12 * (1 - a)), 40);
+  seaStroke(ctx, { color: tint(MARK.chosen, 0.92 * a), width: LINE.thin, under: 0.24 * a });
+}
+const letGo = { ids: [], t: -9 }; // ships just let go of, for the ring's fade
+let heldIds = '';
+function trackLetGo(sel) {
+  const ids = S.selectAll ? S.G.ships.filter((s) => commandable(s)).map((s) => s.id) : sel ? [sel.id] : [];
+  const key = ids.join(',');
+  if (!ids.length && heldIds) { letGo.ids = heldIds.split(',').map(Number); letGo.t = S.clock; if (S.G.phase === 'play') offerTip('deselect'); }
+  heldIds = key;
+  const a = 1 - (S.clock - letGo.t) / 0.35;
+  if (a > 0 && !ids.length) for (const id of letGo.ids) { const s = S.G.ships.find((q) => q.id === id); if (s && afloat(s)) drawSelected(s, a); }
 }
 
 // ---------- Over the ships ----------
@@ -298,7 +308,8 @@ function drawShellTargets() {
 // ---------- Messages ----------
 // One-time tips: the first time a mechanic shows up in battle, say how to use it. Remembered in the save.
 const TIPS = {
-  fleet: 'Tap Whole fleet, then drag one course (or tap an enemy) to order every ship at once.',
+  fleet: 'Tap Whole fleet, then drag one course: the fleet forms a line behind your chosen ship. Tap an enemy and they spread round her.',
+  deselect: 'Nothing selected: drag the sea to look around. Tap one of your ships to take command again.',
   ammo: 'This ship carries special shot: tap Shot to switch. Chain cuts rigging; Grape thins the crew before you board.',
   mine: 'Tap Mine to leave a mine astern. Lure an enemy across it.',
   land: 'Tap Land: your ship anchors and the boats row ashore.',
@@ -416,7 +427,7 @@ const pauseRect = { x: 0, y: 0, r: 0 }, recentreRect = { x: 0, y: 0, r: 0 };
 // say something (Sunk, Captured, Through, Prize). Merchantmen or allies share one compact row of short bars.
 const ROW = 44, ROW_SM = 28;
 const cardPool = [];
-function card(i) { return cardPool[i] || (cardPool[i] = { x: 0, y: 0, w: 0, h: 0, ship: null, fleet: false }); }
+function card(i) { const c = cardPool[i] || (cardPool[i] = { x: 0, y: 0, w: 0, h: 0, ship: null, fleet: false, formation: null }); c.formation = null; return c; }
 const GROUP_NAME = { escort: 'Merchantmen', ally: 'Allies' };
 let rows = [], rowsKey = -1, fleetRow = false;
 // Rebuilt only when the fleet changes (a ship joins, is lost, captured or gets through).
@@ -475,6 +486,19 @@ function drawDock(G, sel) {
     text(ctx, 'Whole fleet', ix + 22, cy + 0.5, { size: 12.5, weight: 600, color: col, halo: 'strong' });
     const c = card(n++); c.x = x - 4; c.y = y; c.w = w + 4; c.h = ROW; c.ship = null; c.fleet = true; hud.cards.push(c);
     y += ROW;
+    // With the whole fleet chosen, how it sails a course: two words, the chosen one gilt and underlined.
+    if (on) {
+      const fy = y + 12;
+      let fx = ix + 22;
+      for (const [kind, word] of [['line', 'In line'], ['abreast', 'Abreast']]) {
+        const chosenF = S.formation === kind;
+        const tw = text(ctx, word, fx, fy, { size: 12, weight: 600, color: chosenF ? MARK.chosen : C.onGlass3, halo: 'strong' });
+        if (chosenF) { ctx.fillStyle = MARK.chosen; ctx.fillRect(fx, fy + 8, tw, 1.5); }
+        const f = card(n++); f.x = fx - 8; f.y = y - 4; f.w = tw + 16; f.h = 44; f.ship = null; f.fleet = false; f.formation = kind; hud.cards.push(f);
+        fx += tw + 16;
+      }
+      y += 26;
+    }
   }
   dockBox.x = x; dockBox.y = y0; dockBox.w = w; dockBox.h = y - y0;
 }
@@ -664,8 +688,9 @@ export function drawHUD() {
   box.L = ins.l + K.edge; box.T = ins.t + K.edge; box.R = cw - ins.r - K.edge; box.B = ch - ins.b - K.edge;
   Object.assign(lastDock, dockBox); Object.assign(lastObj, objBox);
   dockBox.w = colBox.w = barBox.w = objBox.w = 0; bossBottom = 0;
-  // A ship is always selected: if yours goes down (or is taken), the next one in the line steps up.
-  if (!commandable(S.selected)) S.selected = G.ships.find(commandable) || S.selected;
+  // If the selected ship goes down (or is taken), the next one in the line steps up. (Nothing selected stays so:
+  // the player let go to look around.)
+  if (S.selected && !commandable(S.selected)) S.selected = G.ships.find(commandable) || null;
   const sel = commandable(S.selected) ? S.selected : null;
   if (G.phase === 'play') feel(sel);
 
@@ -691,6 +716,7 @@ export function drawHUD() {
     for (const s of G.ships) if (s.team === 'player' && afloat(s) && s.pivot != null) drawPivot(s, dr && dr.mode === 'rotate' && (dr.ship === s || (dr.fleet && commandable(s))));
     if (S.selectAll) { for (const s of G.ships) if (s.team === 'player' && afloat(s) && !selfSailing(s)) drawSelected(s); }
     else if (sel) drawSelected(sel);
+    trackLetGo(sel);
     for (const s of G.ships) if (s.boarding && s.boarding.attacker) drawBoarding(s);
   }
   drawMarkers(G);
