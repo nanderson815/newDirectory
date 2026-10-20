@@ -327,8 +327,8 @@ html.no-fell-sc .btn { font-variant-caps: small-caps; }
   max-height: 900px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  grid-template-areas: "back . purse" "map map map" "nav nav nav";
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: "back . purse" "tabs tabs tabs" "map map map" "nav nav nav";
   align-items: center;
   gap: var(--s-2) var(--s-3);
 }
@@ -336,6 +336,44 @@ html.no-fell-sc .btn { font-variant-caps: small-caps; }
 .chart-back .icon { width: 18px; height: 18px; margin: 0 -2px 0 0; }
 .chart-frame .purse { grid-area: purse; padding-right: 2px; }
 .chart-nav { grid-area: nav; display: flex; gap: var(--s-3); }
+/* The atlas's plates as tabs on a hairline: the plate shown in paper, underlined; another open plate in a paler
+   ink; a plate not yet open with a lock and, under it, what opens it. */
+.chart-worlds {
+  grid-area: tabs; align-self: end; display: flex; align-items: flex-end; gap: var(--s-6); min-width: 0;
+  margin: -6px 0 -2px; border-bottom: 1px solid var(--c-glass-line);
+}
+.chart-worlds[hidden] { display: none; }
+.wtab {
+  display: inline-flex; flex-direction: column; justify-content: flex-end; align-items: flex-start; flex: none;
+  min-height: 44px; margin-bottom: -1px; padding: 0 1px 6px; border: 0; background: none; cursor: pointer;
+  font-family: var(--font-ui); font-size: 17px; line-height: 1.1; font-variant-caps: all-small-caps; letter-spacing: var(--track-caption);
+  color: var(--c-on-glass-3); text-align: left; white-space: nowrap;
+  box-shadow: inset 0 -1.5px 0 transparent;
+  transition: color var(--dur-fast), box-shadow var(--dur-fast);
+}
+.wtab[hidden] { display: none; }
+.wtab[aria-current] { color: var(--c-on-glass); box-shadow: inset 0 -1.5px 0 var(--c-on-glass); cursor: default; }
+.wtab:not([aria-current]):not(.locked):active { color: var(--c-on-glass); transform: translateY(1px); }
+.wtab.locked { cursor: default; }
+.wt-name { display: inline-flex; align-items: center; gap: 5px; }
+.wt-lock { width: 12px; height: 12px; margin-top: -1px; }
+.wtab small { margin-top: 1px; font-size: 13px; font-style: italic; font-variant-caps: normal; letter-spacing: 0; color: var(--c-on-glass-3); }
+@media (hover: hover) { .wtab:not([aria-current]):not(.locked):hover { color: var(--c-on-glass-2); } }
+.wtab:focus-visible { outline: 2px solid var(--p-red-hi); outline-offset: 3px; }
+/* Turning to another plate: the new one fades in where the old lay. */
+.chart-view.turned { animation: fade-in var(--dur-base) var(--ease-out) both; }
+/* A new chart's note from the log: a paper slip laid on the plate. */
+.chart-notice {
+  position: absolute; z-index: 3; left: 50%; bottom: var(--s-4); transform: translateX(-50%);
+  width: min(352px, calc(100% - 32px)); box-sizing: border-box; padding: 14px 20px 6px;
+  border-radius: var(--r-sm); background: var(--c-paper); color: var(--c-on-paper); box-shadow: var(--shadow-2);
+  text-align: center; cursor: pointer;
+  animation: coach-in var(--dur-slow) 0.35s var(--ease-out) both;
+}
+.chart-notice::before { content: ""; position: absolute; inset: 4px; border: 1px solid var(--c-paper-line); pointer-events: none; }
+.notice-kicker { font-size: 15px; line-height: 1.2; font-variant-caps: all-small-caps; letter-spacing: var(--track-caption); color: var(--c-on-paper-3); }
+.notice-text { margin-top: 4px; font-size: var(--fs-body); line-height: 1.38; font-style: italic; text-wrap: pretty; }
+.chart-notice .btn.text { min-height: 40px; margin-top: 2px; }
 .chart-nav .btn { flex: 1 1 0; min-height: 48px; font-size: var(--fs-button-sm); }
 .chart-view {
   grid-area: map;
@@ -376,6 +414,9 @@ html.no-fell-sc .btn { font-variant-caps: small-caps; }
 .ch-shore1 { fill: none; stroke: #a9b8a3; stroke-width: 5; stroke-linejoin: round; opacity: 0.55; }
 .ch-land { fill: #e2cf9f; stroke: #3d3128; stroke-width: 1.3; stroke-linejoin: round; }
 .ch-hills path { fill: none; stroke: #7c6a54; stroke-width: 1.2; stroke-linecap: round; opacity: 0.75; }
+.ch-river { fill: none; stroke: #7c6a54; stroke-width: 0.9; stroke-linecap: round; opacity: 0.55; }
+.ch-town { fill: #f1e7d0; stroke: #3d3128; stroke-width: 1; }
+.ch-townname { font-family: var(--font-ui); font-style: italic; font-weight: 500; font-size: 12px; fill: #4a3e33; opacity: 0.85; paint-order: stroke; stroke: #e6d6b0; stroke-width: 2.5px; stroke-linejoin: round; }
 .ch-landname { font-family: var(--font-ui); font-weight: 500; letter-spacing: 0.28em; fill: #4a3e33; text-anchor: middle; opacity: 0.6; }
 .ch-seaname { font-family: var(--font-display); font-style: italic; font-weight: 400; font-size: 18px; fill: #5a6f70; text-anchor: middle; letter-spacing: 0.08em; opacity: 0.9; }
 .ch-region {
@@ -786,10 +827,11 @@ html.no-fell-sc .btn { font-variant-caps: small-caps; }
   .chart-frame {
     grid-template-columns: auto minmax(0, 1fr) auto auto;
     grid-template-rows: auto minmax(0, 1fr);
-    grid-template-areas: "back . nav purse" "map map map map";
+    grid-template-areas: "back tabs nav purse" "map map map map";
     gap: var(--s-2) var(--s-4);
   }
   .chart-nav .btn { min-height: 40px; padding: 0 var(--s-4) 2px; }
+  .chart-worlds { justify-self: center; margin: 0 0 -8px; gap: var(--s-5); }
 
   .bi-card { width: min(560px, 100%); display: grid; grid-template-columns: 140px minmax(0, 1fr); column-gap: var(--s-5); align-items: center; justify-items: start; text-align: left; padding: 26px 30px 30px; row-gap: 4px; }
   .bi-card > * { grid-column: 2; }

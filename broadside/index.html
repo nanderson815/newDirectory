@@ -25,7 +25,7 @@
 <div class="overlay menu-screen" id="menuScreen">
   <div class="sheet title-page">
     <h1 class="wordmark">Broadside!</h1>
-    <p class="title-sub">The sea-fights of an English captain in the West&nbsp;Indies, and the hats he&nbsp;took.</p>
+    <p class="title-sub">The sea-fights of an English captain in the West&nbsp;Indies and the Middle&nbsp;Sea, and the hats he&nbsp;took.</p>
     <p class="fleuron" aria-hidden="true">❧</p>
     <p class="error-text" id="glError" hidden>This game needs WebGL, and your browser didn't provide it. Try a recent Chrome or Safari.</p>
     <button type="button" class="btn big" id="startBtn">Set sail</button>
@@ -78,13 +78,20 @@
   <div class="chart-frame">
     <button type="button" class="btn text on-dark chart-back" id="chartBack" data-icon="back">Menu</button>
     <p class="purse on-dark" id="chartGold"></p>
+    <nav class="chart-worlds" id="worldTabs" aria-label="The charts">
+      <button type="button" class="wtab" id="worldBtn" hidden></button>
+    </nav>
     <div class="chart-view">
       <div class="chart" id="chartList" role="group" aria-label="Sea chart of the Caribbean. Each battle is a button; scroll or drag to pan."></div>
+      <div class="chart-notice" id="chartNotice" role="status" hidden>
+        <p class="notice-kicker">A new chart</p>
+        <p class="notice-text" id="chartNoticeText"></p>
+        <button type="button" class="btn text" id="chartNoticeOk">Very good</button>
+      </div>
     </div>
     <div class="chart-nav">
       <button type="button" class="btn quiet on-dark" id="yardBtn">Shipyard</button>
       <button type="button" class="btn quiet on-dark" id="hatsBtn">Hats</button>
-      <button type="button" class="btn quiet on-dark" id="worldBtn" hidden></button>
     </div>
   </div>
 </div>

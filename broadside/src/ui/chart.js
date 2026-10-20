@@ -99,7 +99,7 @@ const cartouche = ([x, y], title, sub) => `<g class="ch-cartouche" transform="tr
   '</g>';
 
 function mapSVG() {
-  const { LAND, ISLES, HILLS, LANDNAMES, SEANAMES, REGION_LABELS, legPaths, NODES, W, H } = P.map;
+  const { LAND, ISLES, HILLS, LANDNAMES, SEANAMES, REGION_LABELS, legPaths, NODES, W, H, RIVERS = [], TOWNS = [] } = P.map;
   const ROSE = P.rose;
   const list = shown(), ids = list.map(({ b }) => b.id);
   let rh = '';
@@ -121,8 +121,10 @@ function mapSVG() {
     `<rect width="${W}" height="${H}" fill="url(#chPaper)"/>` +
     `<path d="${rh}" class="ch-rhumb"/>` +
     '<use href="#chLand" class="ch-shore2"/><use href="#chLand" class="ch-shore1"/><use href="#chLand" class="ch-land"/>' +
+    RIVERS.map((d) => `<path d="${d}" class="ch-river"/>`).join('') +
     `<g class="ch-hills">${HILLS.map(([x, y]) => `<path d="M${x - 8} ${y} Q${x} ${y - 10} ${x + 8} ${y} M${x + 4} ${y - 2} Q${x + 11} ${y - 9} ${x + 18} ${y - 1}"/>`).join('')}</g>` +
     LANDNAMES.map(([t, x, y, r, s]) => `<text x="${x}" y="${y}" transform="rotate(${r} ${x} ${y})" class="ch-landname" style="font-size:${s}px">${t}</text>`).join('') +
+    TOWNS.map(([t, x, y, a, dx, dy]) => `<circle cx="${x}" cy="${y}" r="2.3" class="ch-town"/><text x="${x + dx}" y="${y + dy}" text-anchor="${a}" class="ch-townname">${t}</text>`).join('') +
     SEANAMES.map(([t, x, y, r]) => `<text x="${x}" y="${y}" transform="rotate(${r} ${x} ${y})" class="ch-seaname">${t}</text>`).join('') +
     compass(ROSE[0], ROSE[1]) + P.art() + cartouche(P.cartouche, P.title, P.sub) +
     (P.port ? '<g class="ch-port"><path d="M566 342 V330 M566 330 L575 332.5 L566 335" /></g>' : '') +

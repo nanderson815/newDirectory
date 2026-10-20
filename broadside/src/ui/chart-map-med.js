@@ -46,7 +46,7 @@ export const NODES = {
 
 // Sea names for the Mediterranean regions: centre, rotation and an optional shorter text.
 export const REGION_LABELS = {
-  straits: { x: 210, y: 505, r: -4, t: 'The Straits' },
+  straits: { x: 190, y: 510, r: -4, t: 'The Straits' },
   barbary: { x: 370, y: 472, r: -3, t: 'Barbary Coast' },
   malta: { x: 620, y: 470, r: -4, t: 'Malta Channel' },
   morea: { x: 905, y: 322, r: -6, t: 'Ionian Sea' },
@@ -160,6 +160,36 @@ export const HILLS = [[-7.6, 38.6], [-6.8, 38.0], [-5.0, 37.4], [-3.0, 37.5], [-
   [14.0, 41.8], [12.8, 43.0], [11.2, 43.9], [20.3, 41.0], [21.3, 39.0], [22.3, 36.95], [27.6, 39.3], [28.0, 39.7],
   [25.0, 41.6], [21.8, 32.55], [8.1, 39.6], [6.3, 44.4], [17.5, 44.2], [9.0, 42.1]]
   .map(([lon, lat]) => lonLat(lon, lat));
+// Rivers, as an engraver drew them: open curves from the source to the sea (the Douro, the Tagus, the Guadiana,
+// the Guadalquivir, the Ebro, the Rhone, the Po, the Tiber, the Moulouya and the Medjerda).
+function smoothOpen(pts) {
+  const P = pts.map(([lon, lat]) => lonLat(lon, lat)), n = P.length;
+  let d = `M${f1(P[0][0])} ${f1(P[0][1])}`;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || p2;
+    d += ` C${f1(p1[0] + (p2[0] - p0[0]) / 6)} ${f1(p1[1] + (p2[1] - p0[1]) / 6)} ${f1(p2[0] - (p3[0] - p1[0]) / 6)} ${f1(p2[1] - (p3[1] - p1[1]) / 6)} ${f1(p2[0])} ${f1(p2[1])}`;
+  }
+  return d;
+}
+export const RIVERS = [
+  [[-3.0, 41.6], [-4.7, 41.5], [-6.0, 41.3], [-7.4, 41.15], [-8.62, 41.14]],
+  [[-3.5, 40.25], [-4.5, 39.9], [-5.5, 39.85], [-6.5, 39.6], [-7.5, 39.45], [-8.4, 39.0], [-9.0, 38.75]],
+  [[-3.4, 39.05], [-5.0, 38.95], [-6.5, 38.85], [-7.3, 38.4], [-7.5, 37.6], [-7.42, 37.2]],
+  [[-2.9, 37.95], [-4.0, 37.9], [-4.8, 37.85], [-5.6, 37.6], [-6.0, 37.3], [-6.33, 36.82]],
+  [[-3.9, 43.0], [-2.5, 42.5], [-1.5, 41.9], [-0.8, 41.65], [0.2, 41.2], [0.6, 40.85], [0.86, 40.72]],
+  [[4.8, 45.7], [4.85, 44.9], [4.75, 44.2], [4.65, 43.7], [4.72, 43.38]],
+  [[7.6, 45.05], [8.6, 45.15], [9.7, 45.1], [10.8, 45.02], [11.8, 44.98], [12.45, 44.95]],
+  [[12.0, 43.45], [12.4, 42.8], [12.55, 42.2], [12.45, 41.9], [12.25, 41.75]],
+  [[-3.6, 33.4], [-3.0, 34.3], [-2.4, 35.08]],
+  [[8.0, 36.45], [9.2, 36.65], [10.18, 37.0]],
+].map(smoothOpen);
+// Port towns the battles don't already name: [name, x, y, anchor, dx, dy], the name set beside a small ring.
+export const TOWNS = [
+  ['Lisbon', -9.15, 38.72, 'start', 5, 13], ['Cadiz', -6.29, 36.53, 'start', 6, 4], ['Madrid', -3.7, 40.42, 'middle', 0, -6],
+  ['Barcelona', 2.17, 41.38, 'end', -6, 4], ['Marseilles', 5.37, 43.3, 'start', 6, 4], ['Genoa', 8.93, 44.41, 'middle', 0, -7],
+  ['Rome', 12.48, 41.9, 'start', 6, 4], ['Naples', 14.25, 40.84, 'start', 6, 4], ['Ragusa', 18.1, 42.65, 'start', 6, -2],
+  ['Athens', 23.73, 37.98, 'start', 6, 4], ['Smyrna', 27.14, 38.42, 'middle', 0, -6], ['Constantinople', 28.97, 41.01, 'end', -5, -12],
+].map(([t, lon, lat, a, dx, dy]) => [t, ...lonLat(lon, lat), a, dx, dy]);
 // Land names, [text, x, y, rotation, size] like chart-map.js's: in English, as an Admiralty plate would have them.
 export const LANDNAMES = [
   ['SPAIN', ...lonLat(-4.2, 39.6), -4, 14], ['PORTUGAL', ...lonLat(-8.05, 39.9), -80, 9], ['FRANCE', ...lonLat(3.0, 44.6), -4, 12],

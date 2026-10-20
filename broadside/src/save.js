@@ -15,6 +15,8 @@ import { S } from './state.js';
 // Save v2 (stored under KEY):
 //   { v: 2, gold, stars: { battleId: 1-3 }, hats: [hatId], hired, best?, tips?: [tipId], wardrobe?: ['field:id'],
 //     fleet: [{ name, cls, up: { upgradeId: level, chain?: 1, grape?: 1 }, loadout: { slotId: gunId }, look: {} }] }
+// `world` is the chart last shown (src/config/worlds.js); `seenWorlds` lists the worlds whose chart has been laid on
+// the table with its opening note, so the note is shown once.
 // `loadout` is only filled for a class with slots (the great ship, src/config/slots.js); for the rest it stays {}.
 // `look` is the ship's cosmetics (LOOK_FIELDS in src/config/looks.js: paint, cloth, emblem, figurehead, flag,
 // lanterns, gilding); a missing field is the usual look. `wardrobe` lists the looks bought at the shipyard

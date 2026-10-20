@@ -100,6 +100,10 @@ for (const [world, { map, art }] of Object.entries(PLATES)) {
   // Region names (Fell italic 20 px), sea names (Fell italic 18 px, spaced) and land names (spaced capitals).
   const regionBoxes = Object.keys(REGION_LABELS).map((id) => { const p = REGION_LABELS[id]; return { what: `region name ${id}`, P: textPoly(regionText(id), p.x, p.y, p.r, 9.2, 20) }; });
   const seaBoxes = SEANAMES.map(([t, x, y, r]) => ({ what: `sea name "${t}"`, P: textPoly(t, x, y, r, 9.6, 18) }));
+  const townBoxes = (map.TOWNS || []).map(([t, x, y, anchor, dx, dy]) => {
+    const w = t.length * 5.7, x0 = anchor === 'start' ? x + dx : anchor === 'end' ? x + dx - w : x + dx - w / 2;
+    return { what: `town ${t}`, P: rect(x0, y + dy - 10, w, 13) };
+  });
   const landBoxes = LANDNAMES.map(([t, x, y, r, sz]) => ({ what: `land name ${t}`, P: textPoly(t, x, y, r, sz * 0.95, sz) }));
   const hillBoxes = HILLS.map(([x, y]) => ({ what: `the hills at ${Math.round(x)},${Math.round(y)}`, P: rect(x - 9, y - 8, 28, 9) }));
   const artBoxes = art.map(([x, y, hw, hh], k) => ({ what: ['the compass rose', 'the cartouche', 'a vignette', 'a vignette'][k], P: rect(x - hw, y - hh, hw * 2, hh * 2) }));
@@ -125,11 +129,17 @@ for (const [world, { map, art }] of Object.entries(PLATES)) {
       }
       if (hit) say(`${name}: crosses the name of ${id} at ${hit.map(Math.round)}`);
     }
-    for (const b of [...regionBoxes, ...seaBoxes, ...artBoxes]) {
+    for (const b of [...regionBoxes, ...seaBoxes, ...artBoxes, ...townBoxes]) {
       const G = grow(b.P, 4);
       const hit = L.find(([x, y]) => inPoly(x, y, G));
       if (hit) say(`${name}: crosses ${b.what} at ${hit.map(Math.round)}`);
     }
+  });
+
+  // Rivers stay out of the names that are read (region names, towns, battles' names).
+  (map.RIVERS || []).map(polygon).forEach((R, k) => {
+    for (const b of [...regionBoxes, ...townBoxes]) if (R.some(([x, y]) => inPoly(x, y, grow(b.P, 2)))) say(`river ${k} crosses ${b.what}`);
+    for (const id of Object.keys(NODES)) { const P = grow(boxPoly(nameBox(id, true)), 2); if (R.some(([x, y]) => inPoly(x, y, P))) say(`river ${k} crosses the name of ${id}`); }
   });
 
   // Crossings between legs that don't share a battle.
@@ -166,13 +176,13 @@ for (const [world, { map, art }] of Object.entries(PLATES)) {
         if (a < b && overlap(sb, boxPoly(starBox(b, scale)))) say(`stars of ${a} and ${b} overlap (scale ${scale})`);
         if (a < b && overlap(disc(a, scale), disc(b, scale))) say(`nodes ${a} and ${b} overlap`);
       }
-      for (const b of [...regionBoxes, ...seaBoxes, ...landBoxes, ...artBoxes, ...hillBoxes]) {
+      for (const b of [...regionBoxes, ...seaBoxes, ...landBoxes, ...artBoxes, ...hillBoxes, ...townBoxes]) {
         if (overlap(nb, b.P) || overlap(sb, b.P)) say(`name of ${a} overlaps ${b.what} (scale ${scale})`);
         if (overlap(disc(a, scale), b.P)) say(`node ${a} overlaps ${b.what} (scale ${scale})`);
       }
     }
   }
-  const labels = [...regionBoxes, ...seaBoxes, ...landBoxes, ...artBoxes];
+  const labels = [...regionBoxes, ...seaBoxes, ...landBoxes, ...artBoxes, ...townBoxes];
   labels.forEach((a, i) => labels.slice(i + 1).forEach((b) => { if (overlap(grow(a.P, -2), grow(b.P, -2))) say(`${a.what} overlaps ${b.what}`); }));
   for (const a of labels) for (const b of hillBoxes) if (overlap(grow(a.P, -2), b.P)) say(`${a.what} overlaps ${b.what}`);
 
