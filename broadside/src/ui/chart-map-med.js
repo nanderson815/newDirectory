@@ -32,7 +32,7 @@ export const NODES = {
     via: [[112, 512], [130, 482], [140, 466], [152, 456], [168, 459], [195, 463], [240, 462], [290, 455], [330, 435], [360, 395], [420, 352], [465, 345]] },
   bagnio:    { x: 430, y: 392, label: 'The Bagnio' },
   goletta:   { x: 660, y: 390, label: 'La Goletta', via: [[500, 395], [525, 384], [560, 385], [600, 384], [640, 378]] },
-  algiers:   { x: 460, y: 305, boss: true, label: 'Admiral of Algiers', name: 'above', via: [[640, 362], [560, 335], [500, 315]] },
+  algiers:   { x: 460, y: 305, boss: true, label: 'Admiral of Algiers', name: 'left', via: [[640, 362], [560, 335], [500, 315]] },
   knights:   { x: 755, y: 470, label: 'Knights’ Galleys', via: [[520, 290], [600, 328], [680, 348], [715, 400], [712, 445], [728, 466]] },
   passero:   { x: 830, y: 400, label: 'Cape Passero', name: 'left', via: [[800, 450]] },
   tripoli:   { x: 725, y: 565, boss: true, label: 'Tripoli', via: [[850, 470], [815, 535]] },
@@ -143,7 +143,7 @@ export const LAND = Object.values(COASTS).map(smooth);
 // Small islands: [x, y, rx, ry, rotation], from [lon, lat, rx, ry, rot].
 export const ISLES = [
   [14.42, 35.88, 4, 2.5, -30], [14.25, 36.05, 2.5, 1.6, -30], // Malta, Gozo
-  [4.1, 39.95, 5, 3, 0], [1.43, 38.98, 4, 3, 0], // Minorca, Ivica
+  [4.1, 39.95, 5, 3, 0], [1.35, 38.78, 4, 3, 0], // Minorca, Ivica
   [20.85, 37.75, 3.5, 4.5, 0], [20.65, 38.75, 2, 3.5, 0], [23.0, 36.25, 3, 3.5, 0], // Zante, Santa Maura, Cerigo
   [25.45, 37.05, 4, 4, 0], [25.15, 37.05, 3, 3, 0], [24.42, 36.7, 4, 2.5, 0], [24.85, 37.85, 2.5, 4, -20], [25.1, 37.6, 2.5, 2, 0], // Naxia, Paros, Milo, Andros, Tine
   [24.92, 37.43, 2, 2, 0], [24.33, 37.6, 2, 2.5, 0], [25.35, 37.45, 2, 1.6, 0], [25.4, 36.4, 3, 2, -20], [25.3, 36.72, 2, 1.5, 0], // Syra, Zea, Myconi, Santorin, Nio
@@ -155,9 +155,9 @@ export const ISLES = [
   [10.3, 42.78, 3, 2, 0], [14.2, 40.55, 1.6, 1.2, 0], // Elba, Capri
   [14.55, 44.95, 3, 6, -30], [16.6, 43.3, 5, 1.6, 0], [17.0, 42.95, 5, 1.4, 0], [16.2, 43.05, 3, 1.3, 0], // Veglia, Brazza, Curzola, Lesina
 ].map(([lon, lat, rx, ry, r]) => [...lonLat(lon, lat), rx, ry, r]);
-export const HILLS = [[-8.1, 39.6], [-6.8, 38.0], [-5.0, 37.4], [-3.3, 37.1], [-1.6, 38.6], [-3.6, 40.3], [-0.8, 41.4], [-4.5, 42.6], [-6.0, 33.4],
-  [-4.4, 34.2], [-2.3, 34.5], [1.7, 35.4], [4.2, 36.35], [6.6, 36.35], [6.9, 35.2], [9.2, 35.9], [15.0, 37.75], [16.25, 39.1], [15.3, 41.3],
-  [14.0, 41.8], [12.8, 43.0], [11.2, 43.9], [20.3, 41.0], [21.5, 39.5], [22.2, 37.6], [22.3, 36.95], [24.75, 35.2], [27.9, 38.7], [28.0, 39.7],
+export const HILLS = [[-7.6, 38.6], [-6.8, 38.0], [-5.0, 37.4], [-3.0, 37.5], [-1.6, 38.6], [-3.6, 40.3], [-0.8, 41.4], [-4.5, 42.6], [-6.0, 33.4],
+  [-4.4, 34.2], [-2.3, 34.5], [0.0, 35.0], [4.6, 36.0], [6.6, 36.35], [6.9, 35.2], [9.2, 35.9], [16.25, 39.1], [15.3, 41.3],
+  [14.0, 41.8], [12.8, 43.0], [11.2, 43.9], [20.3, 41.0], [21.3, 39.0], [22.3, 36.95], [27.6, 39.3], [28.0, 39.7],
   [25.0, 41.6], [21.8, 32.55], [8.1, 39.6], [6.3, 44.4], [17.5, 44.2], [9.0, 42.1]]
   .map(([lon, lat]) => lonLat(lon, lat));
 // Land names, [text, x, y, rotation, size] like chart-map.js's: in English, as an Admiralty plate would have them.
@@ -173,7 +173,7 @@ export const SEANAMES = [['Mare Mediterraneum', 450, 220, -4], ['Oceanus Atlanti
 // The compass rose, the cartouche and the two vignettes (see chart.js).
 export const ROSE = [690, 262];
 export const CARTOUCHE = [1160, 650];
-export const VIGNETTES = { galley: [520, 150], dolphin: [1200, 560] };
+export const VIGNETTES = { galley: [466, 148], dolphin: [1200, 560] };
 
 // ---------- The route and the layout boxes, on this plate's nodes ----------
 export const routePoints = (ids) => caribRoute(ids, NODES);

@@ -2,7 +2,7 @@
 // Mediterranean), in plain Node: the campaign route must stay on the plate and off land, keep clear of battles it
 // doesn't stop at and of every name on the map, and cross itself as little as possible; battle names, star rows,
 // region, sea and land names must not overlap each other or a battle, nor sit on the compass rose, the cartouche or
-// a vignette. `node tests/chart-check.mjs` prints each problem and exits non-zero if there are any.
+// a vignette or the hills. `node tests/chart-check.mjs` prints each problem and exits non-zero if there are any.
 import * as CARIB from '../src/ui/chart-map.js';
 import * as MED from '../src/ui/chart-map-med.js';
 import { BATTLES, REGIONS } from '../src/config/battles.js';
@@ -68,7 +68,7 @@ function textPoly(t, x, y, r, em, h) {
 
 let total = 0;
 for (const [world, { map, art }] of Object.entries(PLATES)) {
-  const { NODES, LAND, ISLES, REGION_LABELS, SEANAMES, LANDNAMES, routePoints, curveSegments, nameBox, starBox, nodeRadius, W, H } = map;
+  const { NODES, LAND, ISLES, HILLS, REGION_LABELS, SEANAMES, LANDNAMES, routePoints, curveSegments, nameBox, starBox, nodeRadius, W, H } = map;
   const ids = BATTLES.filter((b) => b.world === world).map((b) => b.id);
   const lands = LAND.map(polygon);
   const onLand = (x, y, margin) => {
@@ -101,6 +101,7 @@ for (const [world, { map, art }] of Object.entries(PLATES)) {
   const regionBoxes = Object.keys(REGION_LABELS).map((id) => { const p = REGION_LABELS[id]; return { what: `region name ${id}`, P: textPoly(regionText(id), p.x, p.y, p.r, 9.2, 20) }; });
   const seaBoxes = SEANAMES.map(([t, x, y, r]) => ({ what: `sea name "${t}"`, P: textPoly(t, x, y, r, 9.6, 18) }));
   const landBoxes = LANDNAMES.map(([t, x, y, r, sz]) => ({ what: `land name ${t}`, P: textPoly(t, x, y, r, sz * 0.95, sz) }));
+  const hillBoxes = HILLS.map(([x, y]) => ({ what: `the hills at ${Math.round(x)},${Math.round(y)}`, P: rect(x - 9, y - 8, 28, 9) }));
   const artBoxes = art.map(([x, y, hw, hh], k) => ({ what: ['the compass rose', 'the cartouche', 'a vignette', 'a vignette'][k], P: rect(x - hw, y - hh, hw * 2, hh * 2) }));
 
   legs.forEach((L, i) => {
@@ -165,7 +166,7 @@ for (const [world, { map, art }] of Object.entries(PLATES)) {
         if (a < b && overlap(sb, boxPoly(starBox(b, scale)))) say(`stars of ${a} and ${b} overlap (scale ${scale})`);
         if (a < b && overlap(disc(a, scale), disc(b, scale))) say(`nodes ${a} and ${b} overlap`);
       }
-      for (const b of [...regionBoxes, ...seaBoxes, ...landBoxes, ...artBoxes]) {
+      for (const b of [...regionBoxes, ...seaBoxes, ...landBoxes, ...artBoxes, ...hillBoxes]) {
         if (overlap(nb, b.P) || overlap(sb, b.P)) say(`name of ${a} overlaps ${b.what} (scale ${scale})`);
         if (overlap(disc(a, scale), b.P)) say(`node ${a} overlaps ${b.what} (scale ${scale})`);
       }
@@ -173,6 +174,7 @@ for (const [world, { map, art }] of Object.entries(PLATES)) {
   }
   const labels = [...regionBoxes, ...seaBoxes, ...landBoxes, ...artBoxes];
   labels.forEach((a, i) => labels.slice(i + 1).forEach((b) => { if (overlap(grow(a.P, -2), grow(b.P, -2))) say(`${a.what} overlaps ${b.what}`); }));
+  for (const a of labels) for (const b of hillBoxes) if (overlap(grow(a.P, -2), b.P)) say(`${a.what} overlaps ${b.what}`);
 
   console.log(`${world}:`);
   console.log(problems.map((p) => '  ' + p).join('\n') || '  no layout problems');
