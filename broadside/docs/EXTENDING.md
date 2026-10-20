@@ -72,6 +72,26 @@ may not start on a reef or (if they're big enough to ground) on a shoal: `npm ru
 Every captain, your drawn courses and the test bot steer round all of it. Enemy positions can go anywhere, so
 pair `fleetAt` with enemies astern or on the flank for an ambush.
 
+The sea can move, too (`src/sim/flow.js`, drawn by `src/render/flow.js`):
+
+```js
+currents: [{ x: 0.5, y: 0.45, r: 120, stretch: 2.6, angle: 90, speed: 16 }],   // the water sets every ship along (streaks)
+shoals: [{ x: 0.4, y: 0.33, r: 40, stretch: 3, tidal: true }],                // a bar the tide covers and uncovers
+tide: { level: 0.5, turns: [{ at: 45, to: 1, secs: 14 }] },                    // 1 high water (all pass), 0 low (none)
+booms: [{ from: [0.46, 0.35], to: [0.79, 0.36], hp: 70, fort: 0 }],            // land until shot through or fort 0 falls
+```
+
+Steering is local, so when the way to a mark isn't in plain sight (a cove, an island chain) the route planner
+(`src/sim/navgrid.js`) finds one and the ship sails its waypoints; the course preview shows them. Keep every
+battle navigable: `npm run check` runs `tests/navcheck.mjs`, which plans from your fleet's slots to every
+objective for the biggest ship you could bring, with three beams of room in every channel and at every stage
+of the tide, and names whatever it can't reach. `node tests/navcheck.mjs` on its own prints the same, faster.
+
+Give each map one shape and one reason to manoeuvre, and say what it is in a line above its geography in
+`battles.js` (a strait with a set against you, a reef gate, a bar the flood opens at 45 seconds...). Bigger
+seas (`sea: 1.3`-`1.5`) leave room to scout and flank; island radii are map units, so a bigger sea needs bigger
+or more land to keep its shape. `node tests/map-shots.mjs` shoots every map zoomed out and at mid zoom.
+
 ## Dress the land
 
 Every battle's land lives in `src/config/lands.js`, keyed by battle id (a battle def may carry its own `land`

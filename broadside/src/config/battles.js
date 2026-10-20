@@ -86,8 +86,9 @@ export const BATTLES = [
     sea: 1.4,
     islands: [{ x: 0.5, y: 0.31, r: 30, stretch: 1.4, angle: 10 }, { x: 0.91, y: 0.3, r: 26 }, { x: 0.12, y: 0.52, r: 26 }],
     shoals: [
-      { x: 0.22, y: 0.3, r: 48, stretch: 4, angle: 4 }, { x: 0.72, y: 0.51, r: 48, stretch: 4.4, angle: -4 },
-      { x: 0.5, y: 0.7, r: 46, stretch: 3.4, angle: 0 }, { x: 0.94, y: 0.52, r: 30, stretch: 1.4, angle: 90 },
+      { x: 0.23, y: 0.3, r: 58, stretch: 3.6, angle: 6 }, { x: 0.72, y: 0.5, r: 58, stretch: 3.8, angle: -6 },
+      { x: 0.5, y: 0.7, r: 54, stretch: 3, angle: 0 }, { x: 0.94, y: 0.52, r: 34, stretch: 1.4, angle: 90 },
+      { x: 0.1, y: 0.62, r: 34, stretch: 1.8, angle: 70 }, { x: 0.86, y: 0.8, r: 30, stretch: 1.6, angle: -30 },
     ],
     ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.72, hpMul: 1.8 },
   },
@@ -96,16 +97,16 @@ export const BATTLES = [
     goal: 'boss', hat: 'rojo', reward: 220, wind: 20,
     brief: 'Capitán Rojo’s galleon La Bruja carries bow chasers, so don’t linger in front of her. Sink her and his red tricorne is yours.',
     enemy: [
-      { type: 'galleon', name: 'La Bruja', x: 0.78, y: 0.4, h: 90, hp: 350, chasers: 2, reloadMul: 0.9,
+      { type: 'galleon', name: 'La Bruja', x: 0.82, y: 0.42, h: 90, hp: 350, chasers: 2, reloadMul: 0.9,
         boss: { captain: 'Capitán Rojo', title: 'La Bruja', hat: 'rojo' } },
       { type: 'brig', name: 'El Lobo', x: 0.24, y: 0.18, h: 90 },
     ],
     // The volcano's lee: La Bruja lies in the calm water downwind of a smoking island. Go in after her and you lose
     // the wind under her chasers; work round to windward and make her come out. Rocks guard the volcano's west.
-    sea: 1.2,
     fleetAt: { slots: [[0.3, 0.82], [0.16, 0.86], [0.46, 0.88], [0.24, 0.93], [0.38, 0.94]], h: -70 },
-    islands: [{ x: 0.42, y: 0.4, r: 82 }, { x: 0.82, y: 0.74, r: 34 }],
-    reefs: [{ x: 0.13, y: 0.42, r: 12, stretch: 4, angle: 80 }, { x: 0.3, y: 0.6, r: 11, stretch: 2.5, angle: 20 }],
+    sea: 1.15,
+    islands: [{ x: 0.45, y: 0.4, r: 118 }, { x: 0.82, y: 0.76, r: 34 }],
+    reefs: [{ x: 0.24, y: 0.6, r: 11, stretch: 3, angle: 20 }, { x: 0.62, y: 0.2, r: 10, stretch: 2.5, angle: -30 }],
     ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 0.7, hpMul: 1.6 },
   },
 
@@ -114,16 +115,18 @@ export const BATTLES = [
     goal: 'capture', reward: 240, wind: 0,
     brief: 'A stone fort guards the anchorage. Pound it silent, then stop a ship beside it and land your marines.',
     enemy: [
-      { type: 'brig', name: 'San Lucas', x: 0.3, y: 0.2, h: 90 },
-      { type: 'brig', name: 'Santa Clara', x: 0.7, y: 0.2, h: 90 },
+      { type: 'brig', name: 'San Lucas', x: 0.2, y: 0.3, h: 0 },
+      { type: 'brig', name: 'Santa Clara', x: 0.18, y: 0.52, h: 0 },
     ],
-    // A river mouth: the fort stands on an islet in the estuary, sandbars either side of it, and the river runs out
-    // past it. Anchor beside the fort and the stream swings you; small ships can cut over the bars.
+    // A river mouth: the estuary opens from the west, the fort stands on an islet in its mouth with sandbars
+    // above and below it, and the river runs out past it. Anchor beside the fort and the stream swings you;
+    // small ships can cut over the bars; the brigs wait up the river.
     sea: 1.3,
-    coast: { side: 'top', depth: 0.3, rough: 0.3, seed: 2, coves: [{ at: 0.5, width: 0.8, depth: 0.2 }] },
-    islands: [{ x: 0.5, y: 0.38, r: 46 }, { x: 0.14, y: 0.74, r: 26 }, { x: 0.84, y: 0.66, r: 28 }],
-    shoals: [{ x: 0.13, y: 0.38, r: 38, stretch: 1.8, angle: 20 }, { x: 0.87, y: 0.38, r: 38, stretch: 1.8, angle: -20 }],
-    currents: [{ x: 0.5, y: 0.3, r: 80, stretch: 3, angle: 90, speed: 10 }],
+    fleetAt: { slots: [[0.64, 0.8], [0.5, 0.85], [0.8, 0.84], [0.58, 0.92], [0.74, 0.92]], h: -110 },
+    coast: { side: 'left', depth: 0.32, rough: 0.3, seed: 2, coves: [{ at: 0.42, width: 0.5, depth: 0.24 }] },
+    islands: [{ x: 0.42, y: 0.43, r: 46 }, { x: 0.72, y: 0.2, r: 28 }, { x: 0.86, y: 0.62, r: 30 }],
+    shoals: [{ x: 0.38, y: 0.19, r: 40, stretch: 1.5, angle: 80 }, { x: 0.38, y: 0.68, r: 40, stretch: 1.5, angle: 100 }],
+    currents: [{ x: 0.3, y: 0.42, r: 90, stretch: 3, angle: 0, speed: 10 }],
     forts: [{ island: 0, name: 'Fort San Lucas', hp: 380, guns: 2, need: 10 }],
     ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 1.0, hpMul: 2.1 },
   },
@@ -142,8 +145,8 @@ export const BATTLES = [
     sea: 1.35,
     coast: { side: 'right', depth: 0.14, rough: 0.35, coves: [{ at: 0.25, width: 0.2, depth: 0.06 }], capes: [{ at: 0.9, width: 0.2, depth: 0.08 }] },
     reefs: [
-      { x: 0.55, y: 0.27, r: 12, stretch: 6, angle: 94 }, { x: 0.53, y: 0.52, r: 12, stretch: 6.5, angle: 88 },
-      { x: 0.56, y: 0.79, r: 12, stretch: 5, angle: 96 },
+      { x: 0.55, y: 0.2, r: 12, stretch: 7, angle: 94 }, { x: 0.53, y: 0.41, r: 12, stretch: 7, angle: 86 },
+      { x: 0.55, y: 0.62, r: 12, stretch: 7, angle: 94 }, { x: 0.56, y: 0.83, r: 12, stretch: 6, angle: 88 },
     ],
     islands: [{ x: 0.2, y: 0.18, r: 32 }, { x: 0.26, y: 0.86, r: 28, stretch: 1.8, angle: 20 }],
     currents: [{ x: 0.7, y: 0.52, r: 70, stretch: 6, angle: -90, speed: 12 }],
@@ -159,13 +162,15 @@ export const BATTLES = [
       { type: 'brig', name: 'El Alcón', x: 0.3, y: 0.2, h: 90 },
       { type: 'brig', name: 'La Garza', x: 0.7, y: 0.2, h: 90 },
     ],
-    // The gate: two fort islands, a reef and a shoal flat wall off the anchorage. Run the gate between the forts
-    // under both their guns, slip a small ship over the flat on the left, or swing wide round the right under
-    // only one fort's guns.
+    // The gate: a funnel of land and sand closes the anchorage, a fort at each inner end. Run the gate between the
+    // forts under both their guns, or slip a small ship over the sand spit on the left and come at the Comodoro
+    // from behind while the big ships pound the forts.
     sea: 1.3,
-    islands: [{ x: 0.29, y: 0.4, r: 42 }, { x: 0.65, y: 0.4, r: 42 }, { x: 0.47, y: 0.66, r: 26 }],
-    reefs: [{ x: 0.16, y: 0.39, r: 12, stretch: 4, angle: 0 }],
-    shoals: [{ x: 0.06, y: 0.4, r: 50, stretch: 1.5, angle: 90 }],
+    islands: [
+      { x: 0.3, y: 0.42, r: 40 }, { x: 0.7, y: 0.42, r: 40 }, { x: 0.5, y: 0.68, r: 32 },
+      { x: 0.85, y: 0.37, r: 36, stretch: 3.5, angle: -18 },
+    ],
+    shoals: [{ x: 0.15, y: 0.37, r: 46, stretch: 3.2, angle: 15 }],
     forts: [
       { island: 0, name: 'Fort Santa Fe', hp: 110, guns: 2, need: 10 },
       { island: 1, name: 'Fort Santa Inés', hp: 110, guns: 2, need: 10 },
@@ -234,9 +239,9 @@ export const BATTLES = [
     // the middle one.
     sea: 1.45,
     islands: [
-      { x: 0.3, y: 0.42, r: 66 }, { x: 0.72, y: 0.43, r: 50, stretch: 1.8, angle: -20 }, { x: 0.5, y: 0.63, r: 60, stretch: 1.6, angle: 0 },
-      { x: 0.12, y: 0.63, r: 50 }, { x: 0.88, y: 0.64, r: 50 }, { x: 0.55, y: 0.24, r: 44, stretch: 2, angle: 10 },
-      { x: 0.13, y: 0.24, r: 40 }, { x: 0.9, y: 0.25, r: 36 },
+      { x: 0.3, y: 0.42, r: 80 }, { x: 0.77, y: 0.43, r: 52, stretch: 1.8, angle: -20 }, { x: 0.5, y: 0.64, r: 62, stretch: 1.6, angle: 0 },
+      { x: 0.08, y: 0.64, r: 50 }, { x: 0.92, y: 0.65, r: 50 }, { x: 0.56, y: 0.24, r: 52, stretch: 2.2, angle: 10 },
+      { x: 0.12, y: 0.25, r: 50 }, { x: 0.91, y: 0.26, r: 46 },
     ],
     ai: { spread: 0.11, reloadMul: 1.1, dmgMul: 0.9, hpMul: 1 },
   },
@@ -260,7 +265,8 @@ export const BATTLES = [
     reefs: [{ x: 0.22, y: 0.38, r: 12, stretch: 4, angle: 30 }, { x: 0.86, y: 0.45, r: 12, stretch: 3.4, angle: -60 }, { x: 0.5, y: 0.6, r: 16 }],
     shoals: [{ x: 0.42, y: 0.33, r: 40, stretch: 3, angle: 0, tidal: true }],
     tide: { level: 0.5, turns: [{ at: 70, to: 1, secs: 14 }] },
-    islands: [{ x: 0.22, y: 0.62, r: 24 }, { x: 0.78, y: 0.68, r: 22, stretch: 1.6, angle: 60 }],
+    fleetAt: { slots: [[0.5, 0.7], [0.32, 0.74], [0.68, 0.74], [0.42, 0.8], [0.58, 0.8]], h: -90 },
+    islands: [{ x: 0.2, y: 0.6, r: 30 }, { x: 0.82, y: 0.66, r: 26, stretch: 1.6, angle: 60 }],
     events: [
       { enemiesLeft: 2, banner: ['Ambush from the reefs!', 'Two more schooners slip out of hiding'],
         spawn: [{ type: 'schooner', name: 'Cutlass', x: 0.06, y: 0.5, h: 0 }, { type: 'schooner', name: 'Barracuda', x: 0.94, y: 0.56, h: 180 }] },
@@ -293,7 +299,7 @@ export const BATTLES = [
     // that only the salvors' schooners (and your sloops) cross, and a set running across the field that carries
     // you off a chest if you don't allow for it.
     sea: 1.2,
-    reefs: [{ x: 0.5, y: 0.44, r: 14, stretch: 3, angle: 10 }, { x: 0.15, y: 0.42, r: 10, stretch: 1.6, angle: -30 }, { x: 0.85, y: 0.4, r: 10, stretch: 1.6, angle: 40 }],
+    reefs: [{ x: 0.5, y: 0.44, r: 18, stretch: 3, angle: 10 }, { x: 0.15, y: 0.42, r: 10, stretch: 1.6, angle: -30 }, { x: 0.85, y: 0.4, r: 10, stretch: 1.6, angle: 40 }],
     shoals: [{ x: 0.5, y: 0.3, r: 44, stretch: 2.2, angle: 0 }],
     islands: [{ x: 0.5, y: 0.72, r: 24 }, { x: 0.9, y: 0.68, r: 22 }],
     currents: [{ x: 0.5, y: 0.45, r: 100, stretch: 4.5, angle: 0, speed: 9 }],
@@ -308,8 +314,8 @@ export const BATTLES = [
         boss: { captain: 'Calico Kate', title: 'Black Wyvern', hat: 'kate' } },
       { type: 'schooner', name: 'Viper', x: 0.25, y: 0.14, h: 90 },
       { type: 'schooner', name: 'Adder', x: 0.75, y: 0.14, h: 90 },
-      { type: 'fireship', name: 'Hellfire', x: 0.42, y: 0.24, h: 90 },
-      { type: 'fireship', name: 'Brimstone', x: 0.58, y: 0.24, h: 90 },
+      { type: 'fireship', name: 'Hellfire', x: 0.44, y: 0.2, h: 90 },
+      { type: 'fireship', name: 'Brimstone', x: 0.56, y: 0.2, h: 90 },
     ],
     events: [
       { bossHp: 0.5, banner: ['Kate fires a signal gun!', 'The Brethren come to her aid'],
@@ -321,7 +327,7 @@ export const BATTLES = [
     // from the flank while they burn past.
     sea: 1.45,
     islands: [
-      { x: 0.31, y: 0.44, r: 46, stretch: 3, angle: 92 }, { x: 0.69, y: 0.46, r: 46, stretch: 3.2, angle: 88 },
+      { x: 0.3, y: 0.44, r: 66, stretch: 3.4, angle: 92 }, { x: 0.7, y: 0.46, r: 66, stretch: 3.6, angle: 88 },
       { x: 0.86, y: 0.68, r: 24 },
     ],
     currents: [{ x: 0.5, y: 0.45, r: 90, stretch: 3, angle: 90, speed: 12 }],
@@ -341,7 +347,7 @@ export const BATTLES = [
     ] }],
     enemy: [
       { type: 'xebec', name: 'El Cuchillo', x: 0.13, y: 0.4, h: 0 },
-      { type: 'xebec', name: 'La Daga', x: 0.87, y: 0.34, h: 180 },
+      { type: 'xebec', name: 'La Daga', x: 0.94, y: 0.34, h: 180 },
       { type: 'brig', name: 'San Bruno', x: 0.3, y: 0.14, h: 90 },
       { type: 'galleon', name: 'San Felipe', x: 0.5, y: 0.08, h: 90 },
       { type: 'brig', name: 'San Diego', x: 0.7, y: 0.14, h: 90 },
@@ -351,14 +357,15 @@ export const BATTLES = [
       { at: 20, banner: ['Oars astern!', 'Two xebecs row up behind the convoy'],
         spawn: [{ type: 'xebec', name: 'El Puñal', x: 0.2, y: 0.94, h: -45 }, { type: 'xebec', name: 'La Navaja', x: 0.8, y: 0.94, h: -135 }] },
     ],
-    // The long passage between two shores: a barrier cay splits the road north into two lanes, and xebecs lie in
-    // creeks on either hand. Keep the convoy together in one lane or cover both.
+    // The road inside the keys: the mainland on the left with a xebec in its creek, a chain of keys on the right with
+    // another behind them, and a barrier cay splitting the road north into two lanes. Keep the convoy together
+    // in one lane or cover both, and watch the gaps between the keys.
     sea: 1.3,
-    coast: [
-      { side: 'left', depth: 0.08, rough: 0.4, seed: 21, coves: [{ at: 0.4, width: 0.14, depth: 0.05 }] },
-      { side: 'right', depth: 0.08, rough: 0.4, seed: 23, coves: [{ at: 0.34, width: 0.14, depth: 0.05 }] },
+    coast: { side: 'left', depth: 0.08, rough: 0.4, seed: 21, coves: [{ at: 0.4, width: 0.14, depth: 0.05 }] },
+    islands: [
+      { x: 0.47, y: 0.42, r: 34, stretch: 3.6, angle: 90 }, { x: 0.22, y: 0.24, r: 24 },
+      { x: 0.84, y: 0.2, r: 30, stretch: 3, angle: 80 }, { x: 0.86, y: 0.48, r: 30, stretch: 3, angle: 95 }, { x: 0.84, y: 0.76, r: 30, stretch: 3, angle: 85 },
     ],
-    islands: [{ x: 0.5, y: 0.4, r: 34, stretch: 3.6, angle: 90 }, { x: 0.26, y: 0.2, r: 24 }],
     shoals: [{ x: 0.8, y: 0.26, r: 34, stretch: 1.6, angle: 30 }],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.49, hpMul: 1.5 },
   },
@@ -378,15 +385,15 @@ export const BATTLES = [
       { at: 115, banner: ['The final assault!', 'The siege fleet throws in everything'],
         spawn: [{ type: 'galleon', name: 'Santa Catalina', x: 0.75, y: 0.06, h: 90 }, { type: 'bomb', name: 'El Volcán', x: 0.15, y: 0.08, h: 90 }, { type: 'xebec', name: 'La Flecha', x: 0.9, y: 0.22, h: 180 }] },
       { at: 130, banner: ['Relief from Kingston!', 'The brig Gloucester beats into the harbour'],
-        spawn: [{ type: 'brig', name: 'Gloucester', team: 'player', x: 0.86, y: 0.84, h: -90 }] },
+        spawn: [{ type: 'brig', name: 'Gloucester', team: 'player', x: 0.14, y: 0.84, h: -90 }] },
     ],
     // Port Royal again, under siege: Fort Charles at the tip of the Palisadoes, your fleet in the harbour behind it
     // with the yard to patch you up. The spit shelters you from the sea side; sortie through the mouth to hunt the
     // bomb ketches, then run back in to the carpenters.
     sea: 1.2,
-    fleetAt: { slots: [[0.42, 0.74], [0.22, 0.76], [0.62, 0.76], [0.32, 0.84], [0.52, 0.84]], h: 0 },
+    fleetAt: { slots: [[0.58, 0.74], [0.78, 0.76], [0.38, 0.76], [0.68, 0.84], [0.48, 0.84]], h: 180 },
     coast: { side: 'bottom', depth: 0.08, rough: 0.3, seed: 12 },
-    islands: [{ x: 0.62, y: 0.6, r: 50 }, { x: 0.22, y: 0.62, r: 30, stretch: 7, angle: -4 }, { x: 0.8, y: 0.3, r: 26 }],
+    islands: [{ x: 0.38, y: 0.6, r: 50 }, { x: 0.78, y: 0.62, r: 30, stretch: 7, angle: 4 }, { x: 0.2, y: 0.3, r: 26 }],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.46, hpMul: 1.7 },
   },
   {

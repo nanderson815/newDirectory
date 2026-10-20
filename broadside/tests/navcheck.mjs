@@ -12,9 +12,9 @@
 import { loadContent } from '../scripts/registries.mjs';
 
 const SEA_SCALE = 1.45;
-// Portrait chart sizes (map units, before the battle's own sea multiplier): a tall phone and a squat tablet
-// (landscape turns the same chart, so these cover it).
-export const NAV_MAPS = [[520, 1110], [620, 830]];
+// Portrait chart sizes (map units, before the battle's own sea multiplier): a squat tablet, a phone, and a tall
+// phone as the camera fits it (landscape turns the same chart, so these cover it).
+export const NAV_MAPS = [[620, 830], [520, 1110], [520, 1390]];
 // Beams of clear water a channel must have beyond the ship's own clearance from the shore.
 export const ROOM = +(process.env.ROOM || 3);
 

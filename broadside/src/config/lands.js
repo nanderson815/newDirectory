@@ -64,7 +64,7 @@ export const LANDS = {
       { kind: 'volcano', island: 0, at: 200, d: 0.1, height: 62, size: 0.8 },
       { kind: 'ruin', island: 1, at: 160, d: 0.45 },
       { kind: 'stacks', island: 1, at: -40, count: 4 },
-      { kind: 'wreck', x: 0.13, y: 0.42 },
+      { kind: 'wreck', x: 0.24, y: 0.6 },
     ],
   },
 
@@ -74,12 +74,12 @@ export const LANDS = {
   sanlucas: {
     relief: [{ island: 0, height: 0.8 }, { island: 1, height: 0.9 }, { island: 2, height: 1.1, cliffs: 0.4, at: 0 }],
     landmarks: [
-      { kind: 'town', coast: 0, at: 0.5, inland: 40, houses: 7, name: 'San Lucas', loot: 120 },
-      { kind: 'harbour', coast: 0, at: 0.38, rate: 0 },
-      { kind: 'church', coast: 0, at: 0.64, inland: 60 },
+      { kind: 'town', coast: 0, at: 0.42, inland: 40, houses: 7, name: 'San Lucas', loot: 120 },
+      { kind: 'harbour', coast: 0, at: 0.32, rate: 0 },
+      { kind: 'church', coast: 0, at: 0.56, inland: 60 },
       { kind: 'church', island: 1, at: 200, d: 0.25 },
       { kind: 'windmill', island: 2, at: 160, d: 0.3 },
-      { kind: 'wreck', x: 0.13, y: 0.38 },
+      { kind: 'wreck', x: 0.38, y: 0.68 },
     ],
   },
   // The silver coast: a mission town in the cove, a light on the northern cape, a reef that has claimed a galleon.
@@ -90,20 +90,22 @@ export const LANDS = {
       { kind: 'church', coast: 0, at: 0.42, inland: 52 },
       { kind: 'lighthouse', coast: 0, at: 0.9, inland: 26 },
       { kind: 'windmill', coast: 0, at: 0.64, inland: 44 },
-      { kind: 'wreck', x: 0.53, y: 0.52 },
+      { kind: 'wreck', x: 0.53, y: 0.41 },
       { kind: 'ruin', island: 1, at: 0, d: 0.2 },
     ],
   },
   // San Cristóbal: the Comodoro's anchorage behind two fort islands. Take Santa Inés and its harbour patches
   // your hulls.
   comodoro: {
-    relief: [{ island: 0, height: 0.8 }, { island: 1, height: 0.8 }, { island: 2, height: 1.2, cliffs: 0.3, at: 90 }],
+    relief: [{ island: 0, height: 0.8 }, { island: 1, height: 0.8 }, { island: 2, height: 1.2, cliffs: 0.3, at: 90 }, { island: 3, height: 1.1, cliffs: 0.5, at: 120 }],
     landmarks: [
       { kind: 'town', island: 0, at: 150, d: 0.75, houses: 5, name: 'Santa Fe' },
       { kind: 'town', island: 1, at: 30, d: 0.75, houses: 5, name: 'Santa Inés' },
       { kind: 'harbour', island: 1, at: 100 },
       { kind: 'church', island: 2, at: 0, d: 0.1 },
-      { kind: 'wreck', x: 0.16, y: 0.39 },
+      { kind: 'windmill', island: 3, at: -18, d: 0.5 },
+      { kind: 'stacks', island: 3, at: 110, count: 3 },
+      { kind: 'wreck', x: 0.15, y: 0.37 },
     ],
   },
 
@@ -193,9 +195,10 @@ export const LANDS = {
     relief: [{ island: 0, height: 0.6 }, { island: 1, height: 0.7 }],
     landmarks: [
       { kind: 'town', coast: 0, at: 0.4, inland: 40, houses: 4, name: 'San Román' },
-      { kind: 'town', coast: 1, at: 0.7, inland: 40, houses: 3, name: 'Champotón' },
+      { kind: 'town', coast: 0, at: 0.72, inland: 40, houses: 3, name: 'Champotón' },
       { kind: 'mangroves', island: 0, at: 0, span: 140 },
-      { kind: 'mangroves', coast: 1, at: 0.34, span: 0.12 },
+      { kind: 'mangroves', island: 3, at: 180, span: 120 },
+      { kind: 'stacks', island: 2, at: 0, count: 2 },
       { kind: 'lighthouse', island: 0, at: -90, d: 0.85 },
       { kind: 'wreck', x: 0.8, y: 0.26 },
     ],
@@ -206,9 +209,9 @@ export const LANDS = {
     style: 'port',
     relief: [{ island: 0, height: 0.9 }, { island: 1, height: 0.7, cliffs: 0 }, { island: 2, height: 1.1, cliffs: 0.4, at: 0 }],
     landmarks: [
-      { kind: 'town', island: 1, at: -4, d: 0.7, houses: 6, team: 'player', name: 'Port Royal' },
-      { kind: 'church', island: 1, at: 30, d: 0.3 },
-      { kind: 'harbour', island: 0, at: 120, r: 80 },
+      { kind: 'town', island: 1, at: 184, d: 0.7, houses: 6, team: 'player', name: 'Port Royal' },
+      { kind: 'church', island: 1, at: 150, d: 0.3 },
+      { kind: 'harbour', island: 0, at: 60, r: 80 },
       { kind: 'town', coast: 0, at: 0.3, inland: 40, houses: 4, team: 'player', name: 'Kingston' },
       { kind: 'windmill', island: 2, at: 180, d: 0.35 },
       { kind: 'lighthouse', island: 2, at: 0, d: 0.45 },

@@ -21,7 +21,7 @@ const FOCUS = {
 const browser = await launch();
 const page = await open(browser, { width: 390, height: 844, save: save() });
 const files = [];
-for (const id of ids) {
+for (const id of process.env.SHEET ? [] : ids) {
   for (const zoom of ['overview', 'mid']) {
     const info = await page.evaluate(([id, zoom, f]) => {
       const B = window.__broadside;
@@ -51,9 +51,11 @@ for (const id of ids) {
 await page.context().close();
 
 // A contact sheet: every overview side by side (and every mid under it), to see that no two look alike.
-if (!process.env.ONLY) {
+if (!process.env.ONLY || process.env.SHEET) {
   const sheet = await browser.newPage({ viewport: { width: 1900, height: 1240 } });
-  const tile = (z) => ids.map((id) => `<figure><img src="file://${path.join(OUT, `${id}-${z}.png`)}"><figcaption>${id}</figcaption></figure>`).join('');
+  // Inline the pictures (a page set from a string can't load file:// images).
+  const src = (f) => `data:image/png;base64,${fs.readFileSync(f).toString('base64')}`;
+  const tile = (z) => ids.map((id) => `<figure><img src="${src(path.join(OUT, `${id}-${z}.png`))}"><figcaption>${id}</figcaption></figure>`).join('');
   await sheet.setContent(`<style>body{margin:0;background:#1b2529;font:12px sans-serif;color:#efe5cf}div{display:flex;flex-wrap:nowrap}
     figure{margin:2px;width:98px}img{width:98px}figcaption{text-align:center}</style><div>${tile('overview')}</div><div>${tile('mid')}</div>`);
   await sheet.waitForTimeout(500);
