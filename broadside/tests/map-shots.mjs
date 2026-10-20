@@ -2,6 +2,7 @@
 // the signature spot, plus a contact sheet of all the overviews side by side. Not part of npm test.
 //   npm run build:single && node tests/map-shots.mjs                 # into shots/maps
 //   ONLY=tortuga,cove OUT=/tmp/maps node tests/map-shots.mjs
+//   WORLD=med OUT=shots/med node tests/map-shots.mjs              # the Mediterranean's battles instead
 import fs from 'fs';
 import path from 'path';
 import { launch, open, save, ROOT } from './lib.mjs';
@@ -9,13 +10,17 @@ import { launch, open, save, ROOT } from './lib.mjs';
 const OUT = process.env.OUT || path.join(ROOT, 'shots', 'maps');
 fs.mkdirSync(OUT, { recursive: true });
 const ALL = ['tutorial', 'tortuga', 'cayman', 'rojo', 'sanlucas', 'silver', 'comodoro', 'cartagena', 'santamarta', 'oro', 'cove', 'wreck', 'kate', 'convoy', 'siege', 'hierro', 'fog', 'blockade', 'armada'];
-const ids = process.env.ONLY ? process.env.ONLY.split(',') : ALL;
+const MED = ['tangier', 'gibraltar', 'sale', 'bougie', 'bagnio', 'goletta', 'algiers', 'knights', 'passero', 'tripoli', 'zante', 'navarino', 'candia', 'dia', 'narrows', 'kapudan'];
+const ids = process.env.ONLY ? process.env.ONLY.split(',') : process.env.WORLD === 'med' ? MED : ALL;
 // Where the mid shot looks: the feature that makes the map (portrait fractions).
 const FOCUS = {
   tutorial: [0.45, 0.62], tortuga: [0.45, 0.45], cayman: [0.5, 0.5], rojo: [0.55, 0.42], sanlucas: [0.5, 0.32],
   silver: [0.6, 0.45], comodoro: [0.47, 0.4], cartagena: [0.6, 0.3], santamarta: [0.45, 0.42], oro: [0.45, 0.45],
   cove: [0.55, 0.33], wreck: [0.5, 0.4], kate: [0.5, 0.42], convoy: [0.5, 0.45], siege: [0.55, 0.62],
   hierro: [0.5, 0.42], fog: [0.6, 0.66], blockade: [0.5, 0.3], armada: [0.45, 0.25],
+  tangier: [0.5, 0.76], gibraltar: [0.62, 0.48], sale: [0.75, 0.42], bougie: [0.62, 0.6], bagnio: [0.45, 0.5],
+  goletta: [0.5, 0.7], algiers: [0.45, 0.5], knights: [0.6, 0.76], passero: [0.4, 0.5], tripoli: [0.5, 0.45],
+  zante: [0.45, 0.5], navarino: [0.55, 0.38], candia: [0.42, 0.5], dia: [0.45, 0.3], narrows: [0.5, 0.5], kapudan: [0.55, 0.5],
 };
 
 const browser = await launch();
