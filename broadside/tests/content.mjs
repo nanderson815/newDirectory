@@ -161,6 +161,27 @@ expectCaught('fleetAt slot on an island', (B) => { B.fleetAt = 'center'; B.islan
   check(got.length === 0, `a sloop may start on a shoal (${got.join('; ') || 'no complaint'})`, failures);
 }
 
+// ---------- navigable (src/sim/navgrid.js, tests/navcheck.mjs) ----------
+// Every objective of every battle can be reached by the biggest ship you could bring, through channels with
+// room to spare, and every ship starts in open water.
+console.log('navigation:');
+{
+  const { navCheck } = await import('./navcheck.mjs');
+  const nav = await navCheck(C);
+  for (const p of nav.slice(0, 40)) console.log('       ' + p);
+  if (nav.length > 40) console.log(`       ... and ${nav.length - 40} more (node tests/navcheck.mjs)`);
+  check(nav.length === 0, `every battle's objectives are reachable for the biggest ship (${nav.length} problems)`, failures);
+}
+{
+  // The planner itself: a ship walled off from the far side of a long island is routed round its end.
+  const { navCheck } = await import('./navcheck.mjs');
+  const B = clone(plain);
+  B.islands = [{ x: 0.56, y: 0.5, r: 40, stretch: 8, angle: 0 }];
+  B.coast = [{ side: 'left', depth: 0.3, rough: 0 }];
+  const got = await navCheck({ ...C, BATTLES: [B] });
+  check(got.some((m) => m.includes('no route')), `the check catches a strait walled off by a long island (${got[0] || 'nothing caught'})`, failures);
+}
+
 // ---------- generated docs ----------
 console.log('docs:');
 const fresh = renderPrimitives(C);

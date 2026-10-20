@@ -29,6 +29,8 @@ import { spawnShip } from './sim/spawn.js';
 import { TERRAIN, fleetLayout, coreDist, coastGap } from './sim/terrain.js';
 import { applyCrit, RAKE, CRIT } from './sim/hazards.js';
 import { blockedAt } from './sim/steering.js';
+import { currentAt, turnTide, activeBooms } from './sim/flow.js';
+import { planRoute, navGrid } from './sim/navgrid.js';
 import { AVOID } from './sim/avoid.js';
 import { FORMATION } from './sim/formation.js';
 import { LANDMARKS, landOf, checkLand, leeAt } from './sim/land.js';
@@ -146,6 +148,9 @@ window.__broadside = {
   hazards: { applyCrit, RAKE, CRIT }, terrain: { coreDist, coastGap },
   // Land and landmarks (src/sim/land.js, src/config/lands.js), for tests.
   land: { LANDMARKS, LANDS, leeAt: (x, y) => leeAt(S.G, x, y) },
+  // Currents, the tide and booms (src/sim/flow.js); the route planner (src/sim/navgrid.js).
+  flow: { currentAt: (x, y) => [...currentAt(S.G, x, y)], turnTide: (to, secs) => turnTide(S.G, to, secs), activeBooms: () => activeBooms(S.G) },
+  nav: { planRoute: (L, x0, y0, x1, y1, reach) => planRoute(L, x0, y0, x1, y1, reach), grid: (L) => navGrid(L) },
   // Guns, slots and the great ship (src/config/guns.js, src/config/slots.js, src/save.js), for tests.
   guns: { GUNS, fireBroadside, gunRange, sideLoad, migrate, fitGun, fitOffer, buyGreatShip, greatOffer, fleetStats },
   startBattle(id) { openBrief(typeof id === 'number' ? id : battleIndex(id)); startPlay(); },

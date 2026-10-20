@@ -885,7 +885,7 @@ export function buildLand(G) {
 
   // Shoals and reefs (render/terrain.js) join the same bake.
   let seed = 7;
-  for (const c of G.shoals || []) glass.add(buildShoal(c, rng(seed++ * 31 + Math.round(c.x + c.y))));
+  for (const c of G.shoals || []) if (!c.tidal) glass.add(buildShoal(c, rng(seed++ * 31 + Math.round(c.x + c.y)))); // tidal ones: render/flow.js
   for (const c of G.reefs || []) root.add(buildReef(c, rng(seed++ * 37 + Math.round(c.x * 3 + c.y))));
   root.add(glass);
 

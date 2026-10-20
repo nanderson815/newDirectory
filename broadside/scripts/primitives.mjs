@@ -144,6 +144,16 @@ export function renderPrimitives(C) {
     'islands: [{ x: 0.72, y: 0.46, r: 34, stretch: 2.6, angle: 80 }],',
     'shoals: [{ x: 0.42, y: 0.3, r: 34, stretch: 1.6, angle: 20 }],',
     "reefs: [{ x: 0.55, y: 0.66, r: 12, stretch: 4, angle: -10 }], fleetAt: 'left',", '```', '');
+  out.push('Example: the sea that moves (`src/sim/flow.js`): a current down a strait, a sandbar the flood covers at 45',
+    'seconds, and a boom across a harbour mouth that comes down when fort 0 is silenced.', '', '```js',
+    'currents: [{ x: 0.5, y: 0.45, r: 120, stretch: 2.6, angle: 90, speed: 16 }],',
+    'shoals: [{ x: 0.4, y: 0.33, r: 40, stretch: 3, tidal: true }], tide: { level: 0.5, turns: [{ at: 45, to: 1 }] },',
+    "booms: [{ from: [0.46, 0.35], to: [0.79, 0.36], hp: 70, fort: 0, name: 'the Boca Chica boom' }],", '```', '',
+    'Every battle must stay navigable: `npm run check` (tests/navcheck.mjs) asks the route planner (`src/sim/navgrid.js`)',
+    'for a way from each of your fleet\'s slots to every enemy, fort landing, exit, chest, reach ring, working harbour and',
+    'boom, for the biggest ship you could bring (the great ship), with three beams of clear water',
+    'beyond her own clearance in every channel, at every stage of the tide. It names the battle, the screen size, the',
+    'ship and the objective it could not reach.', '');
 
   out.push('## Land and landmarks', '', 'The look of a battle\'s land and what stands on it: `src/config/lands.js`, keyed by battle id (or a battle def\'s own',
     '`land`), with landmark kinds from `LANDMARKS` in `src/sim/land.js`. Most are scenery; harbour (repairs), town (loot),',

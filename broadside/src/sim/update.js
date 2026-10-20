@@ -10,6 +10,7 @@ import { updateEvents } from './events.js';
 import { updateFog } from './fog.js';
 import { updateParticles } from './particles.js';
 import { updateLand } from './land.js';
+import { updateFlow } from './flow.js';
 import { sfx } from '../audio/sfx.js';
 
 // One simulation tick. Only a battle in play advances; menus keep the sea and particles alive.
@@ -30,6 +31,7 @@ export function update(dt) {
     for (const s of G.ships) updateShip(s, dt);
     for (const f of G.forts) updateFort(f, dt);
     collide(dt);
+    updateFlow(G, dt); // currents, the tide, harbour booms (before shot flies, so a boom can stop it)
     updateBalls(dt);
     updateMines(dt);
     updateBoardings(dt);

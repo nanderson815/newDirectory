@@ -8,6 +8,7 @@ import { weightFactors } from '../config/slots.js';
 import { makeCapsule, makeCoast, capsuleRadius, coastList, fleetLayout } from './terrain.js';
 import { setupGoals } from './goals/index.js';
 import { setupLand } from './land.js';
+import { setupFlow } from './flow.js';
 import { worldById } from '../config/worlds.js';
 
 // How far your lookouts see on a night battle (`night: true`) that doesn't set its own `fog`.
@@ -99,7 +100,7 @@ export function createBattle(idx, size, fleet) {
     return { ...is, verts, fort, seed: Math.floor(rand(1, 1e6)) };
   });
   // Shallows, reef rocks and coastlines (src/sim/terrain.js); the renderer builds them in render/land.js.
-  const shoals = (B.shoals || []).map((d) => makeCapsule(d, place, rot));
+  const shoals = (B.shoals || []).map((d) => ({ ...makeCapsule(d, place, rot), tidal: !!d.tidal }));
   const reefs = (B.reefs || []).map((d) => makeCapsule(d, place, rot));
   const coasts = coastList(B.coast).map((d) => makeCoast(d, place));
 
@@ -135,5 +136,7 @@ export function createBattle(idx, size, fleet) {
   G.goal = G.goals[0].kind;
   // The look of the land and its landmarks (src/config/lands.js, src/sim/land.js).
   setupLand(G, B, { place, rot });
+  // Currents, the tide and harbour booms (src/sim/flow.js).
+  setupFlow(G, B, { place, rot });
   return G;
 }

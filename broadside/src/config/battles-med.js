@@ -11,7 +11,8 @@
 // it is for. Positions are portrait fractions of a sea `sea` times the usual size, so on a big sea islands
 // (radii in map units) look smaller and channels wider. Channels a ship of the line must use are kept at least
 // ~3 beams plus her shore clearance on each side wide (about 230+ map units), with open water at every spawn.
-// TODO(current/tide): a later pass adds sea currents and tides; the battles that want one say so in a TODO.
+// The sea that moves (src/sim/flow.js): currents in the Straits, off Cape Passero, up the Ionian channel and down the
+// Dardanelles; tides over the bar at Salé and off Dia's reefs.
 //
 // Factions: 'barbary' (the corsairs of Salé, Algiers, Tunis, Tripoli) and 'ottoman' (the Sultan's fleet); see
 // src/config/factions.js. Allies (the Knights, Venice) are allied captains on your side.
@@ -79,7 +80,7 @@ export const MED_BATTLES = [
     ],
     // A long chase down a corridor of water: the Rock juts from the European shore and Jebel Musa from the
     // African, with a reef in the wide water astern, the wind dead behind the quarry and the Rock's lee across
-    // the middle. TODO(current): the inflowing Atlantic current would make the run west a fight against the water.
+    // the middle. The Atlantic pours in down the corridor (src/sim/flow.js), so the run west is a fight against it.
     fleetAt: { slots: [[0.5, 0.82], [0.38, 0.86], [0.62, 0.86], [0.44, 0.92], [0.56, 0.92]], h: -90 },
     coast: [
       { side: 'left', depth: 0.22, rough: 0.15, seed: 3, capes: [{ at: 0.38, width: 0.24, depth: 0.16 }] },
@@ -87,6 +88,7 @@ export const MED_BATTLES = [
     ],
     reefs: [{ x: 0.5, y: 0.72, r: 14, stretch: 5, angle: 90 }],
     shoals: [{ x: 0.66, y: 0.46, r: 44, stretch: 1.8, angle: 80 }],
+    currents: [{ x: 0.5, y: 0.42, r: 110, stretch: 5, angle: 90, speed: 10 }],
     islands: [],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 2.0, hpMul: 3.14 },
   },
@@ -110,10 +112,12 @@ export const MED_BATTLES = [
         spawn: [{ type: 'tartane', name: 'Rih', x: 0.06, y: 0.42, h: 0 }, { type: 'tartane', name: 'Zahra', x: 0.94, y: 0.42, h: 180 }] },
     ],
     // A river-mouth lair: a deep cove behind a sandbar that light corsairs cross and your ships of the line must
-    // go round, the Kasbah on its rock covering the anchorage. TODO(tide): a falling tide over the bar.
+    // go round, the Kasbah on its rock covering the anchorage. The tide falls at 80 s and the bar dries: then even
+    // the corsairs must use the channels.
     coast: { side: 'top', depth: 0.3, rough: 0.15, seed: 6, coves: [{ at: 0.5, width: 0.8, depth: 0.2 }] },
     fleetAt: { slots: [[0.5, 0.58], [0.38, 0.62], [0.62, 0.62], [0.44, 0.68], [0.56, 0.68]], h: -90 },
-    shoals: [{ x: 0.5, y: 0.34, r: 36, stretch: 3, angle: 0 }],
+    shoals: [{ x: 0.5, y: 0.34, r: 36, stretch: 3, angle: 0, tidal: true }],
+    tide: { level: 0.5, turns: [{ at: 80, to: 0.2, secs: 16 }] },
     islands: [{ x: 0.19, y: 0.18, r: 28 }, { x: 0.82, y: 0.6, r: 40 }, { x: 0.16, y: 0.5, r: 32, stretch: 1.6, angle: 60 }],
     forts: [{ island: 0, name: 'the Kasbah', hp: 300, guns: 3, need: 15 }],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.54, hpMul: 2.04 },
@@ -286,11 +290,12 @@ export const MED_BATTLES = [
     ],
     // A lee shore in a rising gale: Cape Passero and its islet stand out from the Sicilian shore with reefs off
     // them, the wind blows you onto it, and the open sea to the west is where you claw off.
-    // TODO(current): the set round the cape in the gale would make the lee shore really bite.
+    // The set round the cape (src/sim/flow.js) carries you toward the reefs and the lee shore.
     fleetAt: { slots: [[0.48, 0.84], [0.38, 0.88], [0.58, 0.86], [0.44, 0.94], [0.56, 0.93]], h: -90 },
     coast: { side: 'right', depth: 0.22, rough: 0.3, seed: 12, capes: [{ at: 0.6, width: 0.3, depth: 0.22 }] },
     islands: [{ x: 0.32, y: 0.66, r: 40 }, { x: 0.12, y: 0.86, r: 42, stretch: 1.5, angle: -20 }],
     reefs: [{ x: 0.28, y: 0.44, r: 14, stretch: 5, angle: 60 }, { x: 0.58, y: 0.34, r: 16, stretch: 2, angle: 10 }, { x: 0.36, y: 0.58, r: 12, stretch: 3, angle: 90 }],
+    currents: [{ x: 0.52, y: 0.5, r: 90, stretch: 3, angle: 90, dir: 60, speed: 11 }],
     ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 2.93, hpMul: 3.56 },
   },
   {
@@ -346,9 +351,10 @@ export const MED_BATTLES = [
     ],
     // A long channel and an ambush: the convoy's road runs up between the Morea's coves and the long island of
     // Cephalonia, with an islet splitting it; corsairs wait in the coves and behind the island, off the screen.
-    // TODO(current): a current up the channel would carry the convoy and make the corsairs row against it.
+    // A current sets up the channel (src/sim/flow.js): it carries the convoy and the corsairs row against it.
     coast: { side: 'left', depth: 0.16, rough: 0.3, seed: 14, coves: [{ at: 0.3, width: 0.16, depth: 0.07 }, { at: 0.68, width: 0.14, depth: 0.07 }] },
     islands: [{ x: 0.8, y: 0.32, r: 46, stretch: 7, angle: 92 }, { x: 0.82, y: 0.8, r: 60, stretch: 1.5, angle: 60 }, { x: 0.44, y: 0.55, r: 34 }],
+    currents: [{ x: 0.5, y: 0.5, r: 100, stretch: 5, angle: -90, speed: 9 }],
     ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.64, hpMul: 2.53 },
   },
   {
@@ -432,11 +438,14 @@ export const MED_BATTLES = [
     ],
     // Night round a big island: Dia fills the middle of the chart with reefs off both ends, the battery on its
     // seaward side; you come out from the Cretan shore, where a lantern lights the water for your lookouts.
-    // TODO(tide): a falling tide off Dia's reefs would open and close a short cut across them.
+    // The tide (src/sim/flow.js) falls at 60 s: until then a sandbar between Dia's west end and its reef is a short
+    // cut for any ship; after, it dries and only the long way round the east end is left.
     fleetAt: { slots: [[0.5, 0.72], [0.38, 0.74], [0.62, 0.74], [0.44, 0.79], [0.56, 0.79]], h: -90 },
     coast: { side: 'bottom', depth: 0.1, rough: 0.3, seed: 17 },
     islands: [{ x: 0.5, y: 0.36, r: 74, stretch: 2.2, angle: 8 }, { x: 0.8, y: 0.62, r: 32 }],
-    reefs: [{ x: 0.14, y: 0.42, r: 14, stretch: 5, angle: 80 }, { x: 0.87, y: 0.3, r: 14, stretch: 5, angle: -70 }],
+    reefs: [{ x: 0.14, y: 0.42, r: 14, stretch: 5, angle: 80 }, { x: 0.92, y: 0.28, r: 14, stretch: 3.5, angle: -70 }],
+    shoals: [{ x: 0.22, y: 0.4, r: 36, stretch: 1.6, angle: 80, tidal: true }],
+    tide: { level: 1, turns: [{ at: 60, to: 0.2, secs: 16 }] },
     ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 2.8, hpMul: 3.4 },
   },
 
@@ -456,14 +465,15 @@ export const MED_BATTLES = [
         spawn: [{ type: 'galley', name: 'Kartal', x: 0.36, y: 0.7, h: -30 }, { type: 'galley', name: 'Yunus', x: 0.64, y: 0.72, h: -150 }] },
     ],
     // A long, narrow strait: the castles stand on points of the European and Asian shores, offset so the
-    // channel snakes between their guns, and the Ottoman line waits beyond. TODO(current): the Dardanelles
-    // current runs down the strait, against you; a later pass should add it.
+    // channel snakes between their guns, and the Ottoman line waits beyond. The Dardanelles current runs down the
+    // strait against you (src/sim/flow.js).
     fleetAt: { slots: [[0.5, 0.84], [0.4, 0.88], [0.6, 0.88], [0.45, 0.94], [0.55, 0.94]], h: -90 },
     coast: [
       { side: 'left', depth: 0.22, rough: 0.12, seed: 2, capes: [{ at: 0.46, width: 0.18, depth: 0.14 }] },
       { side: 'right', depth: 0.22, rough: 0.12, seed: 13, capes: [{ at: 0.58, width: 0.18, depth: 0.14 }] },
     ],
     islands: [{ x: 0.36, y: 0.46, r: 32 }, { x: 0.64, y: 0.58, r: 32 }],
+    currents: [{ x: 0.5, y: 0.52, r: 90, stretch: 6, angle: 90, speed: 12 }],
     forts: [
       { island: 0, name: 'Kilitbahir', hp: 280, guns: 2, need: 15 },
       { island: 1, name: 'Çanakkale', hp: 280, guns: 2, need: 15 },
