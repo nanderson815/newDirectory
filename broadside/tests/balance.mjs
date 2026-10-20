@@ -208,7 +208,8 @@ console.log(`\nBroadside balance: ${RUNS} runs per battle, bot captain, ${MAX_T}
 console.log('  #    battle      goal     win  t(win) t(all) lost/fleet 3*   to  extra        bot$ budget  fleet');
 for (const r of rows) {
   if (WORLD && !r.measured) continue;
-  let extra = r.goal === 'boss' ? `bossHp ${r.bossHp == null || Number.isNaN(r.bossHp) ? ' -' : (r.bossHp * 100).toFixed(0) + '%'}`
+  // An unmeasured row (ONLY=...) has no runs to average: leave its columns blank rather than print 0% or NaN.
+  let extra = !r.measured ? '' : r.goal === 'boss' ? `bossHp ${r.bossHp == null || Number.isNaN(r.bossHp) ? ' -' : (r.bossHp * 100).toFixed(0) + '%'}`
     : r.forts != null ? `forts ${r.forts.toFixed(1)}` : '';
   if (r.taken > 0.05) extra += ` tk${r.taken.toFixed(1)}`;
   console.log(`  ${r.roman.padStart(4)} ${r.id.padEnd(11)} ${r.goal.padEnd(7)} ${r.measured ? pct(r.win) : '   -'} ${sec(r.tWin)}  ${sec(r.tAll)}   ${f1(r.lost)}/${r.ships}    ${pct(r.flawless)} ${String(r.timeouts).padStart(2)}  ${extra.padEnd(12)} ${String(r.botGold).padStart(4)} ${String(r.gold).padStart(5)}   ${r.fleet}`);
