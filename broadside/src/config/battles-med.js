@@ -476,7 +476,8 @@ export const MED_BATTLES = [
     goals: [{ kind: 'boss' }, { kind: 'take', ships: 'Arslan', bonus: true, gold: 240 }],
     brief: 'Bahri Ömer Pasha, Kapudan Pasha of the Ottoman fleet, comes out of the Dardanelles in his sultana Kara Ejder with galleasses on his wings and galleys behind Tenedos. His ships fight faster near him. Break his line and sink the flagship.',
     enemy: [
-      { type: 'sultana', name: 'Kara Ejder', x: 0.55, y: 0.14, h: 90, hp: 1100, chasers: 3,
+      // The Kapudan's sultana carries demi-cannon on both broadsides (src/config/guns.js).
+      { type: 'sultana', name: 'Kara Ejder', x: 0.55, y: 0.14, h: 90, hp: 1100, chasers: 3, loadout: { port: 'demicannon', starboard: 'demicannon' },
         abilities: { rally: { radius: 230, reload: 0.75 }, mortar: { range: 460, reload: 9, dmg: 20, radius: 34 } },
         boss: { captain: 'Bahri Ömer Pasha', title: 'Kara Ejder', hat: 'kavuk' } },
       { type: 'galleass', name: 'Sancak', x: 0.3, y: 0.12, h: 90 },

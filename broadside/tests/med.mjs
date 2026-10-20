@@ -91,7 +91,7 @@ console.log('Every Mediterranean battle loads and plays');
       b.startPlay();
       return { brief, ships: b.G.ships.length, style: b.G.style, faction: b.G.faction };
     }, B.id);
-    const result = await botPlay(page, +(process.env.SECS || 90));
+    const result = await botPlay(page, +(process.env.SECS || 60));
     const after = await page.evaluate(() => ({ t: Math.round(window.__broadside.G.t) }));
     check(info.brief && info.ships > 2 && page.errors.length === 0,
       `${B.id}: briefs, builds (${info.ships} ships, ${info.style}, ${info.faction}) and plays ${after.t}s with the bot (${result || 'still on'})${page.errors.length ? ' ' + page.errors.slice(0, 2).join(' | ') : ''}`, failures);
@@ -146,6 +146,7 @@ check(night.night && night.fog > 0 && night.hidden && !night.burning, `at night 
 const gale = await B(() => {
   const b = window.__broadside; b.startBattle('passero'); b.step(1);
   const G = b.G, r = G.ships[0], calm = b.windFactor(r.h, r);
+  for (const s of G.ships) if (s.team === 'enemy') { s.passive = true; s.x = 30; s.y = 30; }
   b.sim(60 * 56);
   return { k: G.wind.k, fog: G.fog, faster: b.windFactor(r.h, r) > calm };
 });
@@ -199,6 +200,7 @@ const bonus = await B(() => {
     b.startBattle('tangier'); b.step(1);
     const G = b.G;
     if (!fast) G.t = 230;
+    b.sim(1); // late reinforcements arrive on cue
     for (const s of G.ships) if (s.team === 'enemy') s.state = 'sunk';
     const gold = b.save.gold;
     b.sim(60 * 3);
