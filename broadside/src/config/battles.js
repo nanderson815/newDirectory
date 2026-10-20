@@ -90,14 +90,14 @@ export const BATTLES = [
       { x: 0.5, y: 0.7, r: 54, stretch: 3, angle: 0 }, { x: 0.94, y: 0.52, r: 34, stretch: 1.4, angle: 90 },
       { x: 0.1, y: 0.62, r: 34, stretch: 1.8, angle: 70 }, { x: 0.86, y: 0.8, r: 30, stretch: 1.6, angle: -30 },
     ],
-    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.72, hpMul: 1.45 },
+    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.72, hpMul: 1.25 },
   },
   {
     id: 'rojo', region: 'windward', roman: 'III', year: 1656, name: 'La Bruja', foe: 'Capitán Rojo',
     goal: 'boss', hat: 'rojo', reward: 220, wind: 20,
     brief: 'Capitán Rojo’s galleon La Bruja carries bow chasers, so don’t linger in front of her. Sink her and his red tricorne is yours.',
     enemy: [
-      { type: 'galleon', name: 'La Bruja', x: 0.82, y: 0.42, h: 90, hp: 420, chasers: 2, reloadMul: 0.9,
+      { type: 'galleon', name: 'La Bruja', x: 0.82, y: 0.42, h: 90, hp: 500, chasers: 2, reloadMul: 0.9,
         boss: { captain: 'Capitán Rojo', title: 'La Bruja', hat: 'rojo' } },
       { type: 'brig', name: 'El Lobo', x: 0.24, y: 0.18, h: 90 },
     ],
@@ -107,7 +107,7 @@ export const BATTLES = [
     sea: 1.15,
     islands: [{ x: 0.45, y: 0.4, r: 118 }, { x: 0.82, y: 0.76, r: 34 }],
     reefs: [{ x: 0.24, y: 0.6, r: 11, stretch: 3, angle: 20 }, { x: 0.62, y: 0.2, r: 10, stretch: 2.5, angle: -30 }],
-    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 0.7, hpMul: 1.6 },
+    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 0.85, hpMul: 1.6 },
   },
 
   {
@@ -196,7 +196,7 @@ export const BATTLES = [
     shoals: [{ x: 0.09, y: 0.33, r: 44, stretch: 1.3, angle: 90 }],
     booms: [{ from: [0.455, 0.352], to: [0.79, 0.36], hp: 70, fort: 0, name: 'the Boca Chica boom' }],
     forts: [{ island: 0, name: 'Fort San Felipe', hp: 400, guns: 3, need: 15 }],
-    ai: { spread: 0.09, reloadMul: 1, dmgMul: 0.85, hpMul: 1.6 },
+    ai: { spread: 0.09, reloadMul: 1, dmgMul: 0.85, hpMul: 1.35 },
   },
   {
     id: 'santamarta', region: 'golden', roman: 'VIII', year: 1659, name: 'Twin Towers of Santa Marta', foe: 'coastal batteries',
@@ -219,8 +219,8 @@ export const BATTLES = [
       { x: 0.614, y: 0.525, r: 13, stretch: 7.32, angle: 158 },
     ],
     forts: [
-      { island: 0, name: 'North Tower', hp: 240, guns: 3, need: 10 },
-      { island: 1, name: 'South Tower', hp: 240, guns: 3, need: 10 },
+      { island: 0, name: 'North Tower', hp: 210, guns: 3, need: 10 },
+      { island: 1, name: 'South Tower', hp: 210, guns: 3, need: 10 },
     ],
     ai: { spread: 0.09, reloadMul: 1, dmgMul: 1.0, hpMul: 1.8 },
   },
@@ -229,7 +229,7 @@ export const BATTLES = [
     goal: 'boss', hat: 'oro', reward: 500, wind: 0,
     brief: 'The Almirante’s man-o’-war lays sea mines in her wake and carries bow chasers. Beat her and Spain’s Caribbean squadron is broken.',
     enemy: [
-      { type: 'manowar', name: 'Santísima Trinidad', x: 0.5, y: 0.1, h: 90, hp: 400, chasers: 2, abilities: { mineLayer: { every: 7 } },
+      { type: 'manowar', name: 'Santísima Trinidad', x: 0.5, y: 0.1, h: 90, hp: 360, chasers: 2, abilities: { mineLayer: { every: 7 } },
         boss: { captain: 'Almirante de Oro', title: 'Santísima Trinidad', hat: 'oro' } },
       { type: 'galleon', name: 'San Lorenzo', x: 0.2, y: 0.12, h: 90 },
       { type: 'galleon', name: 'San Nicolás', x: 0.8, y: 0.12, h: 90 },
@@ -243,7 +243,7 @@ export const BATTLES = [
       { x: 0.08, y: 0.64, r: 50 }, { x: 0.92, y: 0.65, r: 50 }, { x: 0.56, y: 0.24, r: 52, stretch: 2.2, angle: 10 },
       { x: 0.12, y: 0.25, r: 50 }, { x: 0.91, y: 0.26, r: 46 },
     ],
-    ai: { spread: 0.11, reloadMul: 1.1, dmgMul: 0.9, hpMul: 0.8 },
+    ai: { spread: 0.11, reloadMul: 1.1, dmgMul: 0.9, hpMul: 0.7 },
   },
 
   // ---------- The Pirate Coast ----------
@@ -273,7 +273,7 @@ export const BATTLES = [
       { enemiesLeft: 1, banner: ['The Black Dog!', 'The smugglers’ brig joins the hunt'],
         spawn: [{ type: 'brig', name: 'Black Dog', x: 0.5, y: 0.17, h: 90 }] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.52, hpMul: 2.3 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.52, hpMul: 2.55 },
   },
   {
     id: 'wreck', region: 'pirate', roman: 'XI', year: 1660, name: 'The Treasure Wreck', foe: 'pirate salvors',
@@ -368,7 +368,7 @@ export const BATTLES = [
       { x: 0.93, y: 0.18, r: 28, stretch: 3, angle: 80 }, { x: 0.94, y: 0.48, r: 28, stretch: 3, angle: 95 }, { x: 0.93, y: 0.76, r: 28, stretch: 3, angle: 85 },
     ],
     shoals: [{ x: 0.8, y: 0.26, r: 34, stretch: 1.6, angle: 30 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.25, hpMul: 1.5 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.1, hpMul: 1.5 },
   },
   {
     id: 'siege', region: 'campeche', roman: 'XIV', year: 1662, name: 'The Siege of Port Royal', foe: 'Spanish siege fleet',
@@ -470,13 +470,13 @@ export const BATTLES = [
     // A long thin strait: shores on both hands pinch to the narrows under El Morro at the top, a reef splits it into
     // two channels with the galleons waiting above, and a current sets up the middle toward the exit. Feint at one
     // channel and run the other, or ride the stream past the island and take them both on.
-    sea: 1.3,
+    sea: 1.1,
     fleetAt: { slots: [[0.5, 0.68], [0.38, 0.72], [0.62, 0.72], [0.44, 0.78], [0.56, 0.78]], h: -90 },
     coast: [
-      { side: 'left', depth: 0.14, rough: 0.25, seed: 3, capes: [{ at: 0.13, width: 0.18, depth: 0.09 }] },
-      { side: 'right', depth: 0.14, rough: 0.25, seed: 11, capes: [{ at: 0.15, width: 0.18, depth: 0.09 }] },
+      { side: 'left', depth: 0.13, rough: 0.25, seed: 3, capes: [{ at: 0.13, width: 0.18, depth: 0.07 }] },
+      { side: 'right', depth: 0.13, rough: 0.25, seed: 11, capes: [{ at: 0.15, width: 0.18, depth: 0.07 }] },
     ],
-    reefs: [{ x: 0.5, y: 0.36, r: 12, stretch: 5, angle: 0 }],
+    reefs: [{ x: 0.5, y: 0.36, r: 12, stretch: 4.4, angle: 0 }],
     islands: [{ x: 0.5, y: 0.55, r: 30, stretch: 1.8, angle: 90 }],
     currents: [{ x: 0.5, y: 0.45, r: 80, stretch: 7, angle: -90, speed: 15 }],
     events: [
@@ -515,7 +515,7 @@ export const BATTLES = [
     shoals: [{ x: 0.5, y: 0.7, r: 60, stretch: 2, angle: 90 }],
     currents: [{ x: 0.5, y: 0.25, r: 80, stretch: 6, angle: 0, speed: 10 }],
     forts: [{ island: 0, name: 'Castillo del Morro', hp: 260, guns: 3, need: 15 }],
-    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 0.85, hpMul: 1.45 },
+    ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 0.85, hpMul: 1.35 },
   },
 ];
 
