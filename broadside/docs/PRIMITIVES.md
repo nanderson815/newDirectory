@@ -538,7 +538,7 @@ The tide rises and falls over the battle, covering and uncovering the shoals mar
 
 ### `booms`
 
-A harbour boom: a chain of logs floated across a harbour mouth. It blocks every ship like land until it is broken: by enough of the attackers' shot landing on it (the defenders fire over it), or at once when the fort named by `fort` is silenced or taken. Captains, the route planner and the test bot treat it as land while it holds.
+A harbour boom: a chain of logs floated across a harbour mouth. It blocks every ship like land, and stops round shot from both sides, until it is broken: by enough of the attackers' shot landing on it, or at once when the fort named by `fort` is silenced or taken. Captains, the route planner and the test bot treat it as land while it holds.
 
 | field | description |
 |---|---|

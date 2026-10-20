@@ -189,7 +189,7 @@ export const BATTLES = [
     ],
     // A harbour assault: the bay is closed by Tierra Bomba, the Bocagrande sands (sloops only) and a log boom across
     // Boca Chica under Fort San Felipe. The squadron waits behind the boom; silence the fort and it comes down and
-    // they come out, or shoot the boom through and go in after them (and the town).
+    // they come out, or shoot the boom through and go in after them (and the town). Sloops can slip over the sands.
     sea: 1.3,
     coast: { side: 'top', depth: 0.32, rough: 0.25, seed: 5, coves: [{ at: 0.48, width: 0.74, depth: 0.22 }] },
     islands: [{ x: 0.82, y: 0.36, r: 46 }, { x: 0.32, y: 0.35, r: 34, stretch: 4.2, angle: 4 }, { x: 0.2, y: 0.66, r: 28 }, { x: 0.68, y: 0.7, r: 22 }],
@@ -342,13 +342,13 @@ export const BATTLES = [
     fleetAt: { slots: [[0.5, 0.6], [0.3, 0.64], [0.7, 0.64], [0.4, 0.84], [0.6, 0.84]], h: -90 },
     brief: 'Three merchantmen carry the colony’s silver, with marines aboard to beat off boarders. They sail for the top of the chart on their own; keep the raiders’ guns off them. Two must get through.',
     goals: [{ kind: 'escort', need: 2, ships: [
-      { type: 'merchant', name: 'Good Hope', x: 0.38, y: 0.72, h: -90, up: { marines: 2 } },
-      { type: 'merchant', name: 'Prosperous', x: 0.5, y: 0.7, h: -90, up: { marines: 2 } },
-      { type: 'merchant', name: 'Bountiful', x: 0.62, y: 0.72, h: -90, up: { marines: 2 } },
+      { type: 'merchant', name: 'Good Hope', x: 0.32, y: 0.72, h: -90, up: { marines: 2 } },
+      { type: 'merchant', name: 'Prosperous', x: 0.44, y: 0.7, h: -90, up: { marines: 2 } },
+      { type: 'merchant', name: 'Bountiful', x: 0.56, y: 0.72, h: -90, up: { marines: 2 } },
     ] }],
     enemy: [
       { type: 'xebec', name: 'El Cuchillo', x: 0.13, y: 0.4, h: 0 },
-      { type: 'xebec', name: 'La Daga', x: 0.94, y: 0.34, h: 180 },
+      { type: 'xebec', name: 'La Daga', x: 0.83, y: 0.36, h: -90 },
       { type: 'brig', name: 'San Bruno', x: 0.3, y: 0.14, h: 90 },
       { type: 'galleon', name: 'San Felipe', x: 0.5, y: 0.08, h: 90 },
       { type: 'brig', name: 'San Diego', x: 0.7, y: 0.14, h: 90 },
@@ -358,14 +358,14 @@ export const BATTLES = [
       { at: 20, banner: ['Oars astern!', 'Two xebecs row up behind the convoy'],
         spawn: [{ type: 'xebec', name: 'El Puñal', x: 0.2, y: 0.94, h: -45 }, { type: 'xebec', name: 'La Navaja', x: 0.8, y: 0.94, h: -135 }] },
     ],
-    // The road inside the keys: the mainland on the left with a xebec in its creek, a chain of keys on the right with
-    // another behind them, and a barrier cay splitting the road north into two lanes. Keep the convoy together
-    // in one lane or cover both, and watch the gaps between the keys.
-    sea: 1.3,
+    // The road inside the keys: the mainland on the left with a xebec in its creek, a long barrier cay on the right
+    // with a back lane behind it where a second xebec waits, and the keys beyond. The convoy keeps the main road;
+    // guard the creek and the mouths of the back lane, where the raiders come from.
+    sea: 1.15,
     coast: { side: 'left', depth: 0.08, rough: 0.4, seed: 21, coves: [{ at: 0.4, width: 0.14, depth: 0.05 }] },
     islands: [
-      { x: 0.47, y: 0.42, r: 34, stretch: 3.6, angle: 90 }, { x: 0.22, y: 0.24, r: 24 },
-      { x: 0.84, y: 0.2, r: 30, stretch: 3, angle: 80 }, { x: 0.86, y: 0.48, r: 30, stretch: 3, angle: 95 }, { x: 0.84, y: 0.76, r: 30, stretch: 3, angle: 85 },
+      { x: 0.7, y: 0.44, r: 34, stretch: 4, angle: 90 }, { x: 0.22, y: 0.24, r: 24 },
+      { x: 0.93, y: 0.18, r: 28, stretch: 3, angle: 80 }, { x: 0.94, y: 0.48, r: 28, stretch: 3, angle: 95 }, { x: 0.93, y: 0.76, r: 28, stretch: 3, angle: 85 },
     ],
     shoals: [{ x: 0.8, y: 0.26, r: 34, stretch: 1.6, angle: 30 }],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.49, hpMul: 1.5 },
@@ -470,15 +470,15 @@ export const BATTLES = [
     // A long thin strait: shores on both hands pinch to the narrows under El Morro at the top, a reef line crosses
     // it, and a current sets up the middle toward the exit. Ride the stream through the middle gap past the
     // galleons, or slip a small ship through a side gap by the shore out of their reach.
-    sea: 1.4,
+    sea: 1.1,
     fleetAt: { slots: [[0.5, 0.82], [0.38, 0.86], [0.62, 0.86], [0.44, 0.93], [0.56, 0.93]], h: -90 },
     coast: [
-      { side: 'left', depth: 0.17, rough: 0.25, seed: 3, capes: [{ at: 0.13, width: 0.18, depth: 0.12 }] },
-      { side: 'right', depth: 0.17, rough: 0.25, seed: 11, capes: [{ at: 0.15, width: 0.18, depth: 0.12 }] },
+      { side: 'left', depth: 0.15, rough: 0.25, seed: 3, capes: [{ at: 0.13, width: 0.18, depth: 0.11 }] },
+      { side: 'right', depth: 0.15, rough: 0.25, seed: 11, capes: [{ at: 0.15, width: 0.18, depth: 0.11 }] },
     ],
-    reefs: [{ x: 0.31, y: 0.37, r: 12, stretch: 6, angle: -6 }, { x: 0.69, y: 0.35, r: 12, stretch: 6, angle: 8 }],
+    reefs: [{ x: 0.29, y: 0.37, r: 12, stretch: 4.4, angle: -6 }, { x: 0.71, y: 0.35, r: 12, stretch: 4.4, angle: 8 }],
     islands: [{ x: 0.5, y: 0.56, r: 34, stretch: 1.8, angle: 0 }],
-    currents: [{ x: 0.5, y: 0.5, r: 100, stretch: 6, angle: -90, speed: 13 }],
+    currents: [{ x: 0.5, y: 0.5, r: 90, stretch: 7, angle: -90, speed: 16 }],
     events: [
       { at: 18, wind: 0, banner: ['The wind veers!', 'A fresh breeze on the beam: crack on for the gap'] },
       { at: 30, banner: ['A galley from the shore!', 'La Jabalina rows out to close the gap'],

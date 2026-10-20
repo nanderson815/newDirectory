@@ -324,7 +324,7 @@ export const TERRAIN = {
     },
   },
   booms: {
-    about: 'A harbour boom: a chain of logs floated across a harbour mouth. It blocks every ship like land until it is broken: by enough of the attackers\' shot landing on it (the defenders fire over it), or at once when the fort named by `fort` is silenced or taken. Captains, the route planner and the test bot treat it as land while it holds.',
+    about: 'A harbour boom: a chain of logs floated across a harbour mouth. It blocks every ship like land, and stops round shot from both sides, until it is broken: by enough of the attackers\' shot landing on it, or at once when the fort named by `fort` is silenced or taken. Captains, the route planner and the test bot treat it as land while it holds.',
     params: {
       from: 'one end, [x, y] (portrait fractions), usually on a shore',
       to: 'the other end, [x, y]',

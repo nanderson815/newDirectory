@@ -223,6 +223,19 @@ export function planTo(L, x0, y0, test, hx, hy, G = S.G, minRoom = -Infinity) {
   return cells ? smooth(g, cells, x0, y0) : null;
 }
 
+// Ships sent the same way would sail the same waypoints in line abreast and shove each other along; each keeps
+// to a lane of her own instead (by id: left of the line, on it, or right of it), where the water allows.
+function lanes(s, g, pts) {
+  const side = ((s.id % 3) + 3) % 3 - 1;
+  if (!side || s.id < 0) return pts;
+  return pts.map(([x, y], i) => {
+    const q = pts[Math.min(pts.length - 1, i + 1)], o = i ? pts[i - 1] : [s.x, s.y];
+    const dx = q[0] - o[0], dy = q[1] - o[1], d = Math.hypot(dx, dy) || 1, k = side * s.L * 1.1;
+    const nx = x - (dy / d) * k, ny = y + (dx / d) * k;
+    return g.c[cellOf(g, nx, ny)] <= 1 && clearLine(g, o[0], o[1], nx, ny, 1, g.cs) ? [nx, ny] : [x, y];
+  });
+}
+
 // ---------- The calls steering makes ----------
 // followPath: is the next mark p of a course in plain sight? If not, the planner's waypoints to sail first
 // (new points, already checked), else null. The answer is kept on the point, so the course preview (which sails
@@ -237,7 +250,7 @@ export function navLeg(s, p) {
   const r = planRoute(s.L, s.x, s.y, p.x, p.y);
   if (!r || r.length < 2) return null;
   r.pop(); // the mark itself stays in the course
-  p.nav = r.map(([x, y]) => ({ x, y, nav: null }));
+  p.nav = lanes(s, g, r).map(([x, y]) => ({ x, y, nav: null }));
   return p.nav;
 }
 
@@ -255,7 +268,7 @@ export function navBearing(s, x, y, exit = false) {
     n = s.navTo = { x, y, at: G.t, wps: null };
     if (!clearLine(g, s.x, s.y, x, y, 2, s.L * 0.6, Math.max(s.L * 0.6, reach))) {
       const r = exit ? planTo(s.L, s.x, s.y, exitTest(G), x, y) : planRoute(s.L, s.x, s.y, x, y, reach);
-      if (r && r.length > 1) n.wps = r.slice(1).map(([a, b]) => [Math.round(a), Math.round(b)]);
+      if (r && r.length > 1) n.wps = lanes(s, g, r.slice(1)).map(([a, b]) => [Math.round(a), Math.round(b)]);
     }
   }
   const w = n.wps;

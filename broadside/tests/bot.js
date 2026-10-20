@@ -19,8 +19,11 @@
   const blocked = (s, p) => !!(B().blockedAt && B().blockedAt(s, p.x, p.y));
   // Water in the lee of high land (src/sim/land.js), where the wind drops.
   const calm = (p) => !!(B().land && B().land.leeAt(p.x, p.y) < 0.8);
+  // Can she get within gun range of t? (The route planner, src/sim/navgrid.js; only asked when land lies between.)
+  const reachable = (s, t) => !B().nav || Math.hypot(t.x - s.x, t.y - s.y) < s.range || !!B().nav.planRoute(s.L, s.x, s.y, t.x, t.y, s.range * 0.8);
   function circle(s, t, G) {
-    const a = Math.atan2(s.y - t.y, s.x - t.x) + 0.9;
+    // Each ship swings round at her own angle, so two sent at one target do not ride together shoving each other.
+    const a = Math.atan2(s.y - t.y, s.x - t.x) + 0.9 + ((s.id % 3) - 1) * 0.45;
     const d = s.range * 0.6 + (t.kind === 'fort' ? G.islands[t.island].r : 0);
     s.pivot = null; s.order = null;
     // Swing the mark round the target until it's in open water, out of the lee of high land if it can be
@@ -146,6 +149,12 @@
           if (fn) order = fn(s, o, c);
         }
         if (!order) { const t = nearest(s, enemies.length ? enemies : c.hostileForts); if (t) order = { target: t }; }
+        // A ship she can't get within range of (behind a boom, up a channel too shallow for her) is left for later:
+        // the nearest one she can reach, or the fort.
+        if (order && order.target && order.target.kind !== 'fort' && !reachable(s, order.target)) {
+          const t = nearest(s, enemies.filter((e) => e !== order.target && reachable(s, e))) || nearest(s, c.hostileForts);
+          order = t ? { target: t } : order;
+        }
         if (!order) continue;
         if (order.to) { s.pivot = null; s.order = null; s.path = [{ x: order.to.x, y: order.to.y }]; } else circle(s, order.target, G);
       }

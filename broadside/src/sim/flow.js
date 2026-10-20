@@ -106,15 +106,17 @@ function updateBooms(G, dt) {
       const f = G.forts.find((q) => q.id === b.fort);
       if (f && (f.state !== 'active' || f.team !== b.team)) { lower(G, b, 'fort'); continue; }
     }
-    // Shot from the other side lands on the logs (the defenders' fire passes over them).
+    // Round shot from either side lands on the logs (mortar shells fly over); only the attackers' breaks them.
     const balls = S.balls;
     for (let i = balls.length - 1; i >= 0; i--) {
       const q = balls[i];
-      if (q.kind === 'shell' || q.mine || q.team === b.team || coreDist(b, q.x, q.y) > b.r + 7) continue;
-      b.hp -= q.dmg;
-      for (let k = 0; k < 6; k++) spawn('splinter', q.x, q.y, rand(-60, 60), rand(-60, 60), rand(0.5, 0.9), rand(2, 4), 6, rand(30, 60));
+      if (q.kind === 'shell' || q.mine || coreDist(b, q.x, q.y) > b.r + 7) continue;
       spawn('splash', q.x, q.y, 0, 0, 0.5, 7);
-      sfx.woodHit(q.x, q.y);
+      if (q.team !== b.team) {
+        b.hp -= q.dmg;
+        for (let k = 0; k < 6; k++) spawn('splinter', q.x, q.y, rand(-60, 60), rand(-60, 60), rand(0.5, 0.9), rand(2, 4), 6, rand(30, 60));
+        sfx.woodHit(q.x, q.y);
+      }
       const last = balls.pop();
       if (i < balls.length) balls[i] = last;
       if (b.hp <= 0) { lower(G, b, 'shot'); break; }
