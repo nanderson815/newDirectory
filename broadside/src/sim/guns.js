@@ -20,7 +20,8 @@ import { PI, rand } from '../util.js';
 const DEG = PI / 180;
 
 export function makeBatteries(T, def = {}, up = {}) {
-  const extra = { guns: up.guns || 0, chasers: def.chasers || up.chasers || 0 };
+  // A class may carry bow chasers of its own (`chasers` in TYPES: the Mediterranean's galleys); a ship def's win.
+  const extra = { guns: up.guns || 0, chasers: def.chasers ?? (up.chasers || T.chasers || 0) };
   // A slotted class ignores the simple upgrades' extra guns and chasers: her slots say what she mounts.
   const slots = classSlots(T, T.slots ? {} : extra);
   const full = fullLoadout(T, def.loadout || {}, T.slots ? {} : extra);

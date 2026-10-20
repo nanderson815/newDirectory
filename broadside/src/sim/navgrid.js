@@ -24,22 +24,23 @@ let gridG = null, gridStamp = '';
 // The size class for a ship: clearances in steering depend on her length (and whether she grounds on shoals).
 const classL = (L) => Math.ceil(L / NAV.bucket) * NAV.bucket;
 
-// Builds (or fetches) the grid for ships of length L in battle G (S.G unless given).
+// Builds (or fetches) the grid for ships of length L in battle G (S.G unless given). L may also be the ship
+// herself, so a shallow-draught galley (src/sim/terrain.js grounds) gets a grid that lets her over the shoals.
 export function navGrid(L, G = S.G) {
   const stamp = geoStamp(G);
   if (gridG !== G || gridStamp !== stamp) { grids.clear(); gridG = G; gridStamp = stamp; }
-  const cl = classL(L), k = `${cl}`;
+  const shallow = typeof L === 'object' && !!L.shallow, cl = classL(typeof L === 'object' ? L.L : L), k = `${cl}${shallow ? 's' : ''}`;
   let g = grids.get(k);
-  if (!g) { g = buildGrid(G, cl); grids.set(k, g); }
+  if (!g) { g = buildGrid(G, cl, shallow); grids.set(k, g); }
   return g;
 }
 export const forgetNav = () => { grids.clear(); gridG = null; };
 
-function buildGrid(G, L) {
+function buildGrid(G, L, shallow) {
   const cs = Math.max(NAV.cell, Math.min(G.W, G.H) / 70), nx = Math.ceil(G.W / cs), ny = Math.ceil(G.H / cs);
   const c = new Uint8Array(nx * ny), room = new Float32Array(nx * ny);
   // A stand-in ship of this class (penetration reads S.G, so point it at G while we measure).
-  const ghost = { L, B: L * 0.36, x: 0, y: 0 };
+  const ghost = { L, B: L * 0.36, x: 0, y: 0, shallow };
   const prev = S.G;
   S.G = G;
   const nearM = L * NAV.near;
@@ -244,10 +245,10 @@ export function navLeg(s, p) {
   if (p.nav !== undefined) return p.nav;
   const G = S.G;
   if (!G || !G.W) return null;
-  const g = navGrid(s.L);
+  const g = navGrid(s);
   p.nav = null;
   if (clearLine(g, s.x, s.y, p.x, p.y, 2, s.L * 0.6)) return null;
-  const r = planRoute(s.L, s.x, s.y, p.x, p.y);
+  const r = planRoute(s, s.x, s.y, p.x, p.y);
   if (!r || r.length < 2) return null;
   r.pop(); // the mark itself stays in the course
   p.nav = lanes(s, g, r).map(([x, y]) => ({ x, y, nav: null }));
@@ -262,12 +263,12 @@ export function navBearing(s, x, y, exit = false) {
   if (!G || !G.W) return null;
   let n = s.navTo;
   if (!n || G.t - n.at > NAV.replan || Math.hypot(n.x - x, n.y - y) > 90) {
-    const g = navGrid(s.L);
+    const g = navGrid(s);
     // Close enough to fight from (a fort's island is land right up to the target point).
     const reach = exit ? 0 : Math.max(NAV.reach, (s.standoff || s.range || 200) * 0.85);
     n = s.navTo = { x, y, at: G.t, wps: null };
     if (!clearLine(g, s.x, s.y, x, y, 2, s.L * 0.6, Math.max(s.L * 0.6, reach))) {
-      const r = exit ? planTo(s.L, s.x, s.y, exitTest(G), x, y) : planRoute(s.L, s.x, s.y, x, y, reach);
+      const r = exit ? planTo(s, s.x, s.y, exitTest(G), x, y) : planRoute(s, s.x, s.y, x, y, reach);
       if (r && r.length > 1) n.wps = lanes(s, g, r.slice(1)).map(([a, b]) => [Math.round(a), Math.round(b)]);
     }
   }

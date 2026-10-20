@@ -12,6 +12,7 @@ import { goalsSunk } from './goals/index.js';
 import { RAKE, rakeEnd, raked, rollCrit, applyCrit } from './hazards.js';
 import { coreDist, coastGap } from './terrain.js';
 import { landHit } from './land.js';
+import { galeScatter } from './wind.js';
 
 const FORT_SIZE = 20;        // a fort counts as in range once its walls are
 
@@ -153,7 +154,7 @@ function fireGun(p) {
     ang = dir + clamp(angDiff(dir, Math.atan2(ay - gy, ax - gx)), -trav, trav);
     dist = Math.hypot(ax - gx, ay - gy);
   }
-  const spread = s.team === 'enemy' ? S.G.ai.spread : b.pos === 'broadside' ? 0.07 : 0.06;
+  const spread = (s.team === 'enemy' ? S.G.ai.spread : b.pos === 'broadside' ? 0.07 : 0.06) * galeScatter(S.G);
   const dmg = b.dmg * enemyMul(s.team, 'dmgMul') * A.hull;
   const pellets = G.pellets || A.pellets || 1;
   const extra = G.crewKill != null || G.burn ? { crew: G.crewKill, burn: G.burn || 0 } : null;
@@ -184,7 +185,7 @@ function fireFortGun(p) {
   if (!t || !afloat(t)) return;
   const gx = f.x + Math.cos(f.aim) * 12, gy = f.y + Math.sin(f.aim) * 12;
   const [ax, ay] = leadPoint(t, gx, gy);
-  const spread = f.team === 'enemy' ? S.G.ai.spread : 0.08;
+  const spread = (f.team === 'enemy' ? S.G.ai.spread : 0.08) * galeScatter(S.G);
   const ang = Math.atan2(ay - gy, ax - gx) + rand(-spread, spread);
   const dist = clamp(Math.hypot(ax - gx, ay - gy) * rand(0.92, 1.08), 40, f.range * 1.1);
   launch(f.team, gx, gy, ang, dist, BALL_DMG * FORT.dmgMul * enemyMul(f.team, 'dmgMul'), FORT.gunHeight, f.island);

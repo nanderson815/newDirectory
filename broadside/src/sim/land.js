@@ -23,10 +23,19 @@ import { capsuleRadius, coastDepth, coastPoint, coastList, coreDist, coastGap } 
 //   x, y                 a spot on the chart (portrait fractions), for things in the water (a wreck on a reef)
 // In the battle state G.landmarks holds them in map units: { kind, x, y, face (seaward, radians), host, ... }.
 
-export const LAND_STYLES = ['port', 'windward', 'main', 'golden', 'pirate', 'campeche', 'armada'];
-export const REGION_STYLE = { port: 'port', windward: 'windward', main: 'main', golden: 'golden', pirate: 'pirate', campeche: 'campeche', armada: 'armada' };
+// The Mediterranean's styles (straits .. dardanelles) are ids the art pass gives a look of their own; until then the
+// renderer draws each like the West Indies style in STYLE_FALLBACK.
+export const LAND_STYLES = ['port', 'windward', 'main', 'golden', 'pirate', 'campeche', 'armada', 'straits', 'barbary', 'malta', 'aegean', 'candia', 'dardanelles'];
+export const REGION_STYLE = {
+  port: 'port', windward: 'windward', main: 'main', golden: 'golden', pirate: 'pirate', campeche: 'campeche', armada: 'armada',
+  straits: 'straits', barbary: 'barbary', malta: 'malta', morea: 'aegean', candia: 'candia', dardanelles: 'dardanelles',
+};
+export const STYLE_FALLBACK = { straits: 'main', barbary: 'main', malta: 'armada', aegean: 'windward', candia: 'armada', dardanelles: 'windward' };
 export const TOWN_LOOKS = ['english', 'spanish', 'shanty', 'village', 'city'];
-export const STYLE_TOWN = { port: 'english', windward: 'shanty', main: 'spanish', golden: 'spanish', pirate: 'shanty', campeche: 'village', armada: 'city' };
+export const STYLE_TOWN = {
+  port: 'english', windward: 'shanty', main: 'spanish', golden: 'spanish', pirate: 'shanty', campeche: 'village', armada: 'city',
+  straits: 'spanish', barbary: 'spanish', malta: 'city', aegean: 'village', candia: 'city', dardanelles: 'city',
+};
 
 // The land for a battle def: its own `land`, else LANDS by id.
 export const landOf = (B) => (B && (B.land || LANDS[B.id])) || null;

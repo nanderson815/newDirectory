@@ -1,10 +1,12 @@
-import { briefText, winText, loseText, mainGoal } from '../sim/goals/index.js';
+import { briefText, bonusText, winText, loseText, mainGoal } from '../sim/goals/index.js';
 import { S, afloat, selfSailing } from '../state.js';
 import { $, store } from '../util.js';
-import { BATTLES } from '../config/battles.js';
+import { regionOf } from '../config/battles.js';
+import { WORLDS, worldById } from '../config/worlds.js';
+import { factionOf } from '../config/factions.js';
 import { TYPES } from '../config/ships.js';
 import { UPGRADES, MAX_FLEET } from '../config/upgrades.js';
-import { HATS, HAT_ORDER, hatSVG } from '../config/hats.js';
+import { HATS, HAT_ORDER, hatSVG, hatWorld } from '../config/hats.js';
 import { AMMO, AMMO_COSTS, BOARDING } from '../config/ammo.js';
 import { GUNS } from '../config/guns.js';
 import { slotGroups, fullLoadout, loadoutWeight, accepts, slotCount } from '../config/slots.js';
@@ -12,8 +14,9 @@ import { LOOK_CATALOGUE, lookItem } from '../config/looks.js';
 import { battleDef, ENDLESS_ID, ENDLESS, WAVE_GOLD } from '../config/endless.js';
 import { LAB_ID } from '../config/lab.js';
 import {
-  save, resetSave, recordSkirmish, starsFor, fleetStats, refitOffer, upgradeOffer, buyUpgrade, buyRefit, buyAmmo, nextHire, buyHire, isUnlocked, recordWin, lvl,
-  upgradesFor, greatOffer, buyGreatShip, fitOffer, fitGun, lookOf, lookOffer, wearLook,
+  save, resetSave, recordSkirmish, starsFor, fleetStats, refitOffer, upgradeOffer, buyUpgrade, buyRefit, buyAmmo, nextHire, buyHire, recordWin, lvl,
+  upgradesFor, greatOffer, buyGreatShip, fitOffer, fitGun, nextAfter, lastOfWorld, worldOpen, openWorlds, currentWorld, setWorld,
+  lookOf, lookOffer, wearLook,
 } from '../save.js';
 import { loadBattle } from '../game.js';
 import { R } from '../render/gl.js';
@@ -44,7 +47,9 @@ function romanValue(r) {
   return n;
 }
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
-// Where a battle is fought, for the line under its name.
+// Where a battle is fought, for the line under its name: the battle's own `where`, else its region's (the
+// Mediterranean's regions carry theirs, src/config/battles-med.js), else this table.
+const whereOf = (B) => B.where || WHERE[B.region] || (regionOf(B) || {}).where || '';
 const WHERE = {
   port: 'off Port Royal', windward: 'in the Windward Passage', main: 'off the Spanish Main', golden: 'among the Golden Isles',
   pirate: 'off the Pirate Coast', campeche: 'in the Bay of Campeche', armada: 'against the last Armada',
@@ -98,14 +103,15 @@ const PLURAL = {
 };
 const enemyForts = (B) => (B.forts || []).filter((f) => f.team !== 'player');
 const ownForts = (B) => (B.forts || []).filter((f) => f.team === 'player');
-const isPirate = (B) => B.faction === 'pirate';
+// The battle's enemy (src/config/factions.js): its own faction, else its world's.
+const factionFor = (B) => factionOf(B.faction || (B.world && worldById(B.world).faction));
 const bossOf = (B) => { const e = B.enemy.find((x) => x.boss); return e ? e.boss : null; };
 // Calico Kate is the one boss who isn’t a "he".
 const his = (B) => (STORY[B.id] && STORY[B.id].her ? 'her' : 'his');
 function rosterText(B) {
   const counts = {};
   for (const e of B.enemy) counts[e.type] = (counts[e.type] || 0) + 1;
-  const parts = Object.entries(counts).map(([t, n]) => `${word(n)} ${n === 1 ? TYPES[t].label.toLowerCase() : PLURAL[t] || TYPES[t].label.toLowerCase() + 's'}`);
+  const parts = Object.entries(counts).map(([t, n]) => `${word(n)} ${n === 1 ? TYPES[t].label.toLowerCase() : TYPES[t].plural || PLURAL[t] || TYPES[t].label.toLowerCase() + 's'}`);
   const forts = enemyForts(B).length;
   if (forts) parts.push(`${word(forts)} fort${forts > 1 ? 's' : ''}`);
   const waves = (B.events || []).filter((e) => e.spawn).length;
@@ -137,7 +143,10 @@ function ordersHTML(B, { withCounsel = true } = {}) {
   let roster = -1;
   if (mainGoal(B) === 'waves') p.push(`<p>Between waves your ships patch a quarter of their hull and restock mines. Each wave beaten pays ${WAVE_GOLD} gold.${save.best ? ` Your best is wave ${save.best}.` : ''}</p>`);
   else if (!B.tutorial) roster = p.push(`${h('Against you')}${esc(rosterText(B))}.`) - 1;
-  if (B.fog) p.push(`<p>${h('Fog')}Your lookouts see only ships close to your own. Keep the fleet together and watch the edges of the murk.</p>`);
+  if (B.night) p.push(`<p>${h('Night')}Your lookouts see only ships close to your own, but a ship on fire shows across the whole sea. Keep the fleet together.</p>`);
+  else if (B.fog) p.push(`<p>${h('Fog')}Your lookouts see only ships close to your own. Keep the fleet together and watch the edges of the murk.</p>`);
+  if (B.breeze != null && B.breeze < 0.7) p.push(`<p>${h('Calm')}Your sails barely draw; oared ships move as fast as ever. Anchor and turn on the spot to bring your broadsides to bear.</p>`);
+  if ((B.events || []).some((e) => e.breeze > 1)) p.push(`<p>${h('Weather')}A gale is coming. When it blows, every ship runs faster and every gun throws wilder.</p>`);
   if (ownForts(B).length) p.push('<p>Your fort’s guns fire on anything in range, but it cannot dodge. Hunt down the bomb ketches before they wear it down.</p>');
   if (enemyForts(B).length) p.push('<p>Forts fire in every direction. Once one is silenced, stop a ship beside it and tap <i>Land</i>.</p>');
   if (S.G && S.G.ships.some((s) => s.team === 'player' && s.mines > 0)) p.push('<p>A ship with mines can tap <i>Mine</i> to leave one astern.</p>');
@@ -147,6 +156,7 @@ function ordersHTML(B, { withCounsel = true } = {}) {
     const advice = withCounsel ? counsel(B, [(STORY[B.id] || {}).before || '', ...p].join(' ')) : '';
     p[roster] = `<p>${p[roster]}${advice ? ' ' + esc(advice) : ''}</p>`;
   }
+  for (const x of bonusText(B)) p.push(`<p>${h('Bonus')}${esc(x.text)} <i>+${fmt(x.gold)} gold if you win.</i></p>`);
   if (!B.tutorial) p.push('<p class="note">Drag on the sea to plot a course, or tap it to sail straight there; tap an enemy to engage. Pinch to zoom, double-tap to recentre.</p>');
   return p.join('');
 }
@@ -171,12 +181,17 @@ function disarmReset() {
 }
 
 // ---------- Sea chart ----------
+// The chart shows one world; with more than one open, a link sails to the other (a placeholder for the chart
+// pass's world switch).
 export function openChart() {
   idle();
   $('chartGold').innerHTML = goldHTML(save.gold);
   music.mood('calm');
   showScreen('chartScreen');
-  renderChart($('chartList'));
+  const here = currentWorld(), other = openWorlds().find((W) => W.id !== here);
+  $('worldBtn').hidden = !other;
+  if (other) { $('worldBtn').textContent = other.short; $('worldBtn').dataset.world = other.id; }
+  renderChart($('chartList'), here);
 }
 
 // ---------- Shipyard ----------
@@ -488,20 +503,27 @@ export function toast(text, icon = 'check') {
 
 // ---------- Hats ----------
 // "Taken from Capitán Rojo of La Bruja" once won; "Still on the head of ..." until then.
-function hatFrom(from, won) {
+function hatFrom(hat, won) {
+  const from = hat.from;
   if (/^Finish /.test(from)) return won ? 'For ' + from.replace(/^Finish/, 'finishing') : from;
+  if (hat.gift) return won ? from : `${from}, still to be earned`;
   const who = from.replace(/^The /, 'the ');
   return won ? `Taken from ${who}` : `Still worn by ${who}`;
 }
 export function openHats() {
   idle();
-  $('hatGrid').innerHTML = HAT_ORDER.map((id) => {
+  // One shelf per world; a world not yet open keeps its shelf out of sight.
+  const card = (id) => {
     const won = save.hats.includes(id);
     return `<div class="hat-card${won ? '' : ' locked'}">${hatSVG(id, !won)}<h3>${esc(HATS[id].name)}</h3>` +
-      `<p>${esc(hatFrom(HATS[id].from, won))}</p></div>`;
-  }).join('');
+      `<p>${esc(hatFrom(HATS[id], won))}</p></div>`;
+  };
+  const shelves = WORLDS.filter((W) => worldOpen(W.id) || HAT_ORDER.some((id) => hatWorld(id) === W.id && save.hats.includes(id)));
+  $('hatGrid').innerHTML = shelves.map((W) => (shelves.length > 1 ? `<h4 class="hat-shelf">${esc(W.name)}</h4>` : '') +
+    HAT_ORDER.filter((id) => hatWorld(id) === W.id).map(card).join('')).join('');
   $('hatGrid').classList.add('stagger');
-  $('hatsTally').textContent = `${word(HAT_ORDER.filter((id) => save.hats.includes(id)).length)} of ${word(HAT_ORDER.length)}`;
+  const shown = HAT_ORDER.filter((id) => shelves.some((W) => W.id === hatWorld(id)));
+  $('hatsTally').textContent = `${word(shown.filter((id) => save.hats.includes(id)).length)} of ${word(shown.length)}`;
   showScreen('hatsScreen');
 }
 
@@ -509,6 +531,8 @@ export function openHats() {
 export function openBrief(i) {
   loadBattle(i);
   const B = battleDef(i);
+  // Back on the chart you see the world this battle belongs to.
+  if (typeof i === 'number' && B.world && B.world !== save.world && worldOpen(B.world)) setWorld(B.world);
   const n = romanValue(B.roman || '');
   $('briefEyebrow').textContent = i === LAB_ID ? `Battle lab · ${B.year}` : mainGoal(B) === 'waves' ? 'Exercising the great guns'
     : B.tutorial ? 'Before the first engagement' : ORDINALS[n] ? `The ${ORDINALS[n]} engagement` : `Battle ${B.roman}`;
@@ -516,7 +540,7 @@ export function openBrief(i) {
   const log = STORY[B.id];
   // The chart region names the waters, unless the battle is plainly somewhere else (the siege is at Port Royal).
   const elsewhere = B.region !== 'port' && /Port Royal/.test(`${B.name} ${log ? log.before : ''}`);
-  $('briefWhere').textContent = [elsewhere ? '' : WHERE[B.region], log ? logDate(B.id, B.year) : B.year].filter(Boolean).join(', ');
+  $('briefWhere').textContent = [elsewhere ? '' : whereOf(B), log ? logDate(B.id, B.year) : B.year].filter(Boolean).join(', ');
   // The log is the hook; without one, the battle's own description takes its place.
   $('briefLog').hidden = !log;
   $('briefText').hidden = !!log;
@@ -525,7 +549,7 @@ export function openBrief(i) {
   const boss = mainGoal(B) === 'boss' ? bossOf(B) : null;
   $('briefBoss').hidden = !boss;
   if (boss) {
-    const have = save.hats.includes(boss.hat), hatName = HATS[boss.hat].name.replace(/^Calico Kate's /, '').toLowerCase();
+    const have = save.hats.includes(boss.hat), hatName = HATS[boss.hat].short || HATS[boss.hat].name.replace(/^Calico Kate's /, '').toLowerCase();
     const them = his(B) === 'her' ? 'her' : 'him';
     $('briefBoss').innerHTML = hatSVG(boss.hat, false) +
       `<p><b>${esc(boss.captain)}</b><span>${have ? `Already in your cabin. Beat ${them} again for the gold.` : `Sink ${them} and the ${esc(hatName)} is yours.`}</span></p>`;
@@ -557,7 +581,7 @@ function showIntro() {
   const boss = ship.boss, story = STORY[B.id] || {};
   const el = $('bossIntro');
   el.innerHTML = '<div class="bi-card sheet">' +
-    `<p class="bi-eyebrow">${isPirate(B) ? 'The pirate queen' : 'The enemy flagship'} is sighted</p>` +
+    `<p class="bi-eyebrow">${factionFor(B).flagship} is sighted</p>` +
     `<div class="bi-hat">${hatSVG(boss.hat, false)}</div>` +
     `<h2 class="bi-name">${esc(boss.captain)}</h2>` +
     `<p class="bi-ship">${esc(TYPES[ship.type].label)} <i>${esc(boss.title)}</i></p>` +
@@ -642,7 +666,7 @@ function victoryText(B, lost) {
 function defeatText(G, B) {
   if (G.reason && G.reason !== 'fleet') return loseText(B, G.reason);
   const boss = mainGoal(B) === 'boss' ? bossOf(B) : null;
-  const foe = boss ? (STORY[B.id] && STORY[B.id].who) || boss.captain : isPirate(B) ? 'the pirates' : `the ${B.foe}`;
+  const foe = boss ? (STORY[B.id] && STORY[B.id].who) || boss.captain : B.faction === 'pirate' ? 'the pirates' : B.foe.startsWith('the ') ? B.foe : `the ${B.foe}`;
   return `Your fleet is sunk and the sea belongs to ${foe}. Refit at the shipyard and try again.`;
 }
 
@@ -652,7 +676,9 @@ function renderEnd() {
   const B = battleDef(G.battle), win = G.result === 'win', a = G.award;
   const lost = shipsLost(G);
   $('endEyebrow').textContent = a && a.lab ? `Battle lab · ${B.name}` : B.name;
-  $('endTitle').textContent = win ? (G.battle === BATTLES.length - 1 && !a.lab ? 'The sea is England’s!' : 'Victory!') : 'Defeat';
+  // The last battle of a world has its own title (src/config/worlds.js).
+  const finale = typeof G.battle === 'number' && lastOfWorld(G.battle) && !(a && a.lab);
+  $('endTitle').textContent = win ? (finale ? worldById(B.world).finale : 'Victory!') : 'Defeat';
   $('endTitle').classList.toggle('won', win);
   $('endStars').hidden = !win;
   $('endStars').innerHTML = win ? starsHTML(a.stars, true) : '';
@@ -665,21 +691,24 @@ function renderEnd() {
   }
   $('endReward').hidden = !win || a.lab;
   if (win && !a.lab) {
-    const notes = [a.stars === 3 ? 'flawless bonus' : '', a.prizes ? `${a.prizes} prize${a.prizes > 1 ? 's' : ''} +${a.prizeGold}` : '', a.first ? '' : 'replay'].filter(Boolean).join(' · ');
+    const notes = [a.stars === 3 ? 'flawless bonus' : '', a.prizes ? `${a.prizes} prize${a.prizes > 1 ? 's' : ''} +${a.prizeGold}` : '',
+      a.bonus ? `bonus +${a.bonus}` : '', a.first ? '' : 'replay'].filter(Boolean).join(' · ');
     $('endReward').innerHTML = `<span class="gold-num"><span class="gold-count">+${a.gold}</span><small>gold</small></span>${notes ? `<span class="note">${notes}</span>` : ''}`;
     countUp($('endReward').querySelector('.gold-count'), a.gold, { prefix: '+', delay: 700 });
   }
   $('endHat').hidden = !(win && a.hat);
   if (win && a.hat) {
     // "the red tricorne", but "Calico Kate's skull hat": a hat named after its owner keeps the name.
-    const n = HATS[a.hat].name, named = /^[A-Z][a-z]+ [A-Z]/.test(n);
-    $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p><b>${esc(named ? n : 'The ' + n.toLowerCase())}</b> is yours, and goes to the cabinet.</p>`;
+    // A hat may say how a sentence names it (`short`, after "the").
+    const n = HATS[a.hat].name, named = /^[A-Z][a-z]+ [A-Z]/.test(n), short = HATS[a.hat].short;
+    $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p><b>${esc(short ? 'The ' + short : named ? n : 'The ' + n.toLowerCase())}</b> is yours, and goes to the cabinet.</p>`;
   }
   const sec = Math.floor(G.t);
   $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   $('statHits').textContent = G.stats.shots ? `${Math.round((100 * G.stats.hits) / G.stats.shots)}%` : '–';
   $('statLost').textContent = String(lost);
-  const next = typeof G.battle === 'number' && G.battle + 1 < BATTLES.length ? G.battle + 1 : null;
+  // The next battle in this world, or the first of the next world once this one is finished and that is open.
+  const next = typeof G.battle === 'number' ? nextAfter(G.battle) : null;
   const primary = $('endPrimary'), again = !win || a.lab; // a lab battle has no next battle, only another go
   primary.hidden = !again && next == null;
   primary.textContent = again ? (win ? 'Play again' : 'Try again') : 'Next battle';
@@ -773,6 +802,7 @@ export function initUI() {
   });
   $('yardBtn').addEventListener('click', openYard);
   $('hatsBtn').addEventListener('click', openHats);
+  $('worldBtn').addEventListener('click', (e) => { if (setWorld(e.currentTarget.dataset.world)) openChart(); });
   $('chartBack').addEventListener('click', openMenu);
   $('yardScreen').addEventListener('click', onYardClick);
   $('yardBack').addEventListener('click', openChart);

@@ -5,7 +5,7 @@ import { wx, wz, cam } from './camera.js';
 import { bakeStatic, FORT_BASE_Y } from './models.js';
 import { coastDepth, coastPoint, coreDist, coastGap } from '../sim/terrain.js';
 import { placer } from '../sim/battle.js';
-import { LANDMARKS, RING } from '../sim/land.js';
+import { LANDMARKS, RING, STYLE_FALLBACK } from '../sim/land.js';
 import { battleDef } from '../config/endless.js';
 import { weatherFor } from '../config/weather.js';
 import { BUILD, flagCloth, buoys, sharedGeos, townLayout } from './landmarks.js';
@@ -81,13 +81,14 @@ const STYLES = {
   },
 };
 for (const [id, s] of Object.entries(STYLES)) { s.id = id; s.F = { ...FLORA, ...(s.F || {}) }; }
-export const styleOf = (G) => STYLES[G.style] || STYLES.port;
+// A style with no look of its own yet (the Mediterranean's, until the art pass) borrows one (STYLE_FALLBACK).
+export const styleOf = (G) => STYLES[G.style] || STYLES[STYLE_FALLBACK[G.style]] || STYLES.port;
 // Fort stone by region: grey English ragstone, honey-coloured Spanish limestone, mossy jungle stone.
 const FORT_LOOK = {
   main: { stone: '#e2cfa2', dark: '#b39d6e' }, armada: { stone: '#dcc48e', dark: '#ae9563' },
   golden: { stone: '#bdb8a0', dark: '#8a8a72' }, campeche: { stone: '#d9cba8', dark: '#a8987a' },
 };
-export const fortLook = (G) => FORT_LOOK[G.style] || null;
+export const fortLook = (G) => FORT_LOOK[G.style] || FORT_LOOK[STYLE_FALLBACK[G.style]] || null;
 const C = (hex) => new THREE.Color(hex);
 
 const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };

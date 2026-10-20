@@ -6,6 +6,8 @@
 //   npm run build:single && node tests/balance.mjs            # N = 16 runs per battle
 //   RUNS=30 node tests/balance.mjs                            # more runs
 //   ONLY=rojo,oro node tests/balance.mjs                      # measure some battles (fleet still follows the campaign)
+//   WORLD=med WORKERS=2 node tests/balance.mjs                # measure one world's battles (src/config/worlds.js); the
+//                                                             # fleet and gold still come through every earlier battle
 //   JSON=out.json node tests/balance.mjs                      # also write the raw results
 //   PAGE=/path/to/index.html node tests/balance.mjs           # measure another single-file build
 //   FLEET='[{"name":"Resolute","cls":"frigate","up":{}}]' node tests/balance.mjs   # one fixed fleet for every battle
@@ -16,13 +18,14 @@ import path from 'path';
 import { launch, ROOT, PAGE } from './lib.mjs';
 import { BATTLES } from '../src/config/battles.js';
 import { TYPES } from '../src/config/ships.js';
-import { save, resetSave, buyRefit, buyUpgrade, buyHire, nextHire, refitOffer, upgradeOffer, fleetStats } from '../src/save.js';
+import { save, resetSave, buyRefit, buyUpgrade, buyHire, nextHire, refitOffer, upgradeOffer, fleetStats, greatOffer, buyGreatShip, upgradesFor } from '../src/save.js';
 
 const RUNS = Math.max(6, +(process.env.RUNS || 16));
 const MAX_T = +(process.env.MAX_T || 420);      // game seconds before a run counts as a stalemate (loss)
 const WORKERS = Math.max(1, +(process.env.WORKERS || 4));
 const FLAWLESS = +(process.env.FLAWLESS ?? 0.4);   // share of first wins assumed flawless (+50% gold)
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
+const WORLD = process.env.WORLD || null;
 const BOT_SRC = fs.readFileSync(path.join(ROOT, 'tests', 'bot.js'), 'utf8');
 
 // ---------- Greedy shipyard policy ----------
@@ -40,25 +43,40 @@ const WISHLIST = [
   ['Resolute', 'sails'], ['Resolute', 'chasers'],
 ];
 
+// The Mediterranean (src/config/worlds.js) keeps the shipyard busy where the West Indies list runs out: the escorts
+// grow into frigates and then ships of the line. These are only bought once a Mediterranean battle is won, so they
+// never change the West Indies' numbers.
+const WISHLIST_MED = [
+  ['Resolute', 'great'], // the great ship (src/config/flagship.js) opens once the Armada is beaten
+  ['Merlin', 'refit'], ['Osprey', 'refit'], ['Merlin', 'guns'], ['Osprey', 'guns'], ['Merlin', 'hull'], ['Osprey', 'hull'],
+  ['Swift', 'marines'], ['Kestrel', 'marines'], ['Resolute', 'marines'], ['Swift', 'refit'], ['Kestrel', 'refit'],
+  ['Merlin', 'marines'], ['Osprey', 'marines'], ['Swift', 'sails'], ['Kestrel', 'sails'], ['Resolute', 'sails'],
+  ['Merlin', 'guns'], ['Osprey', 'guns'], ['Merlin', 'hull'], ['Osprey', 'hull'], ['Swift', 'chasers'], ['Kestrel', 'chasers'],
+  ['Merlin', 'refit'], ['Osprey', 'refit'], ['Resolute', 'chasers'],
+];
+
 function wishCost([name, what]) {
   if (name === 'hire') return nextHire() ? nextHire().cost : null;
   const f = save.fleet.find((s) => s.name === name);
   if (!f) return null;
   if (what === 'refit') { const o = refitOffer(f); return o ? o.cost : null; }
+  if (what === 'great') { const o = greatOffer(f); return o ? o.cost : null; }
+  if (!upgradesFor(f).some((U) => U.id === what)) return null; // the great ship's guns are her slots, not upgrades
   return upgradeOffer(f, what).cost;
 }
 
 // Returns the purchases made, as short labels.
-function shop(state) {
+function shop(state, world) {
   const bought = [];
-  while (state.next < WISHLIST.length) {
-    const w = WISHLIST[state.next];
+  const list = world === 'caribbean' || !world ? WISHLIST : [...WISHLIST, ...WISHLIST_MED];
+  while (state.next < list.length) {
+    const w = list[state.next];
     const cost = wishCost(w);
     if (cost == null) { state.next++; continue; }         // maxed out or ship missing: skip it
     if (save.gold < cost) break;                          // save up for it
     const [name, what] = w;
     const i = save.fleet.findIndex((s) => s.name === name);
-    const ok = name === 'hire' ? buyHire() : what === 'refit' ? buyRefit(i) : buyUpgrade(i, what);
+    const ok = name === 'hire' ? buyHire() : what === 'refit' ? buyRefit(i) : what === 'great' ? buyGreatShip(i) : buyUpgrade(i, what);
     if (!ok) throw new Error('purchase failed: ' + w.join(' '));
     bought.push(name === 'hire' ? `hire ${save.fleet[save.fleet.length - 1].name}` : `${name} ${what === 'refit' ? '→' + save.fleet[i].cls : what}`);
     state.next++;
@@ -145,7 +163,7 @@ for (let bi = 0; bi < BATTLES.length; bi++) {
   const label = B.tutorial ? 'Swift (sloop)' : fleetLabel();
   const goldBefore = save.gold;
   let runs = [];
-  const measure = !ONLY || ONLY.includes(B.id) || B.tutorial;
+  const measure = WORLD ? B.world === WORLD && (!ONLY || ONLY.includes(B.id)) : !ONLY || ONLY.includes(B.id) || B.tutorial;
   if (measure) {
     const jobs = Array.from({ length: RUNS }, (_, r) => hash(`${B.id}#${r}`));
     let k = 0;
@@ -162,7 +180,7 @@ for (let bi = 0; bi < BATTLES.length; bi++) {
   const botGold = Math.round(B.reward * (1 + 0.5 * flawless));
   const gold = Math.round(B.reward * (1 + 0.5 * (B.tutorial ? 1 : FLAWLESS)));
   const row = {
-    id: B.id, roman: B.roman, goal: B.goal || 'sink', fleet: label, fleetDef: fleet, measured: measure,
+    id: B.id, roman: B.roman, goal: B.goal || (B.goals ? B.goals[0].kind : 'sink'), fleet: label, fleetDef: fleet, measured: measure,
     win: wins.length / n, runs: runs.length,
     tWin: avg(wins.map((r) => r.t)), tAll: avg(runs.map((r) => r.t)),
     lost: avg(runs.map((r) => r.lost)), lostWin: avg(wins.map((r) => r.lost)), ships: runs[0] ? runs[0].fleet : fleet.length,
@@ -175,10 +193,10 @@ for (let bi = 0; bi < BATTLES.length; bi++) {
   };
   save.gold += gold;
   save.stars[B.id] = 1;
-  row.bought = shop(shopState);
+  row.bought = shop(shopState, B.world);
   row.goldAfter = save.gold;
   rows.push(row);
-  process.stdout.write(`  ${B.roman.padStart(4)} ${B.id.padEnd(10)} win ${(row.win * 100).toFixed(0).padStart(3)}%  (${((Date.now() - t0) / 1000).toFixed(0)} s)\n`);
+  if (measure) process.stdout.write(`  ${B.roman.padStart(4)} ${B.id.padEnd(10)} win ${(row.win * 100).toFixed(0).padStart(3)}%  (${((Date.now() - t0) / 1000).toFixed(0)} s)\n`);
 }
 await browser.close();
 
@@ -189,6 +207,7 @@ const f1 = (x) => (Number.isNaN(x) || x == null ? '  -' : x.toFixed(1).padStart(
 console.log(`\nBroadside balance: ${RUNS} runs per battle, bot captain, ${MAX_T}s cap, budget assumes ${FLAWLESS * 100}% flawless\n`);
 console.log('  #    battle      goal     win  t(win) t(all) lost/fleet 3*   to  extra        bot$ budget  fleet');
 for (const r of rows) {
+  if (WORLD && !r.measured) continue;
   let extra = r.goal === 'boss' ? `bossHp ${r.bossHp == null || Number.isNaN(r.bossHp) ? ' -' : (r.bossHp * 100).toFixed(0) + '%'}`
     : r.forts != null ? `forts ${r.forts.toFixed(1)}` : '';
   if (r.taken > 0.05) extra += ` tk${r.taken.toFixed(1)}`;
@@ -197,6 +216,6 @@ for (const r of rows) {
 console.log('\nShipyard purchases after each win (greedy wishlist):');
 for (const r of rows) console.log(`  ${r.roman.padStart(4)} +${String(r.gold).padStart(3)}g → ${r.bought.length ? r.bought.join(', ') : '(saving)'}   [${r.goldAfter}g left]`);
 const spent = rows.reduce((s, r) => s + r.gold, 0) - save.gold;
-console.log(`\nCampaign gold earned ${rows.reduce((s, r) => s + r.gold, 0)}, spent ${spent}; wishlist ${rows.length ? shopState.next : 0}/${WISHLIST.length} items bought.`);
+console.log(`\nCampaign gold earned ${rows.reduce((s, r) => s + r.gold, 0)}, spent ${spent}; wishlist ${rows.length ? shopState.next : 0}/${WISHLIST.length + WISHLIST_MED.length} items bought.`);
 console.log('Final fleet: ' + save.fleet.map((f) => { const s = fleetStats(f); return `${f.name} ${TYPES[f.cls].label} hp${s.hp} g${s.guns}`; }).join(', '));
 if (process.env.JSON) fs.writeFileSync(process.env.JSON, JSON.stringify(rows, null, 2));

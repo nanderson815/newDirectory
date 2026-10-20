@@ -37,6 +37,10 @@ export const DO = {
   banner: { about: '[title, subtitle] across the screen', fn: (G, [text, sub]) => { showBanner(text, sub || '', 2.4); sfx.fanfare(false); } },
   wind: { about: 'the wind backs round to blow toward this heading (degrees)', fn: (G, deg) => { G.wind.base = deg * PI / 180 + (G.land ? PI / 2 : 0); } },
   fog: { about: 'fog rolls in to this sight distance (0 lifts it)', fn: (G, sight) => { G.fog = sight; } },
+  breeze: {
+    about: 'the wind changes strength: 1 a fair breeze, 0.3 a flat calm (only oars make way), 1.4 a gale (faster, and every gun scatters)',
+    fn: (G, k) => { G.wind.k = k; },
+  },
   say: { about: '[ship name, text]: a line spoken over that ship', fn: (G, [name, text]) => { const s = shipNamed(G, name); if (s && afloat(s)) showToast(text, s, 2.8); } },
   retreat: {
     about: 'the named enemy ships (true: every enemy ship) break off and run for the edge of the chart',

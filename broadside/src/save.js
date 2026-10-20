@@ -1,6 +1,7 @@
 import { TYPES, REFIT, REFIT_COST } from './config/ships.js';
 import { UPGRADES, HIRES, MAX_FLEET } from './config/upgrades.js';
 import { BATTLES } from './config/battles.js';
+import { WORLDS, worldById, DEFAULT_WORLD } from './config/worlds.js';
 import { AMMO_COSTS, BOARDING } from './config/ammo.js';
 import { FLAGSHIP } from './config/flagship.js';
 import { GUNS } from './config/guns.js';
@@ -244,10 +245,51 @@ export function recordSkirmish(waves, gold) {
   return { gold, waves, best: save.best, record: waves > best };
 }
 
-// The tutorial and the first battle are always open; each later battle opens once the one before is won.
+// ---------- Worlds and unlocking ----------
+// Progress is per world (src/config/worlds.js): a world opens once its `unlock` battle is won, its first battle
+// (and in the West Indies the tutorial and the first battle) is open as soon as the world is, and each later
+// battle opens once the one before it in the same world is won. Stars are kept by battle id, so a save from
+// before worlds existed keeps all its progress (and a finished West Indies opens the Mediterranean).
+const won = (id) => (save.stars[id] || 0) > 0;
+export const worldOpen = (id) => { const W = worldById(id); return !W.unlock || won(W.unlock.won); };
+const worldOf = (B) => (B && B.world) || DEFAULT_WORLD;
 export function isUnlocked(i) {
-  return i <= 1 || (save.stars[BATTLES[i - 1].id] || 0) > 0;
+  const B = BATTLES[i];
+  if (!B) return false;
+  const w = worldOf(B);
+  if (!worldOpen(w)) return false;
+  const list = BATTLES.filter((b) => worldOf(b) === w), k = list.indexOf(B);
+  return k <= (w === DEFAULT_WORLD ? 1 : 0) || won(list[k - 1].id);
 }
+// The worlds open to this save, and the one the chart shows: the save's choice if it is open, else the latest
+// open world with a battle still to win (else the latest open one).
+export const openWorlds = () => WORLDS.filter((W) => worldOpen(W.id));
+export function currentWorld() {
+  if (save.world && worldOpen(save.world)) return save.world;
+  const open = openWorlds();
+  const todo = [...open].reverse().find((W) => BATTLES.some((b) => worldOf(b) === W.id && !won(b.id)));
+  return (todo || open[open.length - 1] || WORLDS[0]).id;
+}
+export function setWorld(id) {
+  if (!worldOpen(id)) return false;
+  save.world = id;
+  writeSave();
+  return true;
+}
+// The battle after battle i: the next in its world, or once a world is finished, the first battle of the next
+// world if that is open. null when there is none.
+export function nextAfter(i) {
+  const B = BATTLES[i];
+  if (!B) return null;
+  const w = worldOf(B), list = BATTLES.filter((b) => worldOf(b) === w), k = list.indexOf(B);
+  if (k + 1 < list.length) return BATTLES.indexOf(list[k + 1]);
+  const wi = WORLDS.findIndex((W) => W.id === w), nextW = WORLDS[wi + 1];
+  if (!nextW || !worldOpen(nextW.id)) return null;
+  const first = BATTLES.findIndex((b) => worldOf(b) === nextW.id);
+  return first < 0 ? null : first;
+}
+// Is battle i the last of its world?
+export const lastOfWorld = (i) => { const w = worldOf(BATTLES[i]); return BATTLES.filter((b) => worldOf(b) === w).pop() === BATTLES[i]; };
 
 export const starsFor = (lost) => (lost === 0 ? 3 : lost === 1 ? 2 : 1);
 
@@ -260,11 +302,15 @@ export function recordWin(idx, lost, prizes = 0) {
   const prizeGold = prizes * BOARDING.prizeGold;
   // Towns sacked in the battle (src/sim/land.js) pay their plunder on a win.
   const plunder = (S.G && S.G.battle === idx && S.G.stats.plunder) || 0;
-  const gold = Math.round(B.reward * (prev ? 0.4 : 1) * (stars === 3 ? 1.5 : 1)) + prizeGold + plunder;
+  // Bonus goals met in this battle (src/sim/goals/index.js) pay their gold, 40% on replays like the reward.
+  const bonuses = (S.G && S.G.battle === idx ? S.G.goals || [] : []).filter((o) => o.bonus && o.met);
+  const bonus = Math.round(bonuses.reduce((n, o) => n + (o.gold || 0), 0) * (prev ? 0.4 : 1));
+  const gold = Math.round(B.reward * (prev ? 0.4 : 1) * (stars === 3 ? 1.5 : 1)) + prizeGold + plunder + bonus;
   save.gold += gold;
   save.stars[B.id] = Math.max(prev, stars);
   let hat = null;
   if (B.hat && !save.hats.includes(B.hat)) { save.hats.push(B.hat); hat = B.hat; }
+  if (bonuses.length) save.bonus = { ...(save.bonus || {}), [B.id]: true };
   writeSave();
-  return { gold, stars, hat, first: !prev, prizes, prizeGold, plunder };
+  return { gold, stars, hat, first: !prev, prizes, prizeGold, plunder, bonus, bonuses: bonuses.length };
 }

@@ -46,6 +46,11 @@ export const PAINTS = {
     side: '#253a66', castle: '#2f5d9a', wale: '#d9a441', ports: '#a3271c' },
   calico: { name: 'Calico black', about: 'Kate\'s black, with a red wale and gilt ports.', hat: 'kate',
     side: '#211d20', castle: '#3a2b2b', wale: '#a3271c', ports: '#d9a441' },
+  // The Mediterranean's (placeholder colours for the art pass).
+  sale: { name: 'Salé green and white', about: 'Reis Ibrahim\'s green sides and white upperworks, with a red wale.', hat: 'rover',
+    side: '#2f5a46', castle: '#efe6cf', wale: '#a3271c', ports: '#d9a441' },
+  serenissima: { name: 'Serenissima crimson', about: 'Venetian crimson and gold, as the Provveditore\'s galleys wore it.', hat: 'corno',
+    side: '#7a1f2b', castle: '#a8262a', wale: '#e2b13a', ports: '#e2b13a' },
   // The enemy's.
   spain: { foe: true, name: 'Spanish brown', side: '#7a3a28', castle: '#93483a', wale: '#c9a227', ports: '#2a1d17' },
   spainBlack: { foe: true, name: 'Spanish black', side: '#2e2523', castle: '#7a3a28', wale: '#c9a227', ports: '#a3271c' },
@@ -71,6 +76,8 @@ export const CLOTHS = {
   striped: { name: 'Striped duck', about: 'Cream with a tan cloth sewn in between every other.', cost: 120, color: '#f8efd6', stripe: '#cf9f5f' },
   dyed: { name: 'Indigo-dyed', about: 'Dyed deep blue in the vats behind the Point. Dear, and unmistakably yours.', cost: 200, color: '#56709f' },
   black: { name: 'Black canvas', about: 'Calico Kate\'s black canvas: seen at night by no one.', hat: 'kate', color: '#2f2a30' },
+  algerine: { name: 'Algerine stripes', about: 'White duck with green cloths between, off the Mubarak\'s yards.', hat: 'kalpak', color: '#f4ecd8', stripe: '#2f5a46' },
+  tripoli: { name: 'Tripoli green', about: 'Osman Reis\'s green lateens, cut square for your yards.', hat: 'osman', color: '#9fc7a2' },
   // The enemy's.
   crimson: { foe: true, name: 'Crimson', color: '#a8262a' },
   patched: { foe: true, name: 'Patched', color: '#b9ad95', stripe: '#8f8471' },
@@ -105,6 +112,7 @@ export const FIGUREHEADS = {
   mermaid: { name: 'Mermaid', about: 'She looks out ahead so the lookouts needn\'t.', cost: 220 },
   eagle: { name: 'Spread eagle', about: 'El Comodoro\'s eagle, sawn off San Cristóbal\'s stem.', hat: 'comodoro' },
   wyvern: { name: 'Black wyvern', about: 'Wings, teeth and a red eye, off Calico Kate\'s own stem.', hat: 'kate' },
+  markLion: { name: 'Lion of St Mark', about: 'Venice\'s winged lion with his book, a gift from Candia.', hat: 'corno' },
   // The enemy's.
   saint: { foe: true, name: 'A saint' },
 };
@@ -127,6 +135,7 @@ export const GILDING = {
   plain: { name: 'Plain stern', about: 'Stern windows and honest paint.', cost: 0 },
   gilt: { name: 'Gilt carving', about: 'Gilt quarter-badges, a carved taffrail and a name board.', cost: 200 },
   almirante: { name: 'The Almirante\'s gilding', about: 'The Santísima Trinidad\'s gold leaf, stern to stem: gilt galleries, mouldings and figurehead.', hat: 'oro' },
+  kapudan: { name: 'The Kapudan\'s gilding', about: 'The Kara Ejder\'s gilt galleries and lanterns, given with the Kapudan Pasha\'s kavuk.', hat: 'kavuk' },
 };
 
 export const LOOK_CATALOGUE = { paint: PAINTS, cloth: CLOTHS, emblem: EMBLEMS, figurehead: FIGUREHEADS, flag: FLAGS, lanterns: LANTERNS, gilding: GILDING };
@@ -194,6 +203,11 @@ export const BOSS_LOOKS = {
   kate: { paint: 'calico', cloth: 'black', emblem: 'skull', figurehead: 'wyvern', flag: 'pennant', lanterns: 2, gilding: 'plain' },
   morion: { paint: 'iron', cloth: 'tan', emblem: 'saltire', figurehead: 'saint', flag: 'pennant', lanterns: 3, gilding: 'gilt' },
   armada: { paint: 'spainGold', cloth: 'white', emblem: 'crown', figurehead: 'lion', flag: 'admiral', lanterns: 3, gilding: 'almirante' },
+  // The Mediterranean's bosses (src/config/battles-med.js).
+  rover: { paint: 'sale', cloth: 'barbary', emblem: 'crescent', figurehead: 'scroll', flag: 'pennant', lanterns: 2, gilding: 'gilt' },
+  kalpak: { paint: 'barbaryGreen', cloth: 'algerine', emblem: 'swords', figurehead: 'lion', flag: 'pennant', lanterns: 3, gilding: 'gilt' },
+  osman: { paint: 'barbaryRed', cloth: 'tripoli', emblem: 'crescent', figurehead: 'scroll', flag: 'pennant', lanterns: 3, gilding: 'gilt' },
+  kavuk: { paint: 'ottomanRed', cloth: 'white', emblem: 'crescent', figurehead: 'lion', flag: 'admiral', lanterns: 3, gilding: 'kapudan' },
 };
 
 // A small, stable string hash (FNV-1a).

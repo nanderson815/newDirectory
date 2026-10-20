@@ -28,9 +28,9 @@ export default {
   id: 'protect',
   about: 'Keep named ships afloat and named forts firing; lose any one and the battle is lost.',
   params: {
-    ships: 'names of English ships to keep afloat (a number is your fleet\'s nth ship, 0 = the first)',
-    allies: 'ship defs added as allied captains who sail and fight on their own (also guarded)',
-    forts: 'names of your forts that must keep firing',
+    ships: 'optional: names of English ships to keep afloat (a number is your fleet\'s nth ship, 0 = the first)',
+    allies: 'optional: ship defs added as allied captains who sail and fight on their own (also guarded)',
+    forts: 'optional: names of your forts that must keep firing',
     secs: 'optional: seconds to keep them safe, after which this goal is met (without it, pair with another goal)',
   },
   tip: 'protect',

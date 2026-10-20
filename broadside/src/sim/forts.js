@@ -5,6 +5,7 @@ import { spawn } from './particles.js';
 import { shoreClear } from './steering.js';
 import { coreDist } from './terrain.js';
 import { sfx } from '../audio/sfx.js';
+import { factionOf } from '../config/factions.js';
 
 // Coastal forts: a stone tower whose guns cover every direction. Pound one silent, then stop a ship
 // beside it and land marines; once the garrison is ashore the fort fights for whoever holds it.
@@ -62,7 +63,7 @@ function updateCapture(f, dt) {
   f.team = 'player'; f.state = 'active'; f.hp = Math.round(f.maxHp * 0.6);
   f.capture = null; f.reload = 1;
   S.G.stats.captured++;
-  showBanner(`${f.name} is ours!`, `The garrison now fires on the ${S.G.faction === 'pirate' ? 'pirates' : 'Spanish'}`);
+  showBanner(`${f.name} is ours!`, `The garrison now fires on ${factionOf(S.G.faction).the}`);
   sfx.capture();
 }
 

@@ -4,7 +4,8 @@
 import { NODES, LAND, ISLES, REGION_LABELS, routePoints, curveSegments, nameBox, starBox, nodeRadius } from '../src/ui/chart-map.js';
 import { BATTLES, REGIONS } from '../src/config/battles.js';
 
-const ids = BATTLES.map((b) => b.id);
+// This plate is the West Indies' (the Mediterranean's placeholder lives in chart-map-med.js and isn't checked yet).
+const ids = BATTLES.filter((b) => b.world === 'caribbean').map((b) => b.id);
 const SCALES = [1]; // the chart never draws the map below scale 1 (MIN_SCALE in chart.js); smaller screens pan
 const bez = (a, b, c, d, t) => { const u = 1 - t; return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d; };
 
@@ -74,7 +75,7 @@ legs.forEach((L, i) => {
     }
     if (hit) say(`${name}: crosses the name of ${id} at ${hit.map(Math.round)}`);
   }
-  for (const r of REGIONS) {
+  for (const r of REGIONS.filter((x) => x.world === 'caribbean')) {
     const p = REGION_LABELS[r.id];
     if (!p) continue;
     const t = p.t || r.name, w = t.length * 9.2, h = 18;
