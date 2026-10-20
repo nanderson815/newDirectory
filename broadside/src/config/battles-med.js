@@ -330,7 +330,7 @@ export const MED_BATTLES = [
     islands: [{ x: 0.34, y: 0.5, r: 40 }, { x: 0.16, y: 0.74, r: 36, stretch: 1.5, angle: -20 }],
     reefs: [{ x: 0.25, y: 0.5, r: 12, stretch: 3, angle: 0 }, { x: 0.7, y: 0.7, r: 16, stretch: 2, angle: 10 }, { x: 0.62, y: 0.3, r: 12, stretch: 3, angle: 80 }],
     currents: [{ x: 0.4, y: 0.6, r: 90, stretch: 3, angle: 0, dir: -20, speed: 11 }],
-    ai: { spread: 0.09, reloadMul: 0.9, dmgMul: 2.93, hpMul: 3.56 },
+    ai: { spread: 0.09, reloadMul: 0.9, dmgMul: 2.89, hpMul: 3.56 },
   },
   {
     id: 'tripoli', world: W, region: 'malta', roman: 'X', year: 1669, name: 'The Reefs of Tripoli', foe: 'Osman Reis',
@@ -392,7 +392,7 @@ export const MED_BATTLES = [
     coast: { side: 'right', depth: 0.03, rough: 0.5, seed: 14, capes: [{ at: 0.18, width: 0.24, depth: 0.12 }] },
     islands: [{ x: 0.12, y: 0.32, r: 96, stretch: 2.4, angle: 72 }, { x: 0.78, y: 0.67, r: 94, stretch: 2, angle: -50 }, { x: 0.5, y: 0.48, r: 40 }],
     currents: [{ x: 0.48, y: 0.5, r: 110, stretch: 5, angle: -72, speed: 9 }],
-    ai: { spread: 0.09, reloadMul: 0.85, dmgMul: 2.1, hpMul: 2.53 },
+    ai: { spread: 0.09, reloadMul: 0.88, dmgMul: 2.1, hpMul: 2.53 },
   },
   {
     id: 'navarino', world: W, region: 'morea', roman: 'XII', year: 1669, name: 'Navarino Bay', foe: 'the Ottoman squadron',
