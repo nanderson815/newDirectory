@@ -73,10 +73,10 @@ export const MED_BATTLES = [
       { kind: 'take', ships: 'Hopewell', bonus: true, gold: 160 },
     ],
     enemy: [
-      { type: 'polacre', name: 'Ghazala', x: 0.4, y: 0.5, h: 180, abilities: { flee: { below: 0.55, speed: 1.2, say: 'She crowds on sail for the Atlantic!' } } },
-      { type: 'polacre', name: 'Najma', x: 0.46, y: 0.44, h: 180, abilities: { flee: { below: 0.55, speed: 1.2, say: 'She crowds on sail for the Atlantic!' } } },
-      { type: 'merchant', name: 'Hopewell', x: 0.5, y: 0.55, h: 180, abilities: { flee: { below: 0.6, speed: 1.1, say: 'The prize crew runs for it!' } } },
-      { type: 'tartane', name: 'Rih', x: 0.3, y: 0.46, h: 180 },
+      { type: 'polacre', name: 'Ghazala', x: 0.5, y: 0.5, h: 180, abilities: { flee: { below: 0.55, speed: 1.2, say: 'She crowds on sail for the Atlantic!' } } },
+      { type: 'polacre', name: 'Najma', x: 0.56, y: 0.44, h: 180, abilities: { flee: { below: 0.55, speed: 1.2, say: 'She crowds on sail for the Atlantic!' } } },
+      { type: 'merchant', name: 'Hopewell', x: 0.6, y: 0.56, h: 180, abilities: { flee: { below: 0.6, speed: 1.1, say: 'The prize crew runs for it!' } } },
+      { type: 'tartane', name: 'Rih', x: 0.42, y: 0.46, h: 180 },
     ],
     events: [
       { at: 30, banner: ['A galley out of Ceuta!', 'She rows across to cover the rovers'], spawn: [{ type: 'galley', name: 'Sayf', x: 0.72, y: 0.62, h: -150 }] },
