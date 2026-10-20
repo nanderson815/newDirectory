@@ -52,8 +52,30 @@ With no `goal`/`goals` the goal is `sink`. Optional fields:
 - `events`, `hat`, `fog` (how far your lookouts see), `land` (its look and landmarks; see Dress the land), `sea` (size multiplier for the battle's sea on top of the camera's `SEA_SCALE`: 1.2 for a wide-open chase, 0.85 for a tight harbour).
 
 Ship defs take `type`, `name`, `x`, `y` and `h`, plus optional `hp` (fixed hull; otherwise the type's hull ×
-`ai.hpMul`), `chasers`, `reloadMul`, `passive`, `boss`, `abilities` and `loadout` (her guns slot by slot; see
-[Guns and slots](#guns-and-slots)).
+`ai.hpMul`), `chasers`, `reloadMul`, `passive`, `boss`, `abilities`, `loadout` (her guns slot by slot; see
+[Guns and slots](#guns-and-slots)) and `look` (her paint and finery; see [Ship looks](#ship-looks)).
+
+## Worlds
+
+The campaign is told in worlds (`src/config/worlds.js`): the West Indies (`src/config/battles.js`) and the
+Mediterranean (`src/config/battles-med.js`). Every battle and region carries `world`; `BATTLES` is every world's list
+merged in order, so a battle's index never moves when a world is added (saves keep their stars by id). Progress is
+per world: inside a world each battle opens once the one before it is won, and a world's first battle opens once its
+`unlock: { won: id }` battle is won. The chart shows one world at a time (`save.world`, else the latest open world
+with battles to win) and the results sheet's *Next battle* runs on into the next world. A new world is a battles
+file merged in `battles.js`, a `WORLDS` entry, its regions, story (`story-*.js`), land (`lands-*.js`), hats with
+`world`, and a chart plate (`src/ui/chart-map-med.js` shows the shape).
+
+A battle may also set `where` (the briefing's "off ..." line, else its region's), `weather` (a preset in
+`src/config/weather.js`), `faction` (`src/config/factions.js`: spain, pirate, barbary, ottoman; the world's by
+default), `breeze` (wind strength: 1 fair, 0.3 a flat calm where only oars make way, 1.5 a gale that drives ships
+faster and throws every gun wide; the `breeze` event changes it mid-battle) and `night: true` (fought like fog at
+`NIGHT_SIGHT`; a ship on fire shows across the sea; the renderer may draw it as night).
+
+**Bonus objectives.** Any goal can be a bonus: `{ kind: 'hunt', ships: 'Barq', bonus: true, gold: 140 }` (gold
+defaults to a quarter of the reward). A bonus never wins or loses the battle; it is met if, when the battle is won,
+it is done and has never failed (so a bonus `timer` means "win within secs"), and it pays its gold with the win.
+It can't be the first goal.
 
 ## Shape the sea (geography and openings)
 
@@ -169,7 +191,9 @@ goal: 'boss', hat: 'rojo', goals: [{ kind: 'boss' }, { kind: 'timer', secs: 240 
 
 ## Add a ship type
 
-Add an entry to `TYPES` in `src/config/ships.js`. The renderer builds the model from `L`, `B`, `masts` (2 or
+Add an entry to `TYPES` in `src/config/ships.js` (the Mediterranean's classes live in `src/config/ships-med.js`,
+merged into `TYPES`). A type may also carry `chasers` (bow guns every ship of the class has), `plural` (the
+briefing's roster), `shallow` (crosses shoals whatever her length) and `faction` (for the art). The renderer builds the model from `L`, `B`, `masts` (2 or
 3) and `rig`, so no art is needed. Draw to the fleet's scale: a sloop is 45 long, a frigate 63, a man-o'-war 78
 (collision, boarding reach, shore clearance and the hit test all follow from `L` and `B`).
 
@@ -262,9 +286,8 @@ load and left in place as a backup):
             look: {} }] }                  // cosmetics, empty for now: see LOOK_FIELDS
 ```
 
-`look` is for cosmetics a 3D shipyard will set (`LOOK_FIELDS` in `src/save.js`: `paint`, `sails`, `figurehead`,
-`flags`, `lanterns`); every field is optional and a missing one means the class's usual look. Add new fields to
-`LOOK_FIELDS` and keep them plain JSON; the migration keeps whatever is there.
+`look` is her cosmetics (see [Ship looks](#ship-looks)); `wardrobe` (optional) lists the looks bought at the
+shipyard as `'field:id'`. The migration drops any look field or wardrobe entry the catalogue doesn't know.
 
 **In battle** a ship carries `s.batteries` (plain JSON, saved with the battle) and summaries the rest of the game
 reads: `s.guns`, `s.chasers`, `s.range`, `s.reloadTime`, `s.reload[side]` (seconds until that side's first
@@ -272,6 +295,40 @@ hand-fired battery is loaded; writing it shifts that side's batteries, so `s.rel
 and `s.repel` (her swivels' help against boarders). `hasten(s, secs)` loads every gun aboard faster (the rally
 ability uses it). The HUD's Fire tiles split their reload rule into one segment per battery on that side
 (`sideLoad`), and the selected ship shows a range rim for each different reach.
+
+## Ship looks
+
+Looks are cosmetic only and live in `src/config/looks.js`; `render/models.js` draws them. A look is plain JSON,
+every field optional:
+
+```js
+look: { paint: 'ochre', cloth: 'tan', emblem: 'rose', figurehead: 'lion', flag: 'pennant', lanterns: 3, gilding: 'gilt' }
+```
+
+Each field names an entry in its catalogue (`PAINTS`, `CLOTHS`, `EMBLEMS`, `FIGUREHEADS`, `FLAGS`, `LANTERNS`,
+`GILDING`; `lanterns` is 1-3). An entry for the player has a `name`, an `about` line for the ledger and either a `cost`
+in gold (bought once, then any ship of the squadron wears it free) or a `hat` (free once that hat is won). Entries
+marked `foe: true` are the enemy's fashions and never offered at the shipyard. Paints and cloths carry their colours
+(`side`, `castle`, `wale`, `ports`; `color`, `stripe`); devices, figureheads, flags and gilding are drawn by id in
+`render/models.js` (`drawEmblem`, `figurehead`, the flag at the main, `ensign`), so a new one needs a few lines there.
+`npm run check` checks the catalogue, the palettes and every ship def's `look`.
+
+A ship's look is in her template key, so each look bakes once and still draws as one hull, one outline and a rig a
+mast. The side colours are not part of a look: an English ship keeps a blue rail, blue colours and a blue canvas edge
+(the squadron's band says it on its own), an enemy red, a boss gilt, pirates black.
+
+**The enemy** dresses from `FACTION_LOOKS[faction]` (spain, pirate, barbary, ottoman; a faction not listed dresses as
+Spain, and a field it leaves out comes from Spain's), one entry a field seeded by her name and id, so ships of a class
+in one battle differ. A boss wears `BOSS_LOOKS[hat]` (or the richest of her faction's wardrobe). A battle may dress
+any ship itself:
+
+```js
+{ type: 'frigate', name: 'El Halcón', x: 0.5, y: 0.1, h: 90, look: { paint: 'barbaryGreen', emblem: 'crescent' } },
+```
+
+**The shipyard** (`src/render/yard.js`, `src/ui/screens.js`) shows the chosen ship in 3D; the model it builds is the
+battle's own (`shipTemplate` with `{ parts: true }`, which tags each part for picking and keeps its bounds).
+`window.__broadside.yard` reports what it shows (template key, look and guns as built, the part lit) for tests.
 
 ## Write an ability module
 

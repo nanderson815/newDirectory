@@ -1,34 +1,32 @@
 import { TYPES, REFIT, REFIT_COST } from './config/ships.js';
 import { UPGRADES, HIRES, MAX_FLEET } from './config/upgrades.js';
 import { BATTLES } from './config/battles.js';
+import { WORLDS, worldById, DEFAULT_WORLD } from './config/worlds.js';
 import { AMMO_COSTS, BOARDING } from './config/ammo.js';
 import { FLAGSHIP } from './config/flagship.js';
 import { GUNS } from './config/guns.js';
 import { classSlots, defaultLoadout, fullLoadout, loadoutWeight, accepts, slotCount, weightFactors } from './config/slots.js';
+import { LOOK_FIELDS, LOOK_DEFAULT, lookItem, cleanLook } from './config/looks.js';
 import { S } from './state.js';
 
 // Campaign progress lives in this browser only (localStorage), so it's a per-player convenience:
 // losing it costs progress, never breaks the game.
 //
 // Save v2 (stored under KEY):
-//   { v: 2, gold, stars: { battleId: 1-3 }, hats: [hatId], hired, best?, tips?: [tipId],
+//   { v: 2, gold, stars: { battleId: 1-3 }, hats: [hatId], hired, best?, tips?: [tipId], wardrobe?: ['field:id'],
 //     fleet: [{ name, cls, up: { upgradeId: level, chain?: 1, grape?: 1 }, loadout: { slotId: gunId }, look: {} }] }
 // `loadout` is only filled for a class with slots (the great ship, src/config/slots.js); for the rest it stays {}.
-// `look` is the ship's cosmetics (LOOK_FIELDS), empty until the shipyard has a way to set them.
+// `look` is the ship's cosmetics (LOOK_FIELDS in src/config/looks.js: paint, cloth, emblem, figurehead, flag,
+// lanterns, gilding); a missing field is the usual look. `wardrobe` lists the looks bought at the shipyard
+// ("emblem:rose"): bought once, any ship may wear them. Looks a hat unlocks need no entry.
 // A v1 save (under LEGACY_KEY, no loadout or look) is migrated on load and left where it was as a backup.
 export const SAVE_VERSION = 2;
 const KEY = 'broadside.save.v2';
 const LEGACY_KEY = 'broadside.save.v1';
 
-// What a ship's `look` may hold, for the 3D shipyard to fill. Every field is optional; a missing one means the
-// class's usual look (src/render/models.js). Values are plain JSON.
-export const LOOK_FIELDS = {
-  paint: '{ hull, wale, trim }: hull paint colours as "#rrggbb"',
-  sails: '{ cloth: "#rrggbb", emblem: id | null }: the colour of her canvas and a device painted on the main course',
-  figurehead: 'id of a figurehead carving (a lion, a mermaid, a saint...)',
-  flags: '{ ensign: id, pennant: id }: the colours she flies',
-  lanterns: 'how many stern lanterns she shows (1-3)',
-};
+// What a ship's `look` may hold (src/config/looks.js). Every field is optional; a missing one means the usual
+// look. Values are plain JSON; anything the catalogue doesn't know is dropped on load.
+export { LOOK_FIELDS };
 
 const ship = (name, cls) => ({ name, cls, up: {}, loadout: defaultLoadout(TYPES[cls] || {}), look: {} });
 
@@ -51,9 +49,11 @@ export function migrate(s) {
   const fleet = s.fleet.map((f) => {
     const T = TYPES[f.cls] || {};
     const loadout = f.loadout && typeof f.loadout === 'object' ? (T.slots ? fullLoadout(T, f.loadout) : f.loadout) : defaultLoadout(T);
-    return { ...f, up: f.up || {}, loadout, look: f.look && typeof f.look === 'object' ? f.look : {} };
+    return { ...f, up: f.up || {}, loadout, look: cleanLook(f.look) };
   });
-  return { ...s, v: SAVE_VERSION, fleet };
+  const out = { ...s, v: SAVE_VERSION, fleet };
+  if (s.wardrobe !== undefined) out.wardrobe = Array.isArray(s.wardrobe) ? s.wardrobe.filter((w) => typeof w === 'string' && lookItem(...w.split(':'))) : [];
+  return out;
 }
 
 function read(key) {
@@ -167,6 +167,33 @@ export function fitGun(i, slotId, gun) {
   writeSave();
   return true;
 }
+// ---------- Looks ----------
+// What she wears, with the usual look wherever her own says nothing.
+export const lookOf = (f) => ({ ...LOOK_DEFAULT, ...(f.look || {}) });
+// Wearing look entry `id` in `field` on fleet ship f: whether it is hers already, the squadron owns it (free, bought
+// or won with a hat), what it costs if not, and the hat that unlocks it.
+export function lookOffer(f, field, id) {
+  const item = lookItem(field, id);
+  if (!item || item.foe) return null;
+  const worn = String(lookOf(f)[field]) === String(id);
+  const locked = !worn && !!item.hat && !save.hats.includes(item.hat);
+  const owned = worn || (!locked && (item.hat || !item.cost || (save.wardrobe || []).includes(`${field}:${id}`)));
+  return { item, worn, owned: !!owned, locked, hat: item.hat || null, cost: owned || locked ? null : item.cost };
+}
+// Dresses fleet ship i: free if the squadron owns it, else bought (and kept in the wardrobe for every ship).
+export function wearLook(i, field, id) {
+  const f = save.fleet[i], o = f && lookOffer(f, field, id);
+  if (!o || o.locked || o.worn) return false;
+  if (!o.owned) {
+    if (!spend(o.cost)) return false;
+    save.wardrobe = [...(save.wardrobe || []), `${field}:${id}`];
+  }
+  const v = field === 'lanterns' ? +id : id;
+  f.look = { ...cleanLook(f.look), [field]: v };
+  writeSave();
+  return true;
+}
+
 export function upgradeOffer(f, id) {
   const U = UPGRADES.find((u) => u.id === id);
   const level = lvl(f, id);
@@ -218,10 +245,51 @@ export function recordSkirmish(waves, gold) {
   return { gold, waves, best: save.best, record: waves > best };
 }
 
-// The tutorial and the first battle are always open; each later battle opens once the one before is won.
+// ---------- Worlds and unlocking ----------
+// Progress is per world (src/config/worlds.js): a world opens once its `unlock` battle is won, its first battle
+// (and in the West Indies the tutorial and the first battle) is open as soon as the world is, and each later
+// battle opens once the one before it in the same world is won. Stars are kept by battle id, so a save from
+// before worlds existed keeps all its progress (and a finished West Indies opens the Mediterranean).
+const won = (id) => (save.stars[id] || 0) > 0;
+export const worldOpen = (id) => { const W = worldById(id); return !W.unlock || won(W.unlock.won); };
+const worldOf = (B) => (B && B.world) || DEFAULT_WORLD;
 export function isUnlocked(i) {
-  return i <= 1 || (save.stars[BATTLES[i - 1].id] || 0) > 0;
+  const B = BATTLES[i];
+  if (!B) return false;
+  const w = worldOf(B);
+  if (!worldOpen(w)) return false;
+  const list = BATTLES.filter((b) => worldOf(b) === w), k = list.indexOf(B);
+  return k <= (w === DEFAULT_WORLD ? 1 : 0) || won(list[k - 1].id);
 }
+// The worlds open to this save, and the one the chart shows: the save's choice if it is open, else the latest
+// open world with a battle still to win (else the latest open one).
+export const openWorlds = () => WORLDS.filter((W) => worldOpen(W.id));
+export function currentWorld() {
+  if (save.world && worldOpen(save.world)) return save.world;
+  const open = openWorlds();
+  const todo = [...open].reverse().find((W) => BATTLES.some((b) => worldOf(b) === W.id && !won(b.id)));
+  return (todo || open[open.length - 1] || WORLDS[0]).id;
+}
+export function setWorld(id) {
+  if (!worldOpen(id)) return false;
+  save.world = id;
+  writeSave();
+  return true;
+}
+// The battle after battle i: the next in its world, or once a world is finished, the first battle of the next
+// world if that is open. null when there is none.
+export function nextAfter(i) {
+  const B = BATTLES[i];
+  if (!B) return null;
+  const w = worldOf(B), list = BATTLES.filter((b) => worldOf(b) === w), k = list.indexOf(B);
+  if (k + 1 < list.length) return BATTLES.indexOf(list[k + 1]);
+  const wi = WORLDS.findIndex((W) => W.id === w), nextW = WORLDS[wi + 1];
+  if (!nextW || !worldOpen(nextW.id)) return null;
+  const first = BATTLES.findIndex((b) => worldOf(b) === nextW.id);
+  return first < 0 ? null : first;
+}
+// Is battle i the last of its world?
+export const lastOfWorld = (i) => { const w = worldOf(BATTLES[i]); return BATTLES.filter((b) => worldOf(b) === w).pop() === BATTLES[i]; };
 
 export const starsFor = (lost) => (lost === 0 ? 3 : lost === 1 ? 2 : 1);
 
@@ -234,11 +302,15 @@ export function recordWin(idx, lost, prizes = 0) {
   const prizeGold = prizes * BOARDING.prizeGold;
   // Towns sacked in the battle (src/sim/land.js) pay their plunder on a win.
   const plunder = (S.G && S.G.battle === idx && S.G.stats.plunder) || 0;
-  const gold = Math.round(B.reward * (prev ? 0.4 : 1) * (stars === 3 ? 1.5 : 1)) + prizeGold + plunder;
+  // Bonus goals met in this battle (src/sim/goals/index.js) pay their gold, 40% on replays like the reward.
+  const bonuses = (S.G && S.G.battle === idx ? S.G.goals || [] : []).filter((o) => o.bonus && o.met);
+  const bonus = Math.round(bonuses.reduce((n, o) => n + (o.gold || 0), 0) * (prev ? 0.4 : 1));
+  const gold = Math.round(B.reward * (prev ? 0.4 : 1) * (stars === 3 ? 1.5 : 1)) + prizeGold + plunder + bonus;
   save.gold += gold;
   save.stars[B.id] = Math.max(prev, stars);
   let hat = null;
   if (B.hat && !save.hats.includes(B.hat)) { save.hats.push(B.hat); hat = B.hat; }
+  if (bonuses.length) save.bonus = { ...(save.bonus || {}), [B.id]: true };
   writeSave();
-  return { gold, stars, hat, first: !prev, prizes, prizeGold, plunder };
+  return { gold, stars, hat, first: !prev, prizes, prizeGold, plunder, bonus, bonuses: bonuses.length };
 }

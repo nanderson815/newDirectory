@@ -8,6 +8,10 @@ import { weightFactors } from '../config/slots.js';
 import { makeCapsule, makeCoast, capsuleRadius, coastList, fleetLayout } from './terrain.js';
 import { setupGoals } from './goals/index.js';
 import { setupLand } from './land.js';
+import { worldById } from '../config/worlds.js';
+
+// How far your lookouts see on a night battle (`night: true`) that doesn't set its own `fog`.
+export const NIGHT_SIGHT = 250;
 
 // Builds one ship's battle state from a battle definition plus (for the player) its shipyard upgrades.
 export function makeShip(def, team, place, rot, id, ai) {
@@ -40,8 +44,11 @@ export function makeShip(def, team, place, rot, id, ai) {
     crafty: team !== 'player' && Math.random() < (def.boss ? 0.5 : 0.3),
     // Critical hits (src/sim/hazards.js): masts shot away, seconds the rudder is out, seconds a fire burns.
     mastsDown: 0, rudderT: 0, fireT: 0,
-    rig: T.rig || 'square', escort: !!def.escort, ally: !!def.ally, exits: !!(def.escort || def.exits), flag: false,
+    rig: T.rig || 'square', shallow: !!T.shallow, escort: !!def.escort, ally: !!def.ally, exits: !!(def.escort || def.exits), flag: false,
     faction: def.faction || null, hidden: false,
+    // Her cosmetics (src/config/looks.js): your ships' from the save, an enemy's from her def (or, when it says
+    // nothing, her faction's palette at render time).
+    look: def.look || null,
   };
   summarize(s, T);
   initAbilities(s, { ...T.abilities, ...def.abilities });
@@ -75,7 +82,7 @@ export function createBattle(idx, size, fleet) {
   // fleetAt puts the campaign fleet somewhere other than the bottom of the chart (an ambush, an enemy astern).
   const lay = fleetLayout(B, FLEET_SLOTS);
   const playerDefs = B.player || fleet.map((f, i) => ({
-    type: f.cls, name: f.name, x: lay.slots[i][0], y: lay.slots[i][1], h: lay.h, up: f.up, loadout: f.loadout,
+    type: f.cls, name: f.name, x: lay.slots[i][0], y: lay.slots[i][1], h: lay.h, up: f.up, loadout: f.loadout, look: f.look,
   }));
   for (const d of playerDefs) ships.push(makeShip(d, 'player', place, rot, id++, B.ai));
   for (const d of B.enemy) ships.push(makeShip({ ...d, faction: B.faction }, 'enemy', place, rot, id++, B.ai));
@@ -110,9 +117,13 @@ export function createBattle(idx, size, fleet) {
 
   const G = {
     battle: idx, W, H, land: !!land, ships, islands, shoals, reefs, coasts, forts, mines: [], buoy, chests: [],
-    fog: B.fog || 0, faction: B.faction || null,
+    // Night (`night: true`) is fought like fog, at NIGHT_SIGHT unless the battle sets its own; ships on fire show
+    // through it (src/sim/fog.js). The renderer may draw it as night (G.night).
+    fog: B.fog || (B.night ? NIGHT_SIGHT : 0), night: !!B.night,
+    faction: B.faction || (B.world ? worldById(B.world).faction : null) || null,
     events: (B.events || []).map((e) => ({ ...e, fired: false })),
-    wind: { base: B.wind * PI / 180 + rot, dir: B.wind * PI / 180 + rot },
+    // k is the strength of the wind (`breeze`, default 1): 0.3 a flat calm where only oars make way, above 1 a gale.
+    wind: { base: B.wind * PI / 180 + rot, dir: B.wind * PI / 180 + rot, k: B.breeze == null ? 1 : B.breeze },
     t: 0, phase: 'title', endAt: null, result: null, dragged: false, award: null,
     stats: { shots: 0, hits: 0, captured: 0 }, ai: B.ai, goal: null, goals: [],
     tut: B.tutorial ? { step: 0, rotated: false, raised: false } : null,

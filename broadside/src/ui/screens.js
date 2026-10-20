@@ -1,21 +1,26 @@
-import { briefText, winText, loseText, mainGoal } from '../sim/goals/index.js';
+import { briefText, bonusText, winText, loseText, mainGoal } from '../sim/goals/index.js';
 import { S, afloat, selfSailing } from '../state.js';
 import { $, store } from '../util.js';
-import { BATTLES } from '../config/battles.js';
+import { regionOf } from '../config/battles.js';
+import { WORLDS, worldById } from '../config/worlds.js';
+import { factionOf } from '../config/factions.js';
 import { TYPES } from '../config/ships.js';
 import { UPGRADES, MAX_FLEET } from '../config/upgrades.js';
-import { HATS, HAT_ORDER, hatSVG } from '../config/hats.js';
+import { HATS, HAT_ORDER, hatSVG, hatWorld } from '../config/hats.js';
 import { AMMO, AMMO_COSTS, BOARDING } from '../config/ammo.js';
 import { GUNS } from '../config/guns.js';
 import { slotGroups, fullLoadout, loadoutWeight, accepts, slotCount } from '../config/slots.js';
+import { LOOK_CATALOGUE, lookItem } from '../config/looks.js';
 import { battleDef, ENDLESS_ID, ENDLESS, WAVE_GOLD } from '../config/endless.js';
 import { LAB_ID } from '../config/lab.js';
 import {
-  save, resetSave, recordSkirmish, starsFor, fleetStats, refitOffer, upgradeOffer, buyUpgrade, buyRefit, buyAmmo, nextHire, buyHire, isUnlocked, recordWin, lvl,
-  upgradesFor, greatOffer, buyGreatShip, fitOffer, fitGun,
+  save, resetSave, recordSkirmish, starsFor, fleetStats, refitOffer, upgradeOffer, buyUpgrade, buyRefit, buyAmmo, nextHire, buyHire, recordWin, lvl,
+  upgradesFor, greatOffer, buyGreatShip, fitOffer, fitGun, nextAfter, lastOfWorld, worldOpen, openWorlds, currentWorld, setWorld,
+  lookOf, lookOffer, wearLook,
 } from '../save.js';
 import { loadBattle } from '../game.js';
 import { R } from '../render/gl.js';
+import { openYardScene, closeYardScene, yardShow, yardDef, yardHighlight, yardActive, YARD_KEYS } from '../render/yard.js';
 import { sfx } from '../audio/sfx.js';
 import { music } from '../audio/music.js';
 import { TUTORIAL_STEPS } from '../sim/update.js';
@@ -26,7 +31,7 @@ import { iconSVG } from './icons.js';
 
 // DOM screens around the battle: menu, sea chart, shipyard, hats, briefing, pause, results, tutorial coach.
 const SCREENS = ['menuScreen', 'settingsScreen', 'chartScreen', 'yardScreen', 'hatsScreen', 'briefScreen', 'pauseScreen', 'endScreen'];
-export const ui = { screen: 'menuScreen', yardSel: 0, slotOpen: null };
+export const ui = { screen: 'menuScreen', yardSel: 0, slotOpen: null, lookOpen: null, preview: null, hot: null };
 
 // Gold as type: a figure in oldstyle numerals and the word in small capitals.
 const fmt = (n) => Number(n).toLocaleString('en-GB');
@@ -42,7 +47,9 @@ function romanValue(r) {
   return n;
 }
 const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
-// Where a battle is fought, for the line under its name.
+// Where a battle is fought, for the line under its name: the battle's own `where`, else its region's (the
+// Mediterranean's regions carry theirs, src/config/battles-med.js), else this table.
+const whereOf = (B) => B.where || WHERE[B.region] || (regionOf(B) || {}).where || '';
 const WHERE = {
   port: 'off Port Royal', windward: 'in the Windward Passage', main: 'off the Spanish Main', golden: 'among the Golden Isles',
   pirate: 'off the Pirate Coast', campeche: 'in the Bay of Campeche', armada: 'against the last Armada',
@@ -60,6 +67,8 @@ export function showScreen(id) {
   document.documentElement.classList.toggle('menus', id !== null);
   const prev = ui.screen;
   ui.screen = id;
+  // The 3D yard is built while the shipyard is up and gone as soon as it isn't.
+  if (prev === 'yardScreen' && id !== 'yardScreen') closeYard();
   for (const s of SCREENS) {
     const el = $(s), show = s === id;
     if (show && (el.hidden || !booted)) el.classList.toggle('enter-fade', prev === null || !booted);
@@ -94,14 +103,15 @@ const PLURAL = {
 };
 const enemyForts = (B) => (B.forts || []).filter((f) => f.team !== 'player');
 const ownForts = (B) => (B.forts || []).filter((f) => f.team === 'player');
-const isPirate = (B) => B.faction === 'pirate';
+// The battle's enemy (src/config/factions.js): its own faction, else its world's.
+const factionFor = (B) => factionOf(B.faction || (B.world && worldById(B.world).faction));
 const bossOf = (B) => { const e = B.enemy.find((x) => x.boss); return e ? e.boss : null; };
 // Calico Kate is the one boss who isn’t a "he".
 const his = (B) => (STORY[B.id] && STORY[B.id].her ? 'her' : 'his');
 function rosterText(B) {
   const counts = {};
   for (const e of B.enemy) counts[e.type] = (counts[e.type] || 0) + 1;
-  const parts = Object.entries(counts).map(([t, n]) => `${word(n)} ${n === 1 ? TYPES[t].label.toLowerCase() : PLURAL[t] || TYPES[t].label.toLowerCase() + 's'}`);
+  const parts = Object.entries(counts).map(([t, n]) => `${word(n)} ${n === 1 ? TYPES[t].label.toLowerCase() : TYPES[t].plural || PLURAL[t] || TYPES[t].label.toLowerCase() + 's'}`);
   const forts = enemyForts(B).length;
   if (forts) parts.push(`${word(forts)} fort${forts > 1 ? 's' : ''}`);
   const waves = (B.events || []).filter((e) => e.spawn).length;
@@ -133,7 +143,10 @@ function ordersHTML(B, { withCounsel = true } = {}) {
   let roster = -1;
   if (mainGoal(B) === 'waves') p.push(`<p>Between waves your ships patch a quarter of their hull and restock mines. Each wave beaten pays ${WAVE_GOLD} gold.${save.best ? ` Your best is wave ${save.best}.` : ''}</p>`);
   else if (!B.tutorial) roster = p.push(`${h('Against you')}${esc(rosterText(B))}.`) - 1;
-  if (B.fog) p.push(`<p>${h('Fog')}Your lookouts see only ships close to your own. Keep the fleet together and watch the edges of the murk.</p>`);
+  if (B.night) p.push(`<p>${h('Night')}Your lookouts see only ships close to your own, but a ship on fire shows across the whole sea. Keep the fleet together.</p>`);
+  else if (B.fog) p.push(`<p>${h('Fog')}Your lookouts see only ships close to your own. Keep the fleet together and watch the edges of the murk.</p>`);
+  if (B.breeze != null && B.breeze < 0.7) p.push(`<p>${h('Calm')}Your sails barely draw; oared ships move as fast as ever. Anchor and turn on the spot to bring your broadsides to bear.</p>`);
+  if ((B.events || []).some((e) => e.breeze > 1)) p.push(`<p>${h('Weather')}A gale is coming. When it blows, every ship runs faster and every gun throws wilder.</p>`);
   if (ownForts(B).length) p.push('<p>Your fort’s guns fire on anything in range, but it cannot dodge. Hunt down the bomb ketches before they wear it down.</p>');
   if (enemyForts(B).length) p.push('<p>Forts fire in every direction. Once one is silenced, stop a ship beside it and tap <i>Land</i>.</p>');
   if (S.G && S.G.ships.some((s) => s.team === 'player' && s.mines > 0)) p.push('<p>A ship with mines can tap <i>Mine</i> to leave one astern.</p>');
@@ -143,6 +156,7 @@ function ordersHTML(B, { withCounsel = true } = {}) {
     const advice = withCounsel ? counsel(B, [(STORY[B.id] || {}).before || '', ...p].join(' ')) : '';
     p[roster] = `<p>${p[roster]}${advice ? ' ' + esc(advice) : ''}</p>`;
   }
+  for (const x of bonusText(B)) p.push(`<p>${h('Bonus')}${esc(x.text)} <i>+${fmt(x.gold)} gold if you win.</i></p>`);
   if (!B.tutorial) p.push('<p class="note">Drag on the sea to plot a course, or tap it to sail straight there; tap an enemy to engage. Pinch to zoom, double-tap to recentre.</p>');
   return p.join('');
 }
@@ -167,21 +181,70 @@ function disarmReset() {
 }
 
 // ---------- Sea chart ----------
+// The chart shows one world; with more than one open, a link sails to the other (a placeholder for the chart
+// pass's world switch).
 export function openChart() {
   idle();
   $('chartGold').innerHTML = goldHTML(save.gold);
   music.mood('calm');
   showScreen('chartScreen');
-  renderChart($('chartList'));
+  const here = currentWorld(), other = openWorlds().find((W) => W.id !== here);
+  $('worldBtn').hidden = !other;
+  if (other) { $('worldBtn').textContent = other.short; $('worldBtn').dataset.world = other.id; }
+  renderChart($('chartList'), here);
 }
 
 // ---------- Shipyard ----------
+// The ship lies in her berth in 3D above the ledger (left of it in landscape: src/render/yard.js). Her parts are
+// keyed A to F like an engraving's key, and so are the ledger's sections: tap a part (or its letter) and the ledger
+// opens that section; open a section and the part lights up on the model. Changing anything, or just trying an
+// option on (tap its line), shows on the model at once.
 export function openYard() {
   idle();
+  ui.lookOpen = null; ui.slotOpen = null; ui.preview = null; ui.hot = null;
   renderYard();
   music.mood('calm');
   showScreen('yardScreen');
+  const gl = openYardScene($('yardView'), $('yardKeys'), { onPick: pickPart });
+  $('yardScreen').classList.toggle('no-gl', !gl && !yardActive());
+  $('yardHint').hidden = false;
+  syncYardModel('open');
 }
+function closeYard() { closeYardScene(); }
+
+// The look entries and the parts they dress, in the ledger's order.
+const LOOK_GROUPS = [
+  { part: 'hull', label: 'The hull', fields: ['paint'] },
+  { part: 'sails', label: 'The sails', fields: ['cloth', 'emblem'] },
+  { part: 'figurehead', label: 'The figurehead', fields: ['figurehead'] },
+  { part: 'stern', label: 'The stern', fields: ['gilding', 'lanterns'] },
+  { part: 'flags', label: 'Her colours', fields: ['flag'] },
+];
+const FIELD_LABEL = { paint: 'Paint', cloth: 'Canvas', emblem: 'Device', figurehead: 'Carving', flag: 'Colours', lanterns: 'Lanterns', gilding: 'Gilding' };
+const FIELD_PART = Object.fromEntries(LOOK_GROUPS.flatMap((g) => g.fields.map((f) => [f, g.part])));
+const keyHTML = (part) => (YARD_KEYS[part] ? `<span class="key" aria-hidden="true">${YARD_KEYS[part].letter}</span>` : '');
+// "the red tricorne", but "Calico Kate's skull hat": a hat named after its owner keeps the name.
+const hatPhrase = (id) => { const n = HATS[id].name; return /^[A-Z][a-z]+ [A-Z]/.test(n) ? n : 'the ' + n.toLowerCase(); };
+// Hand-coloured chips for paint and canvas.
+function swatch(field, it) {
+  const chip = (c) => `<i style="background:${c}"></i>`;
+  if (field === 'paint') return `<span class="swatch" aria-hidden="true">${chip(it.side)}${chip(it.castle)}${chip(it.wale)}</span>`;
+  if (field === 'cloth') return `<span class="swatch" aria-hidden="true">${chip(it.color)}${it.stripe ? chip(it.stripe) : ''}</span>`;
+  return '';
+}
+// The look the model shows: hers, with whatever is being tried on.
+function previewOf(f) {
+  const p = ui.preview;
+  if (!p) return f;
+  if (p.field) return { ...f, look: { ...lookOf(f), [p.field]: p.field === 'lanterns' ? +p.id : p.id } };
+  if (p.slot) return { ...f, loadout: { ...fullLoadout(TYPES[f.cls], f.loadout), [p.slot]: p.gun } };
+  return f;
+}
+function syncYardModel(mode = 'live', changed = null) {
+  const f = save.fleet[ui.yardSel];
+  if (f) yardShow(yardDef(previewOf(f)), mode, changed);
+}
+
 // One line of the ledger: what it is, what it does, its price as a figure, and one way to buy it.
 function buyRow(cls, name, desc, pips, cost, id) {
   const can = cost != null && save.gold >= cost;
@@ -190,7 +253,7 @@ function buyRow(cls, name, desc, pips, cost, id) {
   const btn = cost == null
     ? `<button type="button" class="buy maxed" data-buy="${id}" disabled aria-label="${esc(aria)}">${pips && pips[1] === 1 ? 'aboard' : 'fitted'}</button>`
     : `<button type="button" class="buy" data-buy="${id}"${can ? '' : ' disabled'} aria-label="${esc(aria)}">buy</button>`;
-  return `<div class="up-row ${cls}${cost != null && !can ? ' dear' : ''}"><div><div class="up-name">${esc(name)}${lv}</div><div class="up-desc">${esc(desc)}</div></div>` +
+  return `<div class="up-row ${cls}${cost != null && !can ? ' dear' : ''}" data-row="${id}"><div><div class="up-name">${esc(name)}${lv}</div><div class="up-desc">${esc(desc)}</div></div>` +
     `<span class="up-price">${cost == null ? '' : fmt(cost)}</span>${btn}</div>`;
 }
 const dash = (n) => (n ? n : '–');
@@ -200,15 +263,16 @@ const plural = (n, one, many) => `${word(n)} ${n === 1 ? one : many}`;
 
 // The gun decks of a ship with slots (the great ship): one ledger line per slot, grouped by where it sits, saying
 // what is fitted there and how many guns. "Change" opens the slot: a line per gun it takes, with what the gun
-// does, its reach and weight, the price of fitting the whole slot, and one small ruled "fit".
+// does, its reach and weight, the price of fitting the whole slot, and one small ruled "fit". Tapping a gun's line
+// tries it on the model.
 function gunDecks(f, T) {
   const full = fullLoadout(T, f.loadout), weight = loadoutWeight(T, f.loadout);
-  let html = `<div class="lo-head"><h4>The gun decks</h4><span class="lo-tons">${tons(weight)} of ${tons(T.tons)} tons</span></div>`;
+  let html = `<div class="lo-head" data-section="guns"><h4>${keyHTML('guns')}The gun decks</h4><span class="lo-tons">${tons(weight)} of ${tons(T.tons)} tons</span></div>`;
   for (const g of slotGroups(T)) {
     html += `<h5 class="lo-group">${esc(g.label)}</h5>`;
     for (const id of g.slots) {
       const slot = T.slots[id], gun = GUNS[full[id]], n = slotCount(slot, full[id]), open = ui.slotOpen === id;
-      html += `<div class="up-row lo-slot${open ? ' open' : ''}" data-slot-row="${id}"><div><div class="up-name">${esc(slot.label)}` +
+      html += `<div class="up-row lo-slot${open ? ' open' : ''}${ui.hot === 'slot:' + id ? ' hot' : ''}" data-slot-row="${id}"><div><div class="up-name">${esc(slot.label)}` +
         ` <span class="lv">${n === 1 ? 'one piece' : plural(n, 'gun', 'guns')}</span></div><div class="up-desc">${esc(gun.label)}</div></div>` +
         `<span class="up-price"></span><button type="button" class="buy change" data-slot="${id}" aria-expanded="${open}"` +
         ` aria-label="${esc(`Change the guns in the ${slot.label.toLowerCase()}`)}">${open ? 'close' : 'change'}</button></div>`;
@@ -226,12 +290,50 @@ function slotOptions(f, id) {
       `${tons(G.weight * o.count)} tons`].join(' · ');
     const can = o.cost != null && !o.over && save.gold >= o.cost;
     const label = `${G.label}${o.count > 1 ? ` <span class="lv">${word(o.count)}</span>` : ''}`;
+    const trying = ui.preview && ui.preview.slot === id && ui.preview.gun === g && !o.fitted;
     const btn = o.fitted
       ? `<button type="button" class="buy maxed" disabled aria-label="${esc(`${G.label}: fitted`)}">fitted</button>`
       : `<button type="button" class="buy" data-buy="fit:${id}:${g}"${can ? '' : ' disabled'} aria-label="${esc(`Fit ${G.label.toLowerCase()} for ${o.cost} gold`)}">fit</button>`;
-    html += `<div class="up-row lo-gun${o.fitted ? ' fitted' : ''}${!o.fitted && !can ? ' dear' : ''}"><div><div class="up-name">${label}</div>` +
+    html += `<div class="up-row lo-gun${o.fitted ? ' fitted' : ''}${!o.fitted && !can ? ' dear' : ''}${trying ? ' trying' : ''}" data-try="gun:${id}:${g}"><div><div class="up-name">${label}</div>` +
       `<div class="up-desc">${esc(G.about)}</div><div class="lo-stats">${esc(stats)}${o.over ? ` · <em>too heavy: ${tons(o.weight)} of ${tons(TYPES[f.cls].tons)} tons</em>` : ''}</div></div>` +
       `<span class="up-price">${o.fitted ? '' : fmt(o.cost)}</span>${btn}</div>`;
+  }
+  return html + '</div>';
+}
+
+// Her looks: a line a field (what she wears now, a ruled "change"); an open field lists every entry the yard
+// offers, with a chip of its colours, what it is, and its price and "buy", or "wear" once the squadron owns it, or
+// the hat that brings it. Cosmetic only.
+function looksHTML(f) {
+  const look = lookOf(f);
+  let html = '<div class="lo-head" data-section="looks"><h4>Her looks</h4><span class="lo-tons">for show</span></div>';
+  for (const g of LOOK_GROUPS) {
+    html += `<h5 class="lo-group" data-part-head="${g.part}">${keyHTML(g.part)}${esc(g.label)}</h5>`;
+    for (const field of g.fields) {
+      const it = lookItem(field, look[field]), open = ui.lookOpen === field;
+      html += `<div class="up-row lo-slot look-row${open ? ' open' : ''}${ui.hot === g.part && (!ui.lookOpen || open) ? ' hot' : ''}" data-look-row="${field}"><div><div class="up-name">${FIELD_LABEL[field]}</div>` +
+        `<div class="up-desc">${swatch(field, it)}${esc(it.name)}</div></div><span class="up-price"></span>` +
+        `<button type="button" class="buy change" data-look="${field}" aria-expanded="${open}" aria-label="${esc(`Change her ${FIELD_LABEL[field].toLowerCase()}`)}">${open ? 'close' : 'change'}</button></div>`;
+      if (open) html += lookOptions(f, field);
+    }
+  }
+  return html;
+}
+function lookOptions(f, field) {
+  let html = '<div class="lo-options">';
+  for (const [id, it] of Object.entries(LOOK_CATALOGUE[field])) {
+    if (it.foe) continue;
+    const o = lookOffer(f, field, id);
+    const can = o.cost != null && save.gold >= o.cost;
+    const trying = ui.preview && ui.preview.field === field && String(ui.preview.id) === id && !o.worn;
+    const note = o.locked ? `Comes with ${hatPhrase(o.hat)}.` : it.about;
+    const btn = o.worn ? `<button type="button" class="buy maxed" disabled aria-label="${esc(`${it.name}: worn`)}">worn</button>`
+      : o.locked ? `<button type="button" class="buy maxed locked" disabled aria-label="${esc(`${it.name}: comes with ${hatPhrase(o.hat)}`)}">locked</button>`
+        : o.owned ? `<button type="button" class="buy" data-buy="look:${field}:${id}" aria-label="${esc(`Wear ${it.name.toLowerCase()}`)}">wear</button>`
+          : `<button type="button" class="buy" data-buy="look:${field}:${id}"${can ? '' : ' disabled'} aria-label="${esc(`Buy ${it.name.toLowerCase()} for ${o.cost} gold`)}">buy</button>`;
+    html += `<div class="up-row lo-gun look-opt${o.worn ? ' fitted' : ''}${o.locked ? ' locked' : ''}${o.cost != null && !can ? ' dear' : ''}${trying ? ' trying' : ''}" data-try="look:${field}:${id}">` +
+      `<div><div class="up-name">${swatch(field, it)}${esc(it.name)}</div><div class="up-desc">${esc(note)}</div></div>` +
+      `<span class="up-price">${o.cost != null ? fmt(o.cost) : ''}</span>${btn}</div>`;
   }
   return html + '</div>';
 }
@@ -263,14 +365,16 @@ function renderYard() {
     html += buyRow('refit great', `Rebuild as a ${go.label.toLowerCase()}`, `A first rate: ${R.hp} hull, two tiers of guns a side, chase guns fore and aft, every gun to be fitted as you please`, null, go.cost, 'great');
   }
   if (T.slots) html += gunDecks(f, T);
+  else html += `<div class="lo-head" data-section="guns"><h4>${keyHTML('guns')}Fittings</h4></div>`;
   for (const U of upgradesFor(f)) {
     const o = upgradeOffer(f, U.id);
-    html += buyRow('', U.name, U.desc, [o.level, U.max], o.cost, U.id);
+    html += buyRow(ui.hot === 'up:' + U.id ? 'hot' : '', U.name, U.desc, [o.level, U.max], o.cost, U.id);
   }
   for (const kind of ['chain', 'grape']) {
     const have = lvl(f, kind);
     html += buyRow('', AMMO[kind].name, AMMO[kind].desc, [have, 1], have ? null : AMMO_COSTS[kind], 'ammo:' + kind);
   }
+  html += looksHTML(f);
   $('yardShip').innerHTML = html + '</div>';
   if (!renderYard.quiet) $('yardShip').querySelector('.up-list').classList.add('stagger');
   const h = nextHire();
@@ -280,32 +384,108 @@ function renderYard() {
 }
 // Redraws the ledger in place (after a purchase, or opening a slot), keeping the scroll.
 function quietYard() {
-  const list = $('yardShip').querySelector('.up-list'), top = list ? list.scrollTop : 0;
+  const sc = $('yardLedger'), top = sc ? sc.scrollTop : 0;
   renderYard.quiet = true; renderYard(); renderYard.quiet = false;
-  const now = $('yardShip').querySelector('.up-list');
-  if (now) now.scrollTop = top;
+  if (sc) sc.scrollTop = top;
 }
+// Scrolls the ledger so `el` sits near the top of it.
+function bringIntoView(el) {
+  const sc = $('yardLedger');
+  if (!el || !sc) return;
+  const top = el.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop - 10;
+  const smooth = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  sc.scrollTo({ top: Math.max(0, top), behavior: smooth ? 'smooth' : 'auto' });
+}
+// A part of her tapped on the model (or its key): open the matching section of the ledger.
+function pickPart(part) {
+  const f = save.fleet[ui.yardSel], T = TYPES[f.cls];
+  $('yardHint').hidden = true;
+  ui.preview = null; ui.hot = part;
+  let target = null;
+  const group = LOOK_GROUPS.find((g) => g.part === part);
+  if (group) {
+    ui.slotOpen = null;
+    if (!group.fields.includes(ui.lookOpen)) ui.lookOpen = group.fields[0];
+    quietYard();
+    target = $('yardShip').querySelector(`[data-part-head="${part}"]`);
+  } else if (part === 'guns' || part.startsWith('slot:')) {
+    ui.lookOpen = null;
+    const slot = part.startsWith('slot:') ? part.slice(5) : null;
+    if (T.slots) {
+      ui.slotOpen = slot;
+      quietYard();
+      target = slot ? $('yardShip').querySelector(`[data-slot-row="${slot}"]`) : $('yardShip').querySelector('[data-section="guns"]');
+    } else {
+      // A ship without slots: her guns are the More guns and Bow chasers fittings.
+      ui.slotOpen = null;
+      ui.hot = slot === 'bow' ? 'up:chasers' : slot ? 'up:guns' : 'guns';
+      quietYard();
+      target = $('yardShip').querySelector(slot === 'bow' ? '[data-row="chasers"]' : slot ? '[data-row="guns"]' : '[data-section="guns"]') || $('yardShip').querySelector('[data-section="guns"]');
+    }
+  }
+  sfx.init();
+  bringIntoView(target);
+}
+
 function onYardClick(e) {
   const tab = e.target.closest('[data-ship]');
-  if (tab) { ui.yardSel = +tab.dataset.ship; ui.slotOpen = null; renderYard(); return; }
+  if (tab) {
+    const k = +tab.dataset.ship;
+    if (k === ui.yardSel) return;
+    ui.yardSel = k; ui.slotOpen = null; ui.lookOpen = null; ui.preview = null; ui.hot = null;
+    yardHighlight(null, { turn: false });
+    renderYard();
+    $('yardLedger').scrollTop = 0;
+    syncYardModel('swap');
+    return;
+  }
   const sl = e.target.closest('[data-slot]');
-  if (sl) { ui.slotOpen = ui.slotOpen === sl.dataset.slot ? null : sl.dataset.slot; sfx.init(); quietYard(); return; }
+  if (sl) {
+    const id = sl.dataset.slot;
+    ui.slotOpen = ui.slotOpen === id ? null : id; ui.lookOpen = null; ui.preview = null; ui.hot = ui.slotOpen ? 'slot:' + id : null;
+    sfx.init(); quietYard(); syncYardModel(); yardHighlight(ui.hot);
+    return;
+  }
+  const lk = e.target.closest('[data-look]');
+  if (lk) {
+    const field = lk.dataset.look;
+    ui.lookOpen = ui.lookOpen === field ? null : field; ui.slotOpen = null; ui.preview = null; ui.hot = ui.lookOpen ? FIELD_PART[field] : null;
+    sfx.init(); quietYard(); syncYardModel(); yardHighlight(ui.hot);
+    return;
+  }
   const b = e.target.closest('[data-buy]');
-  if (!b || b.disabled) return;
+  if (!b) {
+    // Tapping an option's line tries it on the model; tapping it again takes it off.
+    const tr = e.target.closest('[data-try]');
+    if (!tr || tr.classList.contains('fitted')) return;
+    const [kind, a, c] = tr.dataset.try.split(':');
+    const same = ui.preview && (kind === 'look' ? ui.preview.field === a && String(ui.preview.id) === c : ui.preview.slot === a && ui.preview.gun === c);
+    ui.preview = same ? null : kind === 'look' ? { field: a, id: c } : { slot: a, gun: c };
+    quietYard();
+    syncYardModel('live', kind === 'look' ? FIELD_PART[a] : 'slot:' + a);
+    return;
+  }
+  if (b.disabled) return;
   const id = b.dataset.buy, i = ui.yardSel;
-  const what = b.closest('.up-row').querySelector('.up-name').firstChild.textContent.trim();
-  const [, slotId, gun] = id.startsWith('fit:') ? id.split(':') : [];
+  const what = b.closest('.up-row').querySelector('.up-name').textContent.trim();
+  const [kind, slotId, gun] = id.startsWith('fit:') || id.startsWith('look:') ? id.split(':') : [];
+  const look = kind === 'look';
+  const before = look ? lookOffer(save.fleet[i], slotId, gun) : null;
   const ok = id === 'refit' ? buyRefit(i) : id === 'great' ? buyGreatShip(i) : id === 'hire' ? buyHire() : id.startsWith('ammo:') ? buyAmmo(i, id.slice(5))
-    : slotId ? fitGun(i, slotId, gun) : buyUpgrade(i, id);
+    : look ? wearLook(i, slotId, gun) : kind === 'fit' ? fitGun(i, slotId, gun) : buyUpgrade(i, id);
   if (ok) {
-    sfx.init(); sfx.coin();
-    if (id === 'hire') ui.yardSel = save.fleet.length - 1;
-    if (slotId) ui.slotOpen = null;
+    sfx.init(); if (!look || !before.owned) sfx.coin();
+    if (id === 'hire') { ui.yardSel = save.fleet.length - 1; ui.lookOpen = null; ui.slotOpen = null; }
+    if (kind === 'fit') ui.slotOpen = null;
+    ui.preview = null;
     quietYard(); // a purchase updates in place
+    const f = save.fleet[ui.yardSel];
+    syncYardModel(id === 'hire' ? 'swap' : 'live', look ? FIELD_PART[slotId] : kind === 'fit' ? 'slot:' + slotId : id === 'refit' || id === 'great' ? 'hull' : null);
     toast(id === 'hire' ? `${save.fleet[save.fleet.length - 1].name} joins the squadron` : id === 'refit' ? 'Refit complete'
-      : id === 'great' ? `${save.fleet[i].name} is rebuilt as a great ship`
-        : slotId ? `${what} fitted in the ${TYPES[save.fleet[i].cls].slots[slotId].label.toLowerCase()}`
-          : id.startsWith('ammo:') ? `${what} stowed aboard` : `${what} fitted`, id === 'hire' ? 'ship' : 'check');
+      : id === 'great' ? `${f.name} is rebuilt as a great ship`
+        : look ? `${lookItem(slotId, gun).name} for ${f.name}`
+          : kind === 'fit' ? `${what} fitted in the ${TYPES[f.cls].slots[slotId].label.toLowerCase()}`
+            : id.startsWith('ammo:') ? `${what} stowed aboard` : `${what} fitted`, id === 'hire' ? 'ship' : 'check');
   }
 }
 // A short confirmation that drops in at the top of the screen and fades away by itself.
@@ -323,20 +503,27 @@ export function toast(text, icon = 'check') {
 
 // ---------- Hats ----------
 // "Taken from Capitán Rojo of La Bruja" once won; "Still on the head of ..." until then.
-function hatFrom(from, won) {
+function hatFrom(hat, won) {
+  const from = hat.from;
   if (/^Finish /.test(from)) return won ? 'For ' + from.replace(/^Finish/, 'finishing') : from;
+  if (hat.gift) return won ? from : `${from}, still to be earned`;
   const who = from.replace(/^The /, 'the ');
   return won ? `Taken from ${who}` : `Still worn by ${who}`;
 }
 export function openHats() {
   idle();
-  $('hatGrid').innerHTML = HAT_ORDER.map((id) => {
+  // One shelf per world; a world not yet open keeps its shelf out of sight.
+  const card = (id) => {
     const won = save.hats.includes(id);
     return `<div class="hat-card${won ? '' : ' locked'}">${hatSVG(id, !won)}<h3>${esc(HATS[id].name)}</h3>` +
-      `<p>${esc(hatFrom(HATS[id].from, won))}</p></div>`;
-  }).join('');
+      `<p>${esc(hatFrom(HATS[id], won))}</p></div>`;
+  };
+  const shelves = WORLDS.filter((W) => worldOpen(W.id) || HAT_ORDER.some((id) => hatWorld(id) === W.id && save.hats.includes(id)));
+  $('hatGrid').innerHTML = shelves.map((W) => (shelves.length > 1 ? `<h4 class="hat-shelf">${esc(W.name)}</h4>` : '') +
+    HAT_ORDER.filter((id) => hatWorld(id) === W.id).map(card).join('')).join('');
   $('hatGrid').classList.add('stagger');
-  $('hatsTally').textContent = `${word(HAT_ORDER.filter((id) => save.hats.includes(id)).length)} of ${word(HAT_ORDER.length)}`;
+  const shown = HAT_ORDER.filter((id) => shelves.some((W) => W.id === hatWorld(id)));
+  $('hatsTally').textContent = `${word(shown.filter((id) => save.hats.includes(id)).length)} of ${word(shown.length)}`;
   showScreen('hatsScreen');
 }
 
@@ -344,6 +531,8 @@ export function openHats() {
 export function openBrief(i) {
   loadBattle(i);
   const B = battleDef(i);
+  // Back on the chart you see the world this battle belongs to.
+  if (typeof i === 'number' && B.world && B.world !== save.world && worldOpen(B.world)) setWorld(B.world);
   const n = romanValue(B.roman || '');
   $('briefEyebrow').textContent = i === LAB_ID ? `Battle lab · ${B.year}` : mainGoal(B) === 'waves' ? 'Exercising the great guns'
     : B.tutorial ? 'Before the first engagement' : ORDINALS[n] ? `The ${ORDINALS[n]} engagement` : `Battle ${B.roman}`;
@@ -351,7 +540,7 @@ export function openBrief(i) {
   const log = STORY[B.id];
   // The chart region names the waters, unless the battle is plainly somewhere else (the siege is at Port Royal).
   const elsewhere = B.region !== 'port' && /Port Royal/.test(`${B.name} ${log ? log.before : ''}`);
-  $('briefWhere').textContent = [elsewhere ? '' : WHERE[B.region], log ? logDate(B.id, B.year) : B.year].filter(Boolean).join(', ');
+  $('briefWhere').textContent = [elsewhere ? '' : whereOf(B), log ? logDate(B.id, B.year) : B.year].filter(Boolean).join(', ');
   // The log is the hook; without one, the battle's own description takes its place.
   $('briefLog').hidden = !log;
   $('briefText').hidden = !!log;
@@ -360,7 +549,7 @@ export function openBrief(i) {
   const boss = mainGoal(B) === 'boss' ? bossOf(B) : null;
   $('briefBoss').hidden = !boss;
   if (boss) {
-    const have = save.hats.includes(boss.hat), hatName = HATS[boss.hat].name.replace(/^Calico Kate's /, '').toLowerCase();
+    const have = save.hats.includes(boss.hat), hatName = HATS[boss.hat].short || HATS[boss.hat].name.replace(/^Calico Kate's /, '').toLowerCase();
     const them = his(B) === 'her' ? 'her' : 'him';
     $('briefBoss').innerHTML = hatSVG(boss.hat, false) +
       `<p><b>${esc(boss.captain)}</b><span>${have ? `Already in your cabin. Beat ${them} again for the gold.` : `Sink ${them} and the ${esc(hatName)} is yours.`}</span></p>`;
@@ -392,7 +581,7 @@ function showIntro() {
   const boss = ship.boss, story = STORY[B.id] || {};
   const el = $('bossIntro');
   el.innerHTML = '<div class="bi-card sheet">' +
-    `<p class="bi-eyebrow">${isPirate(B) ? 'The pirate queen' : 'The enemy flagship'} is sighted</p>` +
+    `<p class="bi-eyebrow">${factionFor(B).flagship} is sighted</p>` +
     `<div class="bi-hat">${hatSVG(boss.hat, false)}</div>` +
     `<h2 class="bi-name">${esc(boss.captain)}</h2>` +
     `<p class="bi-ship">${esc(TYPES[ship.type].label)} <i>${esc(boss.title)}</i></p>` +
@@ -477,7 +666,7 @@ function victoryText(B, lost) {
 function defeatText(G, B) {
   if (G.reason && G.reason !== 'fleet') return loseText(B, G.reason);
   const boss = mainGoal(B) === 'boss' ? bossOf(B) : null;
-  const foe = boss ? (STORY[B.id] && STORY[B.id].who) || boss.captain : isPirate(B) ? 'the pirates' : `the ${B.foe}`;
+  const foe = boss ? (STORY[B.id] && STORY[B.id].who) || boss.captain : B.faction === 'pirate' ? 'the pirates' : B.foe.startsWith('the ') ? B.foe : `the ${B.foe}`;
   return `Your fleet is sunk and the sea belongs to ${foe}. Refit at the shipyard and try again.`;
 }
 
@@ -487,7 +676,9 @@ function renderEnd() {
   const B = battleDef(G.battle), win = G.result === 'win', a = G.award;
   const lost = shipsLost(G);
   $('endEyebrow').textContent = a && a.lab ? `Battle lab · ${B.name}` : B.name;
-  $('endTitle').textContent = win ? (G.battle === BATTLES.length - 1 && !a.lab ? 'The sea is England’s!' : 'Victory!') : 'Defeat';
+  // The last battle of a world has its own title (src/config/worlds.js).
+  const finale = typeof G.battle === 'number' && lastOfWorld(G.battle) && !(a && a.lab);
+  $('endTitle').textContent = win ? (finale ? worldById(B.world).finale : 'Victory!') : 'Defeat';
   $('endTitle').classList.toggle('won', win);
   $('endStars').hidden = !win;
   $('endStars').innerHTML = win ? starsHTML(a.stars, true) : '';
@@ -500,21 +691,24 @@ function renderEnd() {
   }
   $('endReward').hidden = !win || a.lab;
   if (win && !a.lab) {
-    const notes = [a.stars === 3 ? 'flawless bonus' : '', a.prizes ? `${a.prizes} prize${a.prizes > 1 ? 's' : ''} +${a.prizeGold}` : '', a.first ? '' : 'replay'].filter(Boolean).join(' · ');
+    const notes = [a.stars === 3 ? 'flawless bonus' : '', a.prizes ? `${a.prizes} prize${a.prizes > 1 ? 's' : ''} +${a.prizeGold}` : '',
+      a.bonus ? `bonus +${a.bonus}` : '', a.first ? '' : 'replay'].filter(Boolean).join(' · ');
     $('endReward').innerHTML = `<span class="gold-num"><span class="gold-count">+${a.gold}</span><small>gold</small></span>${notes ? `<span class="note">${notes}</span>` : ''}`;
     countUp($('endReward').querySelector('.gold-count'), a.gold, { prefix: '+', delay: 700 });
   }
   $('endHat').hidden = !(win && a.hat);
   if (win && a.hat) {
     // "the red tricorne", but "Calico Kate's skull hat": a hat named after its owner keeps the name.
-    const n = HATS[a.hat].name, named = /^[A-Z][a-z]+ [A-Z]/.test(n);
-    $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p><b>${esc(named ? n : 'The ' + n.toLowerCase())}</b> is yours, and goes to the cabinet.</p>`;
+    // A hat may say how a sentence names it (`short`, after "the").
+    const n = HATS[a.hat].name, named = /^[A-Z][a-z]+ [A-Z]/.test(n), short = HATS[a.hat].short;
+    $('endHat').innerHTML = `${hatSVG(a.hat, false)}<p><b>${esc(short ? 'The ' + short : named ? n : 'The ' + n.toLowerCase())}</b> is yours, and goes to the cabinet.</p>`;
   }
   const sec = Math.floor(G.t);
   $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   $('statHits').textContent = G.stats.shots ? `${Math.round((100 * G.stats.hits) / G.stats.shots)}%` : '–';
   $('statLost').textContent = String(lost);
-  const next = typeof G.battle === 'number' && G.battle + 1 < BATTLES.length ? G.battle + 1 : null;
+  // The next battle in this world, or the first of the next world once this one is finished and that is open.
+  const next = typeof G.battle === 'number' ? nextAfter(G.battle) : null;
   const primary = $('endPrimary'), again = !win || a.lab; // a lab battle has no next battle, only another go
   primary.hidden = !again && next == null;
   primary.textContent = again ? (win ? 'Play again' : 'Try again') : 'Next battle';
@@ -608,6 +802,7 @@ export function initUI() {
   });
   $('yardBtn').addEventListener('click', openYard);
   $('hatsBtn').addEventListener('click', openHats);
+  $('worldBtn').addEventListener('click', (e) => { if (setWorld(e.currentTarget.dataset.world)) openChart(); });
   $('chartBack').addEventListener('click', openMenu);
   $('yardScreen').addEventListener('click', onYardClick);
   $('yardBack').addEventListener('click', openChart);

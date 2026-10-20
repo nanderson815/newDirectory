@@ -12,6 +12,8 @@ import protect from './protect.js';
 import hunt from './hunt.js';
 import reach from './reach.js';
 import survive from './survive.js';
+import rescue from './rescue.js';
+import take from './take.js';
 
 // Battle goals. A battle lists one or more as `goals: [{ kind, ...params }]` (or the shorthand
 // `goal: 'boss'`); it is won when every goal is met and lost when any goal fails or the fleet is gone.
@@ -32,15 +34,23 @@ import survive from './survive.js';
 // steer(o, G, s) (override an enemy captain's heading), sunk(o, G, s), escaped(o, G, s) (a ship left the
 // battle: through the exit, or a runner over the edge), endless (never won; the battle ends when the fleet is
 // gone).
+// Any goal can be a bonus: `bonus: true` (and optionally `gold`, the prize for it; default a quarter of the
+// battle's reward) on its def. A bonus never wins or loses the battle; it is met if, when the battle is won,
+// it is done and has never failed (so a timer bonus means "win within secs"). It pays its gold with the win.
 // To add one: write a module like these, then list it here.
-export const GOALS = Object.fromEntries([sink, boss, capture, treasure, escort, hold, breakthrough, timer, waves, protect, hunt, reach, survive].map((g) => [g.id, g]));
+export const GOALS = Object.fromEntries([sink, boss, capture, treasure, escort, hold, breakthrough, timer, waves, protect, hunt, reach, survive, rescue, take].map((g) => [g.id, g]));
 
 export const goalsOf = (B) => B.goals || [{ kind: B.goal || 'sink' }];
 export const mainGoal = (B) => goalsOf(B)[0].kind;
+// The goals that decide the battle, and the optional bonus ones.
+export const required = (B) => goalsOf(B).filter((o) => !o.bonus);
+export const bonusGoals = (B) => goalsOf(B).filter((o) => o.bonus);
+export const bonusGold = (o, B) => (o.gold != null ? o.gold : Math.round((B.reward || 0) * 0.25 / 10) * 10);
 
 export function setupGoals(G, B, ctx) {
   G.goals = goalsOf(B).map((d) => {
     const o = { ...d };
+    if (o.bonus) o.gold = bonusGold(o, B);
     const g = GOALS[o.kind];
     if (g && g.setup) g.setup(o, G, ctx, B);
     return o;
@@ -63,10 +73,15 @@ export function judge(G) {
   for (const o of G.goals) {
     const g = GOALS[o.kind];
     const reason = g && g.failed ? g.failed(o, G) : null;
+    if (o.bonus) { if (reason) o.missed = true; continue; }
     if (reason) return { result: 'lose', reason };
   }
   const endless = hasGoalFlag(G, 'endless');
-  if (!endless && G.goals.every((o) => GOALS[o.kind] && GOALS[o.kind].done(o, G))) return { result: 'win' };
+  if (!endless && G.goals.every((o) => o.bonus || (GOALS[o.kind] && GOALS[o.kind].done(o, G)))) {
+    // Bonus goals are settled at the moment of victory.
+    for (const o of G.goals) if (o.bonus) o.met = !o.missed && !!(GOALS[o.kind] && GOALS[o.kind].done(o, G));
+    return { result: 'win' };
+  }
   // Merchantmen under escort and allies don't count as the fleet: you can't fight the battle with them.
   const fleet = G.ships.some((s) => s.team === 'player' && afloat(s) && !selfSailing(s));
   if (!fleet) return endless ? { result: 'end' } : { result: 'lose', reason: 'fleet' };
@@ -77,13 +92,17 @@ export const enemiesAfloat = (G) => G.ships.filter((s) => s.team === 'enemy' && 
 
 export function goalLines(G) {
   const lines = [];
-  eachGoal(G, 'hud', (g, o) => lines.push(...g.hud(o, G)));
+  eachGoal(G, 'hud', (g, o) => { if (!o.bonus) lines.push(...g.hud(o, G)); });
+  eachGoal(G, 'hud', (g, o) => { if (o.bonus) lines.push(`Bonus: ${o.missed ? 'missed' : g.hud(o, G)[0] || g.about}`); });
   lines.push(`Enemy ships: ${enemiesAfloat(G)}`);
   return lines;
 }
 
 // Text for the briefing and results screens.
-export const briefText = (B) => goalsOf(B).map((o) => GOALS[o.kind].brief(o, B)).join(' ');
+export const briefText = (B) => required(B).map((o) => GOALS[o.kind].brief(o, B)).join(' ');
+// The bonus orders, each with its prize: [{ text, gold }].
+// (A hunt's "the rest don't matter" is about the main fight, so a bonus drops it.)
+export const bonusText = (B) => bonusGoals(B).map((o) => ({ text: GOALS[o.kind].brief(o, B).replace(/; the rest don’t matter\./, '.'), gold: bonusGold(o, B) }));
 export function winText(B) {
   const o = goalsOf(B)[0];
   return GOALS[o.kind].won ? GOALS[o.kind].won(o, B) : `The ${B.foe} is beaten.`;

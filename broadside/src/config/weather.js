@@ -82,14 +82,20 @@ export const PRESETS = {
   },
 };
 
-export const REGION_WEATHER = { port: 'sunny', windward: 'sunny', main: 'sunset', golden: 'storm', pirate: 'sunny', campeche: 'sunset', armada: 'storm' };
+export const REGION_WEATHER = {
+  port: 'sunny', windward: 'sunny', main: 'sunset', golden: 'storm', pirate: 'sunny', campeche: 'sunset', armada: 'storm',
+  // The Mediterranean (src/config/battles-med.js): placeholders until the art pass gives it its own light.
+  straits: 'sunny', barbary: 'sunset', malta: 'sunny', morea: 'sunny', candia: 'sunset', dardanelles: 'sunny',
+};
 
 // Per-battle overrides by battle id, e.g. { tortuga: 'storm' }. A battle def's own `weather` wins over both.
 export const BATTLE_WEATHER = { fog: 'fog' };
 
 // The resolved preset for a battle definition: a fresh object, with the boss mood applied.
 export function weatherFor(battle) {
-  const name = (battle && (battle.weather || BATTLE_WEATHER[battle.id] || REGION_WEATHER[battle.region])) || 'sunny';
+  // A night battle (`night: true`) takes the 'night' preset once there is one; until then the fog look.
+  const night = battle && battle.night ? (PRESETS.night ? 'night' : 'fog') : null;
+  const name = (battle && (battle.weather || night || BATTLE_WEATHER[battle.id] || REGION_WEATHER[battle.region])) || 'sunny';
   const p = PRESETS[name] || PRESETS.sunny;
   const w = { ...p, name, light: { ...p.light }, screen: { ...(p.screen || {}) }, isBoss: !!battle && battle.goal === 'boss' };
   if (w.isBoss && p.boss) {

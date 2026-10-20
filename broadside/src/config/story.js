@@ -4,6 +4,8 @@
 // The through-line: a junior English captain at newly taken Port Royal (1655) works up from a borrowed sloop
 // to breaking La Gran Armada (1665), collecting a captain's hat from every enemy flagship along the way.
 
+import { MED_STORY } from './story-med.js';
+
 export const STORY = {
   tutorial: {
     date: '14 May',
@@ -107,6 +109,9 @@ export const STORY = {
     after: 'The Real Felipe is sunk and La Gran Armada is scattered to the four winds. The Capitán General’s crown hat sits at the head of my collection, and the Caribbean is England’s. Hobbs says we should retire. Hobbs, I suspect, wants my cabin.',
   },
 };
+
+// The Mediterranean's log lives in its own file.
+Object.assign(STORY, MED_STORY);
 
 // "14 May 1655" style date for a log entry.
 export const logDate = (id, year) => (STORY[id] ? `${STORY[id].date} ${year}` : String(year));

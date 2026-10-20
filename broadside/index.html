@@ -84,22 +84,27 @@
     <div class="chart-nav">
       <button type="button" class="btn quiet on-dark" id="yardBtn">Shipyard</button>
       <button type="button" class="btn quiet on-dark" id="hatsBtn">Hats</button>
+      <button type="button" class="btn quiet on-dark" id="worldBtn" hidden></button>
     </div>
   </div>
 </div>
 
-<!-- Shipyard: a chandler's ledger -->
-<div class="overlay" id="yardScreen" hidden>
-  <div class="sheet panel wide">
+<!-- Shipyard: the ship in her berth in 3D (src/render/yard.js) above a chandler's ledger (beside it in landscape) -->
+<div class="overlay yard-screen" id="yardScreen" hidden>
+  <div class="yard-view" id="yardView" aria-label="Your ship in her berth. Drag to turn her, pinch to zoom, double-tap to set the view back; tap a part, or its letter, to fit it out.">
+    <div class="yard-keys" id="yardKeys"></div>
+    <p class="yard-hint" id="yardHint">Turn her with a finger; tap a part to fit it out.</p>
+  </div>
+  <button type="button" class="btn text on-dark yard-back" id="yardBack" data-icon="back">Chart</button>
+  <div class="sheet yard-sheet">
     <header class="sheet-head">
       <h2>Shipyard</h2>
       <p class="purse" id="yardGold"></p>
     </header>
     <div class="ship-tabs" id="yardTabs" role="tablist" aria-label="Your fleet"></div>
-    <div class="ship-card" id="yardShip" role="tabpanel"></div>
-    <div class="hire" id="yardHire"></div>
-    <div class="row foot">
-      <button type="button" class="btn quiet" id="yardBack">Back to the chart</button>
+    <div class="yard-ledger" id="yardLedger">
+      <div class="ship-card" id="yardShip" role="tabpanel"></div>
+      <div class="hire" id="yardHire"></div>
     </div>
   </div>
 </div>

@@ -3,13 +3,29 @@
 // terracotta ink, the leg ahead dotted, the rest of the voyage not yet charted. The map is drawn in a
 // 1000 x 700 coordinate space (geometry in chart-map.js) and scaled to cover the screen; whatever doesn't fit
 // pans (drag or scroll).
+//
+// Worlds: the chart shows one world at a time (save.js currentWorld; the West Indies plate from chart-map.js, the
+// Mediterranean's placeholder plate from chart-map-med.js), and a link in the chart's nav sails to the other.
 import { BATTLES, REGIONS } from '../config/battles.js';
+import { worldById } from '../config/worlds.js';
+import * as CARIB from './chart-map.js';
+import * as MED from './chart-map-med.js';
 import { hatSVG } from '../config/hats.js';
 import { ENDLESS_ID, ENDLESS } from '../config/endless.js';
-import { save, isUnlocked } from '../save.js';
+import { save, isUnlocked, currentWorld } from '../save.js';
 import { mainGoal } from '../sim/goals/index.js';
 import { iconSVG } from './icons.js';
-import { W, H, NODES, REGION_LABELS, LAND, ISLES, HILLS, LANDNAMES, SEANAMES, legPaths } from './chart-map.js';
+import { W, H } from './chart-map.js';
+
+// Each world's plate: its geometry module, the compass rose, the cartouche and the sea creatures.
+const PLATES = {
+  caribbean: { map: CARIB, rose: [826, 166], title: 'The West Indies', beasts: true, port: true, endless: true },
+  med: { map: MED, rose: [700, 560], title: 'The Middle Sea', beasts: false, port: false, endless: false },
+};
+const plateOf = (world) => PLATES[world] || PLATES.caribbean;
+let P = PLATES.caribbean;
+// The battles on the chart now: this world's, each with its index into BATTLES.
+const shown = () => BATTLES.map((b, i) => ({ b, i })).filter(({ b }) => (b.world || 'caribbean') === P.world);
 
 const MIN_SCALE = 1; // below this names and battles crowd each other (tests/chart-check.mjs), so small screens pan instead
 const f1 = (n) => Math.round(n * 10) / 10;
@@ -49,18 +65,18 @@ const WHALE = '<g class="ch-beast" transform="translate(672 30) scale(0.72)">' +
   '<path d="M6 38 Q30 50 56 40" class="ch-line"/>' +
   '<circle cx="20" cy="26" r="3" class="ch-pupil"/>' +
   '</g>';
-const CARTOUCHE = '<g class="ch-cartouche" transform="translate(852 652)">' +
+const cartouche = (title, sub) => '<g class="ch-cartouche" transform="translate(852 652)">' +
   '<path d="M-100 -22 H100 Q93 0 100 22 H-100 Q-93 0 -100 -22 Z" class="ch-scroll"/>' +
   '<path d="M-92 -15 H92 M-92 15 H92" class="ch-line" style="stroke-width:0.6;opacity:0.5"/>' +
   '<path d="M-100 -22 Q-114 -16 -108 -6 Q-100 -2 -96 -10 M100 22 Q114 16 108 6 Q100 2 96 10" class="ch-line"/>' +
-  '<text y="2" class="ch-title">The West Indies</text>' +
-  '<text y="14" class="ch-sub">Drawn for the Admiral, 1655</text>' +
+  `<text y="2" class="ch-title">${title}</text>` +
+  `<text y="14" class="ch-sub">${sub}</text>` +
   '</g>';
 
-const ROSE = [826, 166];
-
 function mapSVG() {
-  const ids = BATTLES.map((b) => b.id);
+  const { LAND, ISLES, HILLS, LANDNAMES, SEANAMES, REGION_LABELS, legPaths, NODES } = P.map;
+  const ROSE = P.rose;
+  const list = shown(), ids = list.map(({ b }) => b.id);
   let rh = '';
   // Rhumb lines fan out from the compass rose.
   for (let k = 0; k < 16; k++) {
@@ -68,9 +84,9 @@ function mapSVG() {
     rh += `M${ROSE[0]} ${ROSE[1]} L${f1(ROSE[0] + Math.cos(a) * 1300)} ${f1(ROSE[1] + Math.sin(a) * 1300)} `;
   }
   // The voyage so far in terracotta, the leg ahead dotted; the rest is not yet on the chart.
-  const route = legPaths(ids).map((d, i) => {
-    if (!d || !isUnlocked(i)) return '';
-    return `<path d="${d}" class="ch-route ${save.stars[ids[i]] ? 'done' : 'ahead'}"/>`;
+  const route = legPaths(ids, NODES).map((d, k) => {
+    if (!d || !isUnlocked(list[k].i)) return '';
+    return `<path d="${d}" class="ch-route ${save.stars[ids[k]] ? 'done' : 'ahead'}"/>`;
   }).join('');
   const land = LAND.map((d) => `<path d="${d}"/>`).join('') +
     ISLES.map(([x, y, rx, ry, r]) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}"${r ? ` transform="rotate(${r} ${x} ${y})"` : ''}/>`).join('');
@@ -83,9 +99,9 @@ function mapSVG() {
     `<g class="ch-hills">${HILLS.map(([x, y]) => `<path d="M${x - 8} ${y} Q${x} ${y - 10} ${x + 8} ${y} M${x + 4} ${y - 2} Q${x + 11} ${y - 9} ${x + 18} ${y - 1}"/>`).join('')}</g>` +
     LANDNAMES.map(([t, x, y, r, s]) => `<text x="${x}" y="${y}" transform="rotate(${r} ${x} ${y})" class="ch-landname" style="font-size:${s}px">${t}</text>`).join('') +
     SEANAMES.map(([t, x, y, r]) => `<text x="${x}" y="${y}" transform="rotate(${r} ${x} ${y})" class="ch-seaname">${t}</text>`).join('') +
-    compass(ROSE[0], ROSE[1]) + SERPENT + WHALE + CARTOUCHE +
-    '<g class="ch-port"><path d="M566 342 V330 M566 330 L575 332.5 L566 335" /></g>' +
-    REGIONS.map((r) => { const p = REGION_LABELS[r.id]; return p ? `<text x="${p.x}" y="${p.y}" transform="rotate(${p.r} ${p.x} ${p.y})" class="ch-region">${p.t || r.name}</text>` : ''; }).join('') +
+    compass(ROSE[0], ROSE[1]) + (P.beasts ? SERPENT + WHALE : '') + cartouche(P.title, `Drawn for the Admiral, ${worldById(P.world).years.slice(0, 4)}`) +
+    (P.port ? '<g class="ch-port"><path d="M566 342 V330 M566 330 L575 332.5 L566 335" /></g>' : '') +
+    REGIONS.filter((r) => r.world === P.world).map((r) => { const p = REGION_LABELS[r.id]; return p ? `<text x="${p.x}" y="${p.y}" transform="rotate(${p.r} ${p.x} ${p.y})" class="ch-region">${p.t || r.name}</text>` : ''; }).join('') +
     route +
     `<rect x="6" y="6" width="${W - 12}" height="${H - 12}" class="ch-frame"/><rect x="11" y="11" width="${W - 22}" height="${H - 22}" class="ch-frame thin"/>` +
     '</svg>';
@@ -104,7 +120,9 @@ const pos = (p) => `left:${p.x / 10}%;top:${(p.y / 7).toFixed(3)}%`;
 const nameCls = (p) => (p.name ? ' n-' + p.name : '');
 
 function nodeHTML(b, i, next) {
-  const p = NODES[b.id], open = isUnlocked(i), won = save.stars[b.id] || 0, boss = mainGoal(b) === 'boss';
+  const p = P.map.NODES[b.id];
+  if (!p) return ''; // a battle the chart has no place for yet
+  const open = isUnlocked(i), won = save.stars[b.id] || 0, boss = mainGoal(b) === 'boss';
   const hat = boss && save.hats.includes(b.hat);
   const cls = ['cnode', boss ? 'boss' : '', open ? 'open' : 'locked', won ? 'won' : '', hat ? 'hat-won' : '', i === next ? 'next' : ''].filter(Boolean).join(' ') + nameCls(p);
   const disc = boss ? hatSVG(b.hat, !open) + (open ? '' : LOCK) : open ? `<b>${esc(b.roman === '0' ? '★' : b.roman)}</b>` : LOCK;
@@ -117,25 +135,33 @@ function nodeHTML(b, i, next) {
 }
 
 function endlessHTML() {
-  const p = NODES[ENDLESS_ID], open = isUnlocked(2);
+  const p = P.map.NODES[ENDLESS_ID], open = isUnlocked(2);
+  if (!P.endless || !p) return '';
   const label = `${ENDLESS.name}: ${open ? (save.best ? `best wave ${save.best}` : 'waves of enemies') : 'win the Tortuga Narrows to open'}`;
   return `<button type="button" class="cnode endless ${open ? 'open' : 'locked'}${nameCls(p)}" data-battle="${ENDLESS_ID}" style="${pos(p)}"` +
     `${open ? '' : ' disabled'} aria-label="${esc(label)}"><span class="cn-disc">${open ? '<b>∞</b>' : LOCK}</span>` +
     `<span class="cn-name">${esc(p.label)}${open && save.best ? `<small>Best: wave ${save.best}</small>` : ''}</span></button>`;
 }
 
-// The battle the campaign is up to: the first one that's open but not won yet.
-export const nextBattle = () => BATTLES.findIndex((b, i) => isUnlocked(i) && !save.stars[b.id]);
+// The battle the campaign is up to in a world (the chart's, by default): the first one there that's open but not
+// won yet, as an index into BATTLES (-1 when there is none).
+export function nextBattle(world = currentWorld()) {
+  const x = BATTLES.map((b, i) => ({ b, i })).find(({ b, i }) => (b.world || 'caribbean') === world && isUnlocked(i) && !save.stars[b.id]);
+  return x ? x.i : -1;
+}
 
 let mapEl = null, viewEl = null, focus = null;
 
 // Builds the chart inside `el` (the scrolling viewport) and scrolls the next battle into view.
-export function renderChart(el) {
+export function renderChart(el, world = currentWorld()) {
   viewEl = el;
-  const next = nextBattle();
-  el.innerHTML = `<div class="chart-map">${mapSVG()}${BATTLES.map((b, i) => nodeHTML(b, i, next)).join('')}${endlessHTML()}</div>`;
+  P = { ...plateOf(world), world };
+  const next = nextBattle(world), list = shown();
+  el.innerHTML = `<div class="chart-map">${mapSVG()}${list.map(({ b, i }) => nodeHTML(b, i, next)).join('')}${endlessHTML()}</div>`;
+  el.dataset.world = world;
+  el.setAttribute('aria-label', `Sea chart of ${worldById(world).name.replace(/^The /, 'the ')}. Each battle is a button; scroll or drag to pan.`);
   mapEl = el.firstChild;
-  const f = NODES[(BATTLES[next] || BATTLES[BATTLES.length - 1]).id];
+  const f = P.map.NODES[(BATTLES[next] || list[list.length - 1].b).id];
   focus = f;
   layoutChart(true);
 }

@@ -5,13 +5,13 @@
 Every building block a battle in `src/config/battles.js` can use. How to combine them, and how to add new
 ones: [EXTENDING.md](EXTENDING.md).
 
-- [Goals](#goals): `sink`, `boss`, `capture`, `treasure`, `escort`, `hold`, `breakthrough`, `timer`, `waves`, `protect`, `hunt`, `reach`, `survive`
-- [Abilities](#abilities): `mortar`, `fireship`, `launcher`, `mineLayer`, `oars`, `repair`, `ram`, `flee`, `rally`
+- [Goals](#goals): `sink`, `boss`, `capture`, `treasure`, `escort`, `hold`, `breakthrough`, `timer`, `waves`, `protect`, `hunt`, `reach`, `survive`, `rescue`, `take`
+- [Abilities](#abilities): `mortar`, `fireship`, `launcher`, `mineLayer`, `oars`, `repair`, `ram`, `flee`, `rally`, `grapple`, `moored`
 - [Event conditions](#event-conditions-when): `at`, `enemiesLeft`, `bossHp`, `fortsHeld`, `shipSunk`, `shipNear`, `goalDone`
-- [Event actions](#event-actions-do): `spawn`, `banner`, `wind`, `fog`, `say`, `retreat`, `reveal`, `heal`
-- [Ship types](#ship-types): `sloop`, `brig`, `frigate`, `manowar`, `galleon`, `schooner`, `xebec`, `bomb`, `fireship`, `merchant`, `greatship`
+- [Event actions](#event-actions-do): `spawn`, `banner`, `wind`, `fog`, `breeze`, `say`, `retreat`, `reveal`, `heal`
+- [Ship types](#ship-types): `sloop`, `brig`, `frigate`, `manowar`, `galleon`, `schooner`, `xebec`, `bomb`, `fireship`, `merchant`, `galley`, `galleass`, `polacre`, `tartane`, `felucca`, `kalyon`, `sultana`, `firegalley`, `greatship`
 - [Guns and slots](#guns-and-slots): `long`, `demicannon`, `carronade`, `swivel`, `bowChaser`, `sternChaser`, `mortar`, `firepot`
-- [Hats](#hats): `cabin`, `rojo`, `comodoro`, `oro`, `kate`, `morion`, `armada`
+- [Hats](#hats): `cabin`, `rojo`, `comodoro`, `oro`, `kate`, `morion`, `armada`, `rover`, `kalpak`, `osman`, `corno`, `kavuk`
 - [Geography and openings](#geography-and-openings): `islands`, `shoals`, `reefs`, `coast`, `fleetAt`
 - [Land and landmarks](#land-and-landmarks): `town`, `harbour`, `lighthouse`, `peak`, `volcano`, `church`, `windmill`, `ruin`, `castle`, `skull`, `wreck`, `stacks`, `mangroves`
 - [Combat rules](#combat-rules): raking fire, critical hits
@@ -124,9 +124,9 @@ Keep named ships afloat and named forts firing; lose any one and the battle is l
 
 | param | description |
 |---|---|
-| `ships` | names of English ships to keep afloat (a number is your fleet's nth ship, 0 = the first) |
-| `allies` | ship defs added as allied captains who sail and fight on their own (also guarded) |
-| `forts` | names of your forts that must keep firing |
+| `ships` | optional: names of English ships to keep afloat (a number is your fleet's nth ship, 0 = the first) |
+| `allies` | optional: ship defs added as allied captains who sail and fight on their own (also guarded) |
+| `forts` | optional: names of your forts that must keep firing |
 | `secs` | optional: seconds to keep them safe, after which this goal is met (without it, pair with another goal) |
 
 Hooks: `setup`, `failed`, `hud`, `weigh`, `aiForts`, `tip` ("protect").
@@ -172,6 +172,38 @@ Keep the fleet afloat until the clock runs out; the enemy needn't be beaten.
 
 Hooks: `hud`.
 
+### `rescue`
+
+Land marines from a ship anchored in the gold ring off a town to free the captives, then get their boat out through the exit.
+
+| param | description |
+|---|---|
+| `x` | the landing ring, across the chart (portrait fraction; in the water off the town) |
+| `y` | the landing ring, down the chart (portrait fraction) |
+| `r` | optional: ring radius as a fraction of the chart's width (default 0.09) |
+| `need` | optional: marines the landing takes (default 10) |
+| `secs` | optional: seconds she must lie in the ring while the boats are away (default 4) |
+| `fort` | optional: name of the enemy fort that must be silenced or taken first |
+| `town` | optional: what the briefing calls the place (default "the town") |
+| `captives` | optional: how many captives come off, for the banner (default 40) |
+| `boat` | optional: ship def of the captives' boat (default a felucca, the Deliverance) |
+
+Hooks: `setup`, `update`, `failed`, `hud`, `escaped`, `weigh`, `tip` ("rescue"), `validate`.
+
+Can be lost: `boat`, `marines`.
+
+### `take`
+
+Board the named enemy ships and take them as prizes; sinking one or letting her escape fails it.
+
+| param | description |
+|---|---|
+| `ships` | names of the enemy ships to take (a name or a list) |
+
+Hooks: `failed`, `hud`, `validate`.
+
+Can be lost: `lost`.
+
 ## Abilities
 
 A ship type (`abilities` in TYPES) or one ship in a battle (`abilities` on its def) carries
@@ -204,7 +236,7 @@ Steers for the nearest enemy and explodes alongside; any sinking sets off a blas
 
 Hooks: `init`, `update`, `steer`, `sunk`.
 
-Ship types that carry it: `fireship`.
+Ship types that carry it: `fireship`, `firegalley`.
 
 ### `launcher`
 
@@ -242,7 +274,7 @@ Rowed: keeps moving whatever the wind.
 
 Hooks: `init`, `wind`.
 
-Ship types that carry it: `xebec`.
+Ship types that carry it: `xebec`, `galley`, `galleass`, `felucca`, `firegalley`.
 
 ### `repair`
 
@@ -270,6 +302,8 @@ Reinforced bow: sailing into an enemy ship stoves in her hull and slows both.
 
 Hooks: `init`, `update`, `steer`.
 
+Ship types that carry it: `galley`.
+
 ### `flee`
 
 Breaks off and runs for the nearest edge of the chart once badly hurt; reaching it, she escapes.
@@ -292,6 +326,31 @@ Friendly ships near her reload faster.
 | `reload` | `0.7` | their reload time, times normal (0.7 = 30% faster) |
 
 Hooks: `update`.
+
+### `grapple`
+
+Corsair boarders: closes with a hurt enemy ship and boards her sooner than other ships would.
+
+| param | default | description |
+|---|---|---|
+| `below` | `0.45` | board ships whose hull is down to this share of full (0-1) |
+| `odds` | `1.4` | only when her fighting men outnumber the defenders by this much |
+| `chase` | `300` | AI captains steer for such a ship within this range |
+
+Hooks: `update`, `steer`.
+
+Ship types that carry it: `galley`, `polacre`.
+
+### `moored`
+
+Lies at anchor, firing what bears, until an enemy comes close or she is hit; then she weighs.
+
+| param | default | description |
+|---|---|---|
+| `wake` | `200` | she weighs when an enemy ship comes this close (map units) |
+| `say` | `She cuts her cable!` | what she calls as she cuts her cable, or null |
+
+Hooks: `init`, `update`.
 
 ## Event conditions (WHEN)
 
@@ -316,6 +375,7 @@ hold (no conditions: at the start), and runs its actions in order.
 | `banner` | [title, subtitle] across the screen |
 | `wind` | the wind backs round to blow toward this heading (degrees) |
 | `fog` | fog rolls in to this sight distance (0 lifts it) |
+| `breeze` | the wind changes strength: 1 a fair breeze, 0.3 a flat calm (only oars make way), 1.4 a gale (faster, and every gun scatters) |
 | `say` | [ship name, text]: a line spoken over that ship |
 | `retreat` | the named enemy ships (true: every enemy ship) break off and run for the edge of the chart |
 | `reveal` | the fog lifts and every ship shows for this many seconds (true: the fog clears for good) |
@@ -338,9 +398,17 @@ length × beam. Enemy hulls are multiplied by the battle's `ai.hpMul` unless the
 | `bomb` | Bomb ketch | 95 | 2 | 3 | 44 | 0.9 | 220 | 10 | 2 | 48 × 18 | square | mortar {"range":430,"reload":6.5,"dmg":22,"radius":36} |
 | `fireship` | Fireship | 40 | 0 | 9 | 62 | 1.25 | 0 | 0 | 2 | 40.5 × 15 | square | fireship |
 | `merchant` | Merchantman | 130 | 1 | 4 | 36 | 0.7 | 200 | 6 | 3 | 55.5 × 22.5 | square |  |
+| `galley` | War galley | 85 | 1 | 3.2 | 50 | 1.25 | 210 | 34 | 2 | 54 × 12 | lateen | oars {"min":0.96}, ram {"dmg":18,"charge":220}, grapple |
+| `galleass` | Galleass | 200 | 5 | 3.4 | 38 | 0.55 | 260 | 46 | 3 | 72 × 22.5 | lateen | oars {"min":0.9} |
+| `polacre` | Polacre | 80 | 3 | 2.4 | 64 | 1.3 | 235 | 24 | 3 | 48 × 15 | lateen | grapple |
+| `tartane` | Tartane | 52 | 2 | 2.2 | 66 | 1.6 | 215 | 14 | 2 | 37.5 × 12.75 | lateen |  |
+| `felucca` | Felucca | 36 | 1 | 2 | 76 | 1.9 | 190 | 10 | 2 | 33 × 9.75 | lateen | oars {"min":0.8} |
+| `kalyon` | Kalyon | 165 | 6 | 3.3 | 44 | 0.66 | 270 | 32 | 3 | 70.5 × 25.5 | square |  |
+| `sultana` | Sultana | 235 | 7 | 3.4 | 41 | 0.58 | 285 | 44 | 3 | 81 × 28.5 | square |  |
+| `firegalley` | Fire galley | 44 | 0 | 9 | 58 | 1.45 | 0 | 0 | 2 | 43.5 × 11.25 | lateen | fireship {"dmg":50}, oars {"min":0.96} |
 | `greatship` | Great ship | 320 | 9 | 3.4 | 42 | 0.58 | 300 | 40 | 3 | 87 × 31.5 | square |  |
 
-Other flags: `merchant`: `merchant` = `true`.
+Other flags: `merchant`: `merchant` = `true`; `galley`: `plural` = `war galleys`; `galley`: `faction` = `barbary`; `galley`: `chasers` = `3`; `galley`: `shallow` = `true`; `galleass`: `plural` = `galleasses`; `galleass`: `faction` = `ottoman`; `galleass`: `chasers` = `3`; `polacre`: `plural` = `polacres`; `polacre`: `faction` = `barbary`; `tartane`: `plural` = `tartanes`; `tartane`: `faction` = `barbary`; `felucca`: `plural` = `feluccas`; `felucca`: `faction` = `barbary`; `kalyon`: `plural` = `kalyons`; `kalyon`: `faction` = `ottoman`; `sultana`: `plural` = `sultanas`; `sultana`: `faction` = `ottoman`; `sultana`: `chasers` = `2`; `firegalley`: `plural` = `fire galleys`; `firegalley`: `faction` = `barbary`.
 
 Classes with gun slots (see [Guns and slots](#guns-and-slots)): `greatship`.
 
@@ -455,6 +523,11 @@ Won by finishing a battle that sets `hat` (bosses carry the same id in `boss.hat
 | `kate` | Calico Kate's skull hat | Calico Kate of the Black Wyvern |
 | `morion` | Iron morion | Marqués de Hierro of the San Jerónimo |
 | `armada` | Captain-General's crown hat | The Capitán General of the Real Felipe |
+| `rover` | Rover's white turban | Reis Ibrahim of the Burak |
+| `kalpak` | Admiral of Algiers’s kalpak | Kara Hasan Reis of the Mubarak |
+| `osman` | Green turban of Tripoli | Osman Reis of the Hilal |
+| `corno` | Provveditore’s corno | A gift of the Provveditore of Candia |
+| `kavuk` | Kapudan Pasha’s plumed kavuk | Bahri Ömer Pasha of the Kara Ejder |
 
 ## Geography and openings
 
@@ -537,7 +610,7 @@ checks that each one fits on its land, inside the outline ships collide with.
 
 | field | description |
 |---|---|
-| `style` | optional: the look of the land: port, windward, main, golden, pirate, campeche, armada (default: the battle's region) |
+| `style` | optional: the look of the land: port, windward, main, golden, pirate, campeche, armada, straits, barbary, malta, aegean, candia, dardanelles (default: the battle's region) |
 | `relief` | optional: per-island shape, [{ island, height, cliffs, at }]: island = island index; height = optional: hill height multiplier (default 1); cliffs = optional: share of the shore that is cliff, 0-1 (default the style's); at = optional: which side the cliffs face, degrees (default random) |
 | `landmarks` | optional: a list of landmarks, { kind, ...placement, ...params } |
 

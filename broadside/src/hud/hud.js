@@ -322,6 +322,11 @@ const TIPS = {
   protect: 'Keep the ships and forts ringed in blue safe. Lose one and the battle is lost.',
   hunt: 'Sink the ships ringed in red. The rest don’t matter.',
   fog: 'Fog! You only see ships near your own. Keep the fleet together.',
+  night: 'Night: you only see ships near your own, but a ship on fire lights up the whole sea.',
+  calm: 'A flat calm: your sails barely draw, but galleys row as fast as ever. Anchor and turn on the spot to bring a broadside round.',
+  gale: 'A gale! Every ship runs faster, and every gun throws wild. Close the range.',
+  galley: 'Galleys board any ship they catch hurt, with more men than you carry. Keep them off with your broadsides, or thin their crews with grapeshot.',
+  rescue: 'Anchor a ship with enough marines in the gold ring. The boats go ashore while she lies still.',
   rake: 'Raked! Shot that flies the length of a ship, in through her stern or bow, does far more damage. Cross an enemy’s stern to rake her, and never show her yours.',
   crit: 'A lucky hit! Shot can bring down a mast (slower for good), smash the rudder (sluggish helm) or start a fire. Raking shots do it more often.',
   shoal: 'Aground! Pale water is shallow. Brigs and bigger stick fast there; sloops, schooners and xebecs sail right over.',
@@ -718,7 +723,10 @@ export function drawHUD() {
   drawShellTargets();
   if (G.phase === 'play' && G.t > 1.5) {
     eachGoal(G, 'tip', (g) => offerTip(g.tip));
-    if (G.fog) offerTip('fog');
+    if (G.fog) offerTip(G.night ? 'night' : 'fog');
+    if (G.wind.k != null && G.wind.k < 0.7) offerTip('calm');
+    else if (G.wind.k > 1.2) offerTip('gale');
+    if (G.t > 6 && G.ships.some((s) => s.team === 'enemy' && afloat(s) && !s.hidden && s.abilities && s.abilities.grapple)) offerTip('galley');
     if (S.balls.some((b) => b.kind === 'shell' && b.team === 'enemy')) offerTip('mortar');
     if (G.ships.some((s) => s.fireship && afloat(s) && !s.hidden)) offerTip('fireship');
     // Tips the sim asks for when something first happens (a rake, a lucky hit, running aground).

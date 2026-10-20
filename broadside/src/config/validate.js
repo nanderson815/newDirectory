@@ -15,9 +15,17 @@
 //   - a battle's land (src/config/lands.js by id, or its own `land`) is checked by checkLand from
 //     src/sim/land.js: styles, relief, landmark kinds and params, and that each landmark fits on its land.
 //
+//   - worlds (src/config/worlds.js): every battle and region names a world, a battle's region is in its world,
+//     a world's unlock battle exists (in an earlier world), and hats name a world that awards them.
+//   - bonus goals ({ ..., bonus: true, gold? }) may be any kind but never the first (the main) goal.
+//
 //   validateContent({ BATTLES, TYPES, HATS, REGIONS, GOALS, ABILITIES, WHEN, DO,
-//                     waveEnemies?, ENDLESS?, HAT_ORDER?, FLEET_SLOTS?, TERRAIN?, fleetLayout?, LANDS?, landOf?, checkLand? })
+//                     waveEnemies?, ENDLESS?, HAT_ORDER?, FLEET_SLOTS?, TERRAIN?, fleetLayout?, LANDS?, landOf?, checkLand?,
+//                     WORLDS?, FACTIONS? })
 //   (the ? ones add checks when given)
+//
+//   - ship looks (src/config/looks.js), when C.checkLook is given: every ship def's `look` (known fields, known
+//     catalogue entries, lanterns 1-3).
 //
 //   - guns and slots (src/config/guns.js, src/config/slots.js), when C.GUNS and C.checkLoadout are given: every gun
 //     entry against GUN_PARAMS, every class's slot table (checkSlots), and every ship def's `loadout` against its
@@ -25,6 +33,8 @@
 
 // The numbers makeShip() reads from a ship type.
 const TYPE_STATS = ['L', 'B', 'hp', 'guns', 'reload', 'speed', 'turn', 'range', 'masts', 'marines'];
+// Fields any goal def may carry besides its own params: a bonus objective and its prize.
+const GOAL_COMMON = ['bonus', 'gold'];
 const POSITIVE_STATS = ['L', 'B', 'hp', 'speed', 'turn'];
 // Enemy gunnery and hull multipliers every battle needs (see the header of battles.js).
 const AI_FIELDS = ['spread', 'reloadMul', 'dmgMul', 'hpMul'];
@@ -106,6 +116,8 @@ export function validateContent(C) {
     if (d.loadout !== undefined && C.checkLoadout && TYPES[d.type]) {
       for (const m of C.checkLoadout(TYPES[d.type], d.loadout, { chasers: d.chasers || 0 })) bad(at, m);
     }
+    // Her look (src/config/looks.js): known fields and catalogue entries; enemy-only fashions are fine here.
+    if (d.look !== undefined && C.checkLook) for (const m of C.checkLook(d.look, { foe: true })) bad(at, m);
     if (opts.B) onIsland(at, opts.B, { ...d, ship: true });
   }
   // Ships (and points like chests) mustn't start on land; a ship mustn't start aground or on a reef. p.type
@@ -162,8 +174,12 @@ export function validateContent(C) {
       if (!g) { bad(at, `unknown goal kind ${q(o.kind)} (known: ${list(GOALS)})`); return; }
       const params = g.params || {};
       const arrays = [];
+      if (o.bonus !== undefined && typeof o.bonus !== 'boolean') bad(at, `${o.kind}: bonus must be true or false, got ${q(o.bonus)}`);
+      if (o.gold !== undefined && !(isNum(o.gold) && o.gold >= 0)) bad(at, `${o.kind}: gold (a bonus's prize) must be a number of at least 0, got ${q(o.gold)}`);
+      if (o.gold !== undefined && !o.bonus) bad(at, `${o.kind}: gold is the prize for a bonus goal; add bonus: true`);
+      if (o.bonus && i === 0) bad(at, `${o.kind}: the first goal is the main one and can't be a bonus`);
       for (const [k, v] of Object.entries(o)) {
-        if (k === 'kind') continue;
+        if (k === 'kind' || GOAL_COMMON.includes(k)) continue;
         if (!(k in params)) { bad(at, `${o.kind}: unknown param '${k}' (known: ${list(params) || 'none'})`); continue; }
         if (typeof v === 'number' && !(isNum(v) && v >= 0)) bad(at, `${o.kind}: '${k}' must be a non-negative number, got ${v}`);
         if (Array.isArray(v)) arrays.push(k);
@@ -201,6 +217,7 @@ export function validateContent(C) {
     spawn: (v) => (Array.isArray(v) && v.length ? [] : ['should be a non-empty list of ship defs']),
     wind: (v) => (isNum(v) ? [] : [`should be a heading in degrees, got ${q(v)}`]),
     fog: (v) => (isNum(v) && v >= 0 ? [] : [`should be a sight distance of at least 0, got ${q(v)}`]),
+    breeze: (v) => (isNum(v) && v >= 0.2 && v <= 2 ? [] : [`should be a wind strength from 0.2 (a calm) to 2 (a gale), got ${q(v)}`]),
   };
   function checkEvents(where, B) {
     if (B.events === undefined) return;
@@ -260,6 +277,15 @@ export function validateContent(C) {
     if (B.hat !== undefined && !HATS[B.hat]) bad(where, `hat ${q(B.hat)} is not in HATS (known: ${list(HATS)})`);
     if (B.fog !== undefined && !(isNum(B.fog) && B.fog >= 0)) bad(where, `fog must be a sight distance, got ${q(B.fog)}`);
     if (B.sea !== undefined && !(isNum(B.sea) && B.sea >= 0.5 && B.sea <= 2.5)) bad(where, `sea must be a size multiplier between 0.5 and 2.5, got ${q(B.sea)}`);
+    if (B.breeze !== undefined && !(isNum(B.breeze) && B.breeze >= 0.2 && B.breeze <= 2)) bad(where, `breeze must be a wind strength from 0.2 (a calm) to 2 (a gale), got ${q(B.breeze)}`);
+    if (B.night !== undefined && typeof B.night !== 'boolean') bad(where, `night must be true or false, got ${q(B.night)}`);
+    for (const k of ['where', 'weather']) if (B[k] !== undefined && !isStr(B[k])) bad(where, `${k} must be text, got ${q(B[k])}`);
+    if (B.faction !== undefined && C.FACTIONS && !C.FACTIONS[B.faction]) bad(where, `unknown faction ${q(B.faction)} (known: ${list(C.FACTIONS)})`);
+    if (C.WORLDS) {
+      const W = C.WORLDS.find((w) => w.id === B.world), R = REGIONS.find((r) => r.id === B.region);
+      if (!W) bad(where, `world ${q(B.world)} is not in WORLDS (known: ${C.WORLDS.map((w) => w.id).join(', ')})`);
+      else if (R && R.world && R.world !== B.world) bad(where, `region ${q(B.region)} belongs to world ${q(R.world)}, not ${q(B.world)}`);
+    }
 
     if (C.TERRAIN) {
       for (const [key, R] of Object.entries(C.TERRAIN)) {
@@ -323,6 +349,9 @@ export function validateContent(C) {
     }
     if (isNum(T.masts) && T.masts !== 2 && T.masts !== 3) bad(at, `masts must be 2 or 3 (the renderer draws two or three), got ${T.masts}`);
     if (T.rig !== undefined && !isStr(T.rig)) bad(at, "rig must be a string ('square', 'fore-aft' or 'lateen'; see src/sim/wind.js)");
+    if (T.chasers !== undefined && !(Number.isInteger(T.chasers) && T.chasers >= 0 && T.chasers <= 3)) bad(at, `chasers must be a whole number 0-3, got ${q(T.chasers)}`);
+    if (T.plural !== undefined && !isStr(T.plural)) bad(at, 'plural must be text');
+    if (T.faction !== undefined && C.FACTIONS && !C.FACTIONS[T.faction]) bad(at, `unknown faction ${q(T.faction)}`);
     checkAbilities(at, T.abilities);
     if (C.checkSlots) for (const m of C.checkSlots(T)) bad(at, m);
   }
@@ -352,6 +381,28 @@ export function validateContent(C) {
   for (const [id, h] of Object.entries(HATS)) {
     if (!isObj(h) || !isStr(h.name) || !isStr(h.from)) bad(`HATS.${id}`, 'needs a name and from (text)');
     if (!awarded.has(id)) bad(`HATS.${id}`, 'no battle awards this hat (set hat on a battle)');
+  }
+  if (C.WORLDS) {
+    for (const [id, h] of Object.entries(HATS)) {
+      const w = (h && h.world) || C.WORLDS[0].id;
+      if (!C.WORLDS.some((W) => W.id === w)) bad(`HATS.${id}`, `world ${q(w)} is not in WORLDS`);
+      else if (!BATTLES.some((B) => B && B.hat === id && B.world === w)) bad(`HATS.${id}`, `no battle in world ${q(w)} awards it`);
+    }
+    for (const r of REGIONS) if (!C.WORLDS.some((W) => W.id === r.world)) bad(`region '${r.id}'`, `world ${q(r.world)} is not in WORLDS`);
+    C.WORLDS.forEach((W, wi) => {
+      const at = `world '${W.id}'`;
+      for (const k of ['name', 'short', 'years', 'finale']) if (!isStr(W[k])) bad(at, `needs ${k} (text)`);
+      if (!BATTLES.some((B) => B && B.world === W.id)) bad(at, 'has no battles');
+      if (C.FACTIONS && W.faction && !C.FACTIONS[W.faction]) bad(at, `unknown faction ${q(W.faction)}`);
+      if (W.unlock) {
+        const B = BATTLES.find((b) => b && b.id === W.unlock.won);
+        if (!B) bad(at, `unlock.won ${q(W.unlock.won)} is not a battle id`);
+        else if (!C.WORLDS.slice(0, wi).some((x) => x.id === B.world)) bad(at, `unlocks from ${q(B.id)}, which is not in an earlier world`);
+      } else if (wi > 0) bad(at, 'needs unlock: { won: battle id } (only the first world is open from the start)');
+    });
+    // Battles of one world stay together, in campaign order.
+    const order = BATTLES.map((B) => B && B.world);
+    C.WORLDS.forEach((W) => { const a = order.indexOf(W.id), b = order.lastIndexOf(W.id); if (a >= 0 && order.slice(a, b + 1).some((w) => w !== W.id)) bad(`world '${W.id}'`, 'its battles are not one unbroken run in BATTLES'); });
   }
   if (Array.isArray(C.HAT_ORDER)) {
     for (const id of C.HAT_ORDER) if (!HATS[id]) bad('HAT_ORDER', `${q(id)} is not in HATS`);

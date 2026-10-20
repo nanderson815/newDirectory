@@ -73,10 +73,15 @@ quick). Each gun is a real trade, never a straight upgrade (numbers in `src/conf
 
 The battle HUD shows this without new chrome: the Fire tile's reload rule splits into one segment per battery on
 that side, each lit gilt as it loads (a tap fires what is loaded), and the chosen ship's arcs show a rim for each
-reach. The shipyard lists the gun decks in the ledger (see Composition); a 3D shipyard (rotate, zoom, tap a part)
-will supersede that view later, on the same data (`loadout` and `look` in the save, `render` hints on each gun).
+reach. The shipyard shows her in 3D in her berth and lists the gun decks in the ledger (see Composition), on the same
+data (`loadout` and `look` in the save, `render` hints on each gun).
 
 ### Look
+- Ships dress (`src/config/looks.js`): paint schemes, canvas, a device on the courses, figureheads, a pennant or an
+  admiral's flag with a great ensign aft, stern lanterns and gilding. Whatever she wears, her side shows: an English
+  ship keeps a blue rail, blue colours and canvas edged in blue (or the squadron's blue band); the enemy keeps red
+  (gilt for a boss, black for pirates). Enemies dress from their faction's palette so no two of a class match; bosses
+  dress as themselves, and you win their style with their hat.
 - One palette: the sea, cream sails and warm wood in the world; ink, rag paper and one printer's red for everything
   read or pressed; enemy red, English blue.
 - Type: the Fell types for titles and labels, EB Garamond for reading (see Style). No outlined cartoon text in
@@ -168,7 +173,18 @@ leg ahead) on the chart. In battle red means the enemy (see Battle HUD). Everyth
   order reads: paragraphs with run-in small-capital heads (*Orders.* *Against you.*), no bullets. The battle's own
   description joins *Against you* minus any sentence that repeats the log (a shared three-word run drops it), so
   nothing is said twice. The controls are one italic note in `ink3`. Set sail (ink) and Chart (rule).
-- **Shipyard**: a chandler's ledger. Text tabs on a rule for the fleet; the ship as "Resolute, *a frigate*"; its
+- **Shipyard**: the ship in 3D above a chandler's ledger (beside it in landscape). She lies in a fitting-out berth at
+  Port Royal (`src/render/yard.js`): a timber wharf with barrels, a gun waiting to be swayed aboard, scaffolding and
+  sheer-legs; a new hull in frame on the slipway astern; the town, the Point's fort and the Blue Mountains across
+  the water in a warm haze. It is built when the shipyard opens and disposed when it closes (the idle battle behind
+  isn't drawn meanwhile). Drag turns her, with inertia; pinch or the wheel zooms; a double-tap sets the view back;
+  she bobs at her moorings. The wharf dissolves away (the ships' screen-door) while you look across it. Her parts carry
+  an engraver's key, paper roundels lettered A to F (hull, sails, figurehead, stern, colours, guns); the same letters
+  head the ledger's sections. Tap a key or the part itself (a gun slot, too) and the part is lit on the model (its paint
+  warms, its outline turns pale gilt), the camera turns to it and the ledger opens and scrolls to that section; open a
+  section in the ledger and the model answers the same way. Tapping a gun's or a look's line tries it on the model
+  ("· on the model"); *fit*, *buy* or *wear* keeps it. The fleet tabs swap the model (one sinks away, the next rises).
+  The only control on the scene is *Chart*, an ink slip top left. The ledger itself: Text tabs on a rule for the fleet; the ship as "Resolute, *a frigate*"; its
   particulars in two columns with dot leaders; then one line per fitting: name (with "1 of 3"), an italic note, the
   price as a Fell figure, and one small ruled *buy*. Too dear: price and buy fade to 36%. Fitted: an italic "fitted".
   A great ship adds *The gun decks* (Fell, with "65 of 92 tons" set right) after the refit line: small-capital heads
@@ -176,6 +192,11 @@ leg ahead) on the chart. In battle red means the enemy (see Battle HUD). Everyth
   fitted gun in italic) with a ruled *change*. An open slot (its *close* inked solid) lists the guns it takes one
   step in under a hairline: name, the italic note, a line of figures in `ink3` (reach, reload, ball, tons), the price
   and a ruled *fit*. A fit that would overload her says "too heavy" in italic ink and fades like a dear one.
+  *Her looks* follow, "for show" set right: a line a field (paint, canvas, device, carving, lanterns, colours) with
+  what she wears in italic, hand-coloured chips for paint and canvas, and a ruled *change*. Open, a field lists the
+  yard's stock: the price and *buy*, *wear* once the squadron owns it (bought once, worn by any ship), *worn*, or an
+  italic *locked* with the hat that brings it ("Comes with Calico Kate's skull hat."). The line the model points at
+  gets a pencil wash (`paper2`) across the column.
 - **Results**: kicker (battle name), "Victory!" in red or "Defeat" in ink, three ink stars, "+840 gold", one sentence,
   the hat won (if any) between rules, the log entry signed "From the log, 18 April 1661", the stats as one ruled row.
 - **Pause** is "Hove to": orders, settings as ruled rows of words, Resume / Restart, a small-caps retreat link.
@@ -185,7 +206,7 @@ leg ahead) on the chart. In battle red means the enemy (see Battle HUD). Everyth
   italic, the taunt in large italic, "tap to fight", and a fine ink rule that shortens as the seconds run.
 - **Coach** and canvas tips are paper slips with a hairline inside the edge; toasts are small ink slips in italic.
 - Landscape uses the width: sheets split into two columns divided by a printed column rule; the shipyard keeps the
-  ship on the left and scrolls the ledger on the right (fading at its foot); the title page runs down the left.
+  3D ship on the left and scrolls the ledger on the right (fading at its foot); the title page runs down the left.
 
 ### Controls
 - Three looks. **Ink** (the main action, at most one a screen): solid ink, Fell small caps in paper, 50 px (56 hero).

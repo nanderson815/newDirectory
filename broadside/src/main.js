@@ -1,14 +1,17 @@
 import './styles.css';
 import { S } from './state.js';
 import { $ } from './util.js';
-import { save, replaceSave, writeSave, isUnlocked, migrate, fitGun, fitOffer, buyGreatShip, greatOffer, fleetStats } from './save.js';
+import { save, replaceSave, writeSave, isUnlocked, migrate, fitGun, fitOffer, buyGreatShip, greatOffer, fleetStats, lookOf, lookOffer, wearLook } from './save.js';
 import { BATTLES, REGIONS, FLEET_SLOTS, battleIndex } from './config/battles.js';
 import { battleDef, ENDLESS, ENDLESS_ID, waveEnemies } from './config/endless.js';
 import { LAB_ID, setLab } from './config/lab.js';
 import { TYPES } from './config/ships.js';
+import { WORLDS } from './config/worlds.js';
+import { FACTIONS } from './config/factions.js';
 import { HATS, HAT_ORDER } from './config/hats.js';
 import { R, initGL } from './render/gl.js';
 import { renderScene } from './render/scene.js';
+import { yardActive, renderYard, yardDebug } from './render/yard.js';
 import { WX } from './render/weather.js';
 import { proj, toWorld, cam, updateCamera, settleCamera } from './render/camera.js';
 import { previewFor } from './hud/preview.js';
@@ -40,6 +43,8 @@ import { audioTick } from './audio/director.js';
 import { ui, initUI, openMenu, openBrief, startPlay, pauseGame, restoreScreen, syncSettings } from './ui/screens.js';
 
 function render(dt) {
+  // While the shipyard is up its 3D berth is drawn instead of the (idle) battle behind the menus.
+  if (yardActive()) { renderYard(dt); return; }
   dragTick(dt);
   updateCamera(Math.min(0.1, dt));
   renderScene();
@@ -114,7 +119,7 @@ function battleParam() {
 // Dev builds check the content tables against the primitive registries at boot (npm run check does the same).
 if (import.meta.env.DEV) {
   import('./config/validate.js').then(({ validateContent }) => {
-    const problems = validateContent({ BATTLES, REGIONS, FLEET_SLOTS, TYPES, HATS, HAT_ORDER, GOALS, ABILITIES, WHEN, DO, ENDLESS, waveEnemies, TERRAIN, fleetLayout, LANDS, landOf, checkLand, GUNS, GUN_PARAMS, POSITIONS, AMMO, checkLoadout, checkSlots });
+    const problems = validateContent({ BATTLES, REGIONS, FLEET_SLOTS, TYPES, HATS, HAT_ORDER, GOALS, ABILITIES, WHEN, DO, ENDLESS, waveEnemies, TERRAIN, fleetLayout, LANDS, landOf, checkLand, GUNS, GUN_PARAMS, POSITIONS, AMMO, checkLoadout, checkSlots, WORLDS, FACTIONS });
     if (problems.length) console.warn(`Broadside content: ${problems.length} problem(s)\n  ${problems.join('\n  ')}`);
   });
 }
@@ -161,6 +166,9 @@ window.__broadside = {
   preview(id) { const s = shipById(id); const pv = s && previewFor(s, s.path, false); return pv ? { pts: Array.from(pv.xy.slice(0, pv.n * 2)), done: pv.done, t: pv.t, n: pv.n } : null; },
   sim(n) { for (let i = 0; i < n; i++) update(1 / 60); },
   get drawCalls() { return R.renderer ? R.renderer.info.render.calls : 0; },
+  // The 3D shipyard (src/render/yard.js): what it shows, the part lit, where its keys are; and the looks API.
+  yard: yardDebug,
+  looks: { lookOf, lookOffer, wearLook },
   get weather() { return WX; },
   lockDpr(v) { perf.locked = true; S.view.maxDpr = v; resize(); },
   record(on) { if (on) { perf.rec = { raw: [], js: [], calls: [] }; return null; } const r = perf.rec; perf.rec = null; return r; },

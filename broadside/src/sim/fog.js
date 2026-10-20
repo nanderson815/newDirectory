@@ -12,6 +12,8 @@ export function updateFog() {
   // A lighthouse with sight (src/sim/land.js) lifts the fog around it.
   const towers = lookouts(G);
   for (const s of G.ships) {
+    // At night a ship on fire lights herself up for every gunner on the chart.
+    if (G.night && (s.burning || s.fireT > 0)) { s.hidden = false; continue; }
     s.hidden = s.team !== 'player' && !eyes.some((e) => Math.hypot(e.x - s.x, e.y - s.y) < G.fog)
       && !towers.some((e) => Math.hypot(e.x - s.x, e.y - s.y) < e.r);
   }

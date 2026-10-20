@@ -289,6 +289,8 @@ html.no-fell-sc .btn { font-variant-caps: small-caps; }
 .hat { width: 100%; height: auto; display: block; overflow: visible; }
 .hat.locked { filter: brightness(0); opacity: 0.12; }
 .hat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-6) var(--s-4); padding: var(--s-2) 0; }
+.hat-shelf { grid-column: 1 / -1; margin: var(--s-2) 0 calc(-1 * var(--s-3)); font-family: var(--font-ui); font-weight: 400; font-size: 17px; font-variant-caps: all-small-caps; letter-spacing: var(--track-caption); color: var(--c-on-paper-2); text-align: center; border-top: 1px solid var(--c-paper-line); padding-top: var(--s-3); }
+.hat-shelf:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
 .hat-card { display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
 .hat-card .hat { max-width: 100px; margin-bottom: var(--s-2); }
 .hat-card h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 19px; line-height: 1.15; text-wrap: balance; }
@@ -541,7 +543,69 @@ html.no-fell-sc .btn { font-variant-caps: small-caps; }
 @keyframes bi-drop { from { transform: translateY(-30px) rotate(-12deg); opacity: 0; } }
 @keyframes bi-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 
-/* ---------- Shipyard: a chandler's ledger ---------- */
+/* ---------- Shipyard: the ship in her berth, and a chandler's ledger ---------- */
+/* The 3D yard (src/render/yard.js) is drawn on the sea canvas behind; #yardView is its window (the top of the screen
+   in portrait, the left in landscape) and takes the drags and taps. The ledger is a sheet lying over the rest. */
+#yardScreen { --yard-h: clamp(250px, 46vh, 540px); --yard-w: min(460px, 48vw); display: block; padding: 0; overflow: hidden; background: none; }
+#yardScreen.enter-fade { animation: none; }
+.yard-view { position: absolute; left: 0; right: 0; top: 0; height: var(--yard-h); touch-action: none; cursor: grab; }
+.yard-view:active { cursor: grabbing; }
+.yard-sheet {
+  position: absolute; left: var(--pad-l); right: var(--pad-r); top: calc(var(--yard-h) - 4px); bottom: var(--pad-b);
+  max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--s-3); padding: 24px 26px 10px;
+}
+.yard-sheet .sheet-head h2 { font-size: 32px; }
+.yard-sheet > .sheet-head, .yard-sheet > .ship-tabs { flex: none; }
+.yard-ledger {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 0 -14px; padding: 2px 14px 28px;
+  display: flex; flex-direction: column; gap: var(--s-3);
+  scrollbar-width: thin; scrollbar-color: var(--c-paper-rule) transparent;
+  -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 26px), transparent);
+}
+/* Back to the chart: an ink slip on the scene, like every control on the sea. */
+.btn.yard-back {
+  position: absolute; z-index: 2; top: var(--pad-t); left: var(--pad-l); min-height: 40px; padding: 0 14px 2px 8px;
+  color: var(--c-on-glass); background: var(--c-glass); border-radius: var(--r-sm); box-shadow: var(--shadow-2);
+}
+.btn.yard-back:active:not(:disabled) { color: var(--c-on-glass); background: var(--c-glass-strong); }
+.yard-back .icon { width: 18px; height: 18px; margin: 0 -2px 0 0; }
+/* The engraver's key: a paper roundel with a Fell letter on each part of her; the part lit is inked. */
+.yard-keys { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.yard-key {
+  position: absolute; left: 0; top: 0; width: 26px; height: 26px; margin: -13px 0 0 -13px; padding: 0 0 1px; box-sizing: border-box;
+  display: grid; place-items: center; border-radius: 50%; border: 1px solid rgba(33, 26, 20, 0.75);
+  background: var(--c-paper); color: var(--p-ink); box-shadow: var(--shadow-2); cursor: pointer; pointer-events: auto;
+  font-family: var(--font-display); font-size: 15px; line-height: 1;
+  transition: opacity var(--dur-fast), background-color var(--dur-fast), color var(--dur-fast);
+}
+.yard-key::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; }
+.yard-key.on { background: var(--p-ink); color: var(--p-paper); border-color: var(--p-paper); }
+.yard-hint {
+  position: absolute; left: var(--s-4); right: var(--s-4); bottom: 18px; text-align: center; pointer-events: none;
+  font-style: italic; font-size: 15px; line-height: 1.3; color: var(--c-paper); text-wrap: balance;
+  text-shadow: 0 0 2px rgba(20, 15, 10, 0.85), 0 1px 10px rgba(20, 15, 10, 0.6);
+}
+/* No WebGL: the ledger alone, as a plain sheet. */
+#yardScreen.no-gl { overflow-y: auto; }
+#yardScreen.no-gl .yard-view, #yardScreen.no-gl .yard-hint { display: none; }
+#yardScreen.no-gl .yard-sheet { position: relative; inset: auto; margin: var(--s-6) auto; }
+#yardScreen.no-gl .yard-ledger { overflow: visible; -webkit-mask-image: none; mask-image: none; }
+/* The key's letters in the ledger, and the line the model points at (a pencil wash across the column). */
+.lo-head .key, .lo-group .key {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; margin: 0 7px 0 0; box-sizing: border-box; vertical-align: 1px;
+  border: 1px solid rgba(33, 26, 20, 0.55); border-radius: 50%; font-family: var(--font-display); font-size: 12px; line-height: 1;
+  font-variant-caps: normal; letter-spacing: 0; color: var(--c-on-paper);
+}
+.lo-head .key { width: 20px; height: 20px; font-size: 13px; vertical-align: 2px; }
+.up-row.hot { background: var(--c-paper2); box-shadow: -12px 0 0 var(--c-paper2), 12px 0 0 var(--c-paper2); }
+.up-list .lo-group + .up-row.hot { padding-top: 10px; }
+.up-row.trying .up-name::after { content: " · on the model"; font-style: italic; font-size: 14px; color: var(--c-on-paper-3); }
+.swatch { display: inline-flex; margin-right: 7px; vertical-align: -1px; }
+.swatch i { display: block; width: 11px; height: 11px; border: 1px solid rgba(33, 26, 20, 0.6); margin-right: -1px; }
+.look-row .up-desc { font-style: italic; }
+.look-opt.locked .up-name { color: var(--c-on-paper-2); }
+.buy.locked { font-size: 15px; }
+[data-try] { cursor: pointer; }
 .ship-tabs { display: flex; gap: var(--s-5); overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--c-paper-rule); margin-top: -4px; }
 .ship-tabs::-webkit-scrollbar { display: none; }
 .tab {
@@ -712,23 +776,7 @@ html.no-fell-sc .btn { font-variant-caps: small-caps; }
   .fleuron { display: none; }
   .title-page .btn.big { min-height: 50px; margin-top: 6px; }
 
-  /* Shipyard: the ship on the left, the ledger in a scrolling column on the right. */
-  #yardScreen { overflow: hidden; }
-  #yardScreen .panel {
-    height: 100%; display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-    grid-template-rows: auto auto auto auto 1fr auto; column-gap: var(--s-6); row-gap: var(--s-3); align-items: start;
-  }
-  #yardScreen .ship-card { display: contents; }
-  #yardScreen .sheet-head, #yardScreen .ship-tabs, #yardScreen .ship-head, #yardScreen .ship-stats, #yardScreen .row.foot { grid-column: 1; }
-  #yardScreen .sheet-head { grid-row: 1; } #yardScreen .ship-tabs { grid-row: 2; } #yardScreen .ship-head { grid-row: 3; }
-  #yardScreen .ship-stats { grid-row: 4; } #yardScreen .row.foot { grid-row: 6; align-self: end; }
-  #yardScreen .up-list { grid-column: 2; grid-row: 1 / span 5; align-self: stretch; overflow-y: auto; min-height: 0; margin-right: -10px; padding-right: 10px; scrollbar-width: thin; scrollbar-color: var(--c-paper-rule) transparent; }
-  #yardScreen .up-list .up-row:first-child { border-top: 0; padding-top: 0; }
-  /* The ledger fades at its foot, so a row running under the edge reads as "more below", not as a cut. */
-  #yardScreen .up-list { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 28px), transparent); padding-bottom: 20px; }
   .panel.split > .col + .col > .boss-line:first-child { border-top: 0; padding-top: 0; }
-  #yardScreen .hire { grid-column: 2; grid-row: 6; }
-  #yardScreen .ship-stats { font-size: 15.5px; line-height: 1.4; }
 
   .chart-frame {
     grid-template-columns: auto minmax(0, 1fr) auto auto;
@@ -743,6 +791,18 @@ html.no-fell-sc .btn { font-variant-caps: small-caps; }
   .bi-card .bi-hat { grid-column: 1; grid-row: 1 / span 5; width: 130px; margin: 0; }
   .bi-name { font-size: 34px; }
   .bi-taunt { font-size: 19px; margin-top: 4px; }
+}
+
+/* The shipyard in landscape: the 3D window on the left, the ledger a sheet down the right. */
+@media (orientation: landscape) {
+  .yard-view { right: calc(var(--yard-w) + var(--pad-r)); height: auto; bottom: 0; }
+  .yard-sheet { left: auto; right: var(--pad-r); top: var(--pad-t); bottom: var(--pad-b); width: var(--yard-w); max-width: none; margin: 0; }
+  .yard-hint { right: var(--s-4); }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .yard-sheet { padding: 20px 22px 6px; gap: var(--s-2); }
+  .yard-sheet .sheet-head h2 { font-size: 28px; }
+  .yard-sheet .tab { min-height: 40px; font-size: 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

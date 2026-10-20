@@ -73,6 +73,16 @@ expectCaught('ship type missing a stat', () => { const T = clone(C.TYPES); delet
 expectCaught('ship type with an unknown ability', () => { const T = clone(C.TYPES); T[firstType].abilities = { teleport: true }; return { TYPES: T }; }, `TYPES.${firstType} ability 'teleport'`);
 expectCaught('bad endless wave', () => ({ waveEnemies: (n) => C.waveEnemies(n).map((d) => ({ ...d, type: n === 3 ? 'canoe' : d.type })) }), "endless wave 3 ship 0");
 
+// Worlds and bonus objectives (src/config/worlds.js, src/sim/goals/index.js).
+console.log('worlds:');
+expectCaught('battle in an unknown world', (B) => { B.world = 'atlantis'; }, "world 'atlantis' is not in WORLDS");
+expectCaught('battle in another world\'s region', (B) => { B.region = 'straits'; }, "region 'straits' belongs to world 'med'");
+expectCaught('world unlocked by a missing battle', () => ({ WORLDS: C.WORLDS.map((W, i) => (i ? { ...W, unlock: { won: 'eldorado' } } : W)) }), "unlock.won 'eldorado' is not a battle id");
+expectCaught('bonus as the main goal', (B) => { B.goals = [{ kind: 'sink', bonus: true }]; }, "the first goal is the main one and can't be a bonus");
+expectCaught('bonus gold without bonus', (B) => { B.goals = [{ kind: 'sink' }, { kind: 'timer', secs: 90, gold: 50 }]; }, 'add bonus: true');
+expectCaught('a calm out of range', (B) => { B.breeze = 0; }, 'breeze must be a wind strength');
+expectCaught('unknown faction', (B) => { B.faction = 'venice'; }, "unknown faction 'venice'");
+
 // Guns and slots (src/config/guns.js, src/config/slots.js): ship defs' loadouts, the gun table, class slot tables.
 console.log('guns and slots:');
 const slotted = find((B) => B.enemy.some((e) => C.TYPES[e.type] && C.TYPES[e.type].slots));
@@ -94,6 +104,29 @@ expectCaught('gun loading a shot that does not exist', () => ({ GUNS: { ...C.GUN
     const T = clone(C.TYPES); T[id].slots.bow.accepts = ['bowChaser', 'demicannon']; return { TYPES: T };
   }, `TYPES.${id}: slot 'bow': accepts 'demicannon', which does not fit a bow slot`);
   expectCaught('class whose default loadout is overweight', () => { const T = clone(C.TYPES); T[id].tons = 20; return { TYPES: T }; }, 'the default loadout weighs');
+}
+
+// Looks (src/config/looks.js): a ship def's `look`, and the catalogue's own tables.
+console.log('looks:');
+expectCaught('look with an unknown paint', (B) => { B.enemy[0].look = { paint: 'tartan' }; }, "look: unknown paint \"tartan\"");
+expectCaught('look with an unknown field', (B) => { B.enemy[0].look = { cape: 'velvet' }; }, "look: unknown field 'cape'");
+expectCaught('look with too many lanterns', (B) => { B.enemy[0].look = { lanterns: 7 }; }, 'look: lanterns must be 1, 2 or 3');
+{
+  const L = C.LOOK_CATALOGUE, P = [];
+  for (const [field, cat] of Object.entries(L)) {
+    for (const [id, it] of Object.entries(cat)) {
+      if (!it.name) P.push(`${field}.${id} has no name`);
+      if (!it.foe && !it.about) P.push(`${field}.${id} has no line for the ledger`);
+      if (!it.foe && it.hat === undefined && typeof it.cost !== 'number') P.push(`${field}.${id} needs a cost or a hat`);
+      if (it.hat && !C.HATS[it.hat]) P.push(`${field}.${id}: unknown hat '${it.hat}'`);
+    }
+  }
+  for (const [fac, pal] of Object.entries(C.FACTION_LOOKS)) for (const [k, list] of Object.entries(pal)) for (const v of list) P.push(...C.checkLook({ [k]: v }, { foe: true }).map((m) => `FACTION_LOOKS.${fac}: ${m}`));
+  for (const [hat, look] of Object.entries(C.BOSS_LOOKS)) { if (!C.HATS[hat]) P.push(`BOSS_LOOKS.${hat}: no such hat`); P.push(...C.checkLook(look, { foe: true }).map((m) => `BOSS_LOOKS.${hat}: ${m}`)); }
+  for (const p of P) console.log('       ' + p);
+  check(P.length === 0, `the looks catalogue, faction palettes and boss looks are sound (${P.length} problems)`, failures);
+  const save = C.checkLook({ paint: 'spain' });
+  check(save.some((m) => m.includes('only for the enemy')), `a save may not dress your ship in the enemy's fashions ("${save[0]}")`, failures);
 }
 
 // Land (src/config/lands.js, src/sim/land.js LANDMARKS): a battle's own `land` is checked like a LANDS entry.
