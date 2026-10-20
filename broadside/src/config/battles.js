@@ -90,14 +90,14 @@ export const BATTLES = [
       { x: 0.5, y: 0.7, r: 54, stretch: 3, angle: 0 }, { x: 0.94, y: 0.52, r: 34, stretch: 1.4, angle: 90 },
       { x: 0.1, y: 0.62, r: 34, stretch: 1.8, angle: 70 }, { x: 0.86, y: 0.8, r: 30, stretch: 1.6, angle: -30 },
     ],
-    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.72, hpMul: 1.25 },
+    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.72, hpMul: 1.4 },
   },
   {
     id: 'rojo', region: 'windward', roman: 'III', year: 1656, name: 'La Bruja', foe: 'Capitán Rojo',
     goal: 'boss', hat: 'rojo', reward: 220, wind: 20,
     brief: 'Capitán Rojo’s galleon La Bruja carries bow chasers, so don’t linger in front of her. Sink her and his red tricorne is yours.',
     enemy: [
-      { type: 'galleon', name: 'La Bruja', x: 0.82, y: 0.42, h: 90, hp: 500, chasers: 2, reloadMul: 0.9,
+      { type: 'galleon', name: 'La Bruja', x: 0.82, y: 0.42, h: 90, hp: 470, chasers: 2, reloadMul: 0.9,
         boss: { captain: 'Capitán Rojo', title: 'La Bruja', hat: 'rojo' } },
       { type: 'brig', name: 'El Lobo', x: 0.24, y: 0.18, h: 90 },
     ],
@@ -273,7 +273,7 @@ export const BATTLES = [
       { enemiesLeft: 1, banner: ['The Black Dog!', 'The smugglers’ brig joins the hunt'],
         spawn: [{ type: 'brig', name: 'Black Dog', x: 0.5, y: 0.17, h: 90 }] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.52, hpMul: 2.55 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.52, hpMul: 2.65 },
   },
   {
     id: 'wreck', region: 'pirate', roman: 'XI', year: 1660, name: 'The Treasure Wreck', foe: 'pirate salvors',
@@ -484,7 +484,7 @@ export const BATTLES = [
       { at: 30, banner: ['A galley from the shore!', 'La Jabalina rows out to close the gap'],
         spawn: [{ type: 'xebec', name: 'La Jabalina', x: 0.42, y: 0.07, h: 60 }] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.24, hpMul: 1.6 },
+    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 0.95, hpMul: 1.35 },
   },
   {
     id: 'armada', region: 'armada', roman: 'XVIII', year: 1665, name: 'La Gran Armada', foe: 'Capitán General',
