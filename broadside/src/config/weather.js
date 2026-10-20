@@ -114,7 +114,7 @@ Object.assign(PRESETS, {
     shadow: { color: '#22304a', opacity: 0.25, lift: [0.18, 0.2] },
     swell: 0.85,
     land: { sat: 0.92, tint: '#fff3de' },
-    screen: { tint: '#ffcf8a', tintA: 0.05, haze: '#f2e2c4', hazeA: 0.36, hazeFrom: 0.42, vignette: 0.1, vignetteColor: '#5a3a1a' },
+    screen: { tint: '#ffcf8a', tintA: 0.05, haze: '#f2e2c4', hazeA: 0.28, hazeFrom: 0.45, vignette: 0.1, vignetteColor: '#5a3a1a' },
     gulls: 4,
     boss: { vignette: 0.18, vignetteColor: '#2a1206', light: 0.9 },
   },

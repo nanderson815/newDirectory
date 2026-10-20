@@ -1031,8 +1031,10 @@ export function shipTemplate(s, faction, opts = {}) {
     // The poop's pavilion (köşk): pillars under a tented roof, gilt for a flagship.
     const kx = cx - L * cl * 0.12, ky = deckY + cH * 0.86, kw = cW * 0.42;
     for (const [px, pz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) stern(new THREE.BoxGeometry(0.7, 4.4, 0.7), gilt ? GILT : castleC, kx + px * kw * 0.5, ky + 2.2, pz * kw * 0.5);
-    stern(new THREE.ConeGeometry(kw * 0.9, 4.2, 4).rotateY(PI / 4), gilt ? GILT : '#7e2420', kx, ky + 6.4, 0, 0.08);
-    stern(new THREE.SphereGeometry(0.7, 6, 4), GILT, kx, ky + 8.7, 0);
+    stern(new THREE.BoxGeometry(kw * 1.15, 0.7, kw * 1.15), gilt ? GILT : castleC, kx, ky + 4.6, 0);
+    stern(new THREE.SphereGeometry(kw * 0.52, 10, 5, 0, TAU, 0, PI / 2), '#7e2420', kx, ky + 4.9, 0, 0.08);
+    stern(new THREE.CylinderGeometry(0.22, 0.22, 2.2, 4), GILT, kx, ky + 5 + kw * 0.52, 0);
+    stern(new THREE.TorusGeometry(0.75, 0.2, 4, 10, PI * 1.35).rotateZ(-PI * 0.18), GILT, kx, ky + 6.6 + kw * 0.52, 0);
   }
   if (sp.fore) {
     // A forecastle: a raised deck over the bow (round, for a galleass's gun-castle).
