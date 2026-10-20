@@ -70,7 +70,14 @@ A battle may also set `where` (the briefing's "off ..." line, else its region's)
 `src/config/weather.js`), `faction` (`src/config/factions.js`: spain, pirate, barbary, ottoman; the world's by
 default), `breeze` (wind strength: 1 fair, 0.3 a flat calm where only oars make way, 1.5 a gale that drives ships
 faster and throws every gun wide; the `breeze` event changes it mid-battle) and `night: true` (fought like fog at
-`NIGHT_SIGHT`; a ship on fire shows across the sea; the renderer may draw it as night).
+`NIGHT_SIGHT`; a ship on fire shows across the sea; drawn with the `night` preset: dark water, a moon, lanterns,
+lit windows and gun flashes that light the sea). The Med's presets are `med`, `barbary`, `meltemi`, `candia`, `gale`
+and `night` (`REGION_WEATHER` gives each region one).
+
+A new world's art: its regions' land styles (`STYLES` in `src/render/land.js`, ids in `LAND_STYLES`, a town look in
+`STYLE_TOWN`; until it has its own a style can borrow one through `STYLE_FALLBACK`), fort stone (`FORT_LOOK`), weather
+presets, faction palettes and banners (`FACTION_LOOKS`, `BANNERS` in `src/render/models.js`) and its ship classes'
+build notes (`SPEC` in `src/render/models.js`).
 
 **Bonus objectives.** Any goal can be a bonus: `{ kind: 'hunt', ships: 'Barq', bonus: true, gold: 140 }` (gold
 defaults to a quarter of the reward). A bonus never wins or loses the battle; it is met if, when the battle is won,
@@ -124,7 +131,7 @@ instead). It says how the land looks and what stands on it; the geography itself
 
 ```js
 siege: {
-  style: 'port',                                     // the look: port, windward, main, golden, pirate, campeche, armada
+  style: 'port',                                     // the look: port .. armada; straits .. dardanelles in the Med
   relief: [{ island: 2, height: 1.1, cliffs: 0.4, at: 0 }],   // hill height, share of cliff shore, which way they face
   landmarks: [
     { kind: 'town', island: 0, at: 150, d: 0.66, houses: 6, team: 'player', name: 'Port Royal' },
@@ -339,7 +346,10 @@ mast. The side colours are not part of a look: an English ship keeps a blue rail
 
 **The enemy** dresses from `FACTION_LOOKS[faction]` (spain, pirate, barbary, ottoman; a faction not listed dresses as
 Spain, and a field it leaves out comes from Spain's), one entry a field seeded by her name and id, so ships of a class
-in one battle differ. A boss wears `BOSS_LOOKS[hat]` (or the richest of her faction's wardrobe). A battle may dress
+in one battle differ. A boss wears `BOSS_LOOKS[hat]` (or the richest of her faction's wardrobe). The Med's sides fly
+their nation's own flag at the main and aft (`BANNERS` in `render/models.js`: a Barbary ship one of the coast's,
+seeded by her name). **Allies** (a ship def with `ally: true` and `faction: 'venice'` or `'knights'`) wear
+`ALLY_LOOKS[faction]` and their nation's flag, with a friend's blue rail and canvas edge. A battle may dress
 any ship itself:
 
 ```js

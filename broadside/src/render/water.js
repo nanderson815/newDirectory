@@ -23,6 +23,8 @@ export function makeWater() {
         uCrest: { value: v3(0.55, 0.84, 0.97) }, uFoam: { value: v3(0.93, 0.98, 1.0) }, uGlint: { value: v3(0.93, 0.98, 1.0) },
         // Cloud shadows: strength, noise scale, drift speed. Whitecaps 0..1 and the sea's flow speed.
         uCloud: { value: v3(0, 0.0005, 14) }, uCaps: { value: 0 }, uFlow: { value: 1 },
+        // Sparkle 0..1: more, bigger and brighter glints (the Med's clear water).
+        uSpark: { value: 0 },
         // A warm glow on the sun's side of the map (rgb + strength) and the sun's direction across the map.
         uGlow: { value: new THREE.Vector4(1, 1, 1, 0) }, uSunXZ: { value: new THREE.Vector2(-1, 0) },
         // Screen grade, applied here because the sea fills the screen (no extra full-screen pass): tint, haze
@@ -39,7 +41,7 @@ export function makeWater() {
         uniform vec4 uIsl[6]; uniform vec2 uCount;
         uniform sampler2D uNoise;
         uniform vec3 uDeep, uMid, uLight, uCrest, uFoam, uGlint, uCloud;
-        uniform float uCaps, uFlow;
+        uniform float uCaps, uFlow, uSpark;
         uniform vec4 uGlow; uniform vec2 uSunXZ;
         uniform vec2 uRes, uHazeY; uniform vec4 uTint, uHaze, uVig, uFlash;
         varying vec2 vP;
@@ -72,17 +74,17 @@ export function makeWater() {
           col = mix(col, uGlow.rgb, uGlow.a * smoothstep(0.0, 1.4, dot(q, uSunXZ)));
           // Sparse glints: at most one small crescent per cell, blinking slowly. Whitecaps make them denser,
           // bigger and quicker, and add broken white patches along the swell crests.
-          float csz = mix(64.0, 34.0, uCaps);
+          float csz = mix(64.0, 34.0, uCaps) * (1.0 - 0.28 * uSpark);
           vec2 g = (vP - flow * 1.4) / csz;
           vec2 cell = floor(g);
           float h = hash(cell);
           vec2 d = fract(g) - 0.5 - (vec2(hash(cell + 17.0), hash(cell + 31.0)) - 0.5) * 0.5;
           d.y += d.x * d.x * 4.0;
           d.x *= 0.36;
-          float r0 = 0.03 + 0.012 * uCaps;
+          float r0 = 0.03 + 0.012 * uCaps + 0.008 * uSpark;
           // More of them toward the sun, where the light lies on the water.
           float sunward = smoothstep(-0.6, 1.2, dot(q, uSunXZ));
-          float glint = (1.0 - smoothstep(r0, r0 + 0.02, length(d))) * smoothstep(0.55, 1.0, sin(uT * (1.1 + uCaps * 0.9) + h * 50.0)) * step(0.62 - 0.25 * uCaps - 0.2 * sunward, h);
+          float glint = (1.0 - smoothstep(r0, r0 + 0.02, length(d))) * smoothstep(0.55, 1.0, sin(uT * (1.1 + uCaps * 0.9 + uSpark * 0.8) + h * 50.0)) * step(0.62 - 0.25 * uCaps - (0.2 + 0.16 * uSpark) * sunward - 0.06 * uSpark, h);
           if (uCaps > 0.0) {
             // Whitecaps: small flecks of foam drawn out along the wind, gathered loosely where the swell runs high.
             vec2 wq = vec2(dot(p, uWind) * 0.38, dot(p, wn));
@@ -102,7 +104,7 @@ export function makeWater() {
             float ring = smoothstep(0.86, 0.97, sin(k * 22.0 - uT * 1.7)) * (1.0 - smoothstep(0.08, 0.36, k)) * step(0.1, k);
             foam = max(foam, ring * 0.42);
           }
-          col = mix(col, uGlint, clamp(glint, 0.0, 1.0) * 0.85);
+          col = mix(col, uGlint, clamp(glint, 0.0, 1.0) * (0.85 + 0.15 * uSpark));
           col = mix(col, uFoam, clamp(foam, 0.0, 1.0) * 0.85);
           vec2 dd = abs(vP) - uHalf;
           col *= 1.0 - 0.22 * smoothstep(0.0, 80.0, max(dd.x, dd.y));

@@ -60,7 +60,7 @@ export async function loadContent() {
     checkLoadout: slots.checkLoadout, checkSlots: slots.checkSlots, loadoutWeight: slots.loadoutWeight, accepts: slots.accepts, FLAGSHIP: flagship.FLAGSHIP,
     AMMO: ammo.AMMO,
     // Ship looks (src/config/looks.js).
-    LOOK_CATALOGUE: looks.LOOK_CATALOGUE, LOOK_FIELDS: looks.LOOK_FIELDS, checkLook: looks.checkLook, FACTION_LOOKS: looks.FACTION_LOOKS, BOSS_LOOKS: looks.BOSS_LOOKS,
+    LOOK_CATALOGUE: looks.LOOK_CATALOGUE, LOOK_FIELDS: looks.LOOK_FIELDS, checkLook: looks.checkLook, FACTION_LOOKS: looks.FACTION_LOOKS, BOSS_LOOKS: looks.BOSS_LOOKS, ALLY_LOOKS: looks.ALLY_LOOKS,
     WORLDS: worlds.WORLDS, FACTIONS: factions.FACTIONS,
   };
 }

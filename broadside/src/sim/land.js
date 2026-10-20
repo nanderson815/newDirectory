@@ -23,19 +23,23 @@ import { capsuleRadius, coastDepth, coastPoint, coastList, coreDist, coastGap } 
 //   x, y                 a spot on the chart (portrait fractions), for things in the water (a wreck on a reef)
 // In the battle state G.landmarks holds them in map units: { kind, x, y, face (seaward, radians), host, ... }.
 
-// The Mediterranean's styles (straits .. dardanelles) are ids the art pass gives a look of their own; until then the
-// renderer draws each like the West Indies style in STYLE_FALLBACK.
+// The Mediterranean's styles (straits .. dardanelles) each have their own look (render/land.js STYLES). A style
+// with no look of its own (a new world's, before its art pass) is drawn like the one STYLE_FALLBACK names.
 export const LAND_STYLES = ['port', 'windward', 'main', 'golden', 'pirate', 'campeche', 'armada', 'straits', 'barbary', 'malta', 'aegean', 'candia', 'dardanelles'];
 export const REGION_STYLE = {
   port: 'port', windward: 'windward', main: 'main', golden: 'golden', pirate: 'pirate', campeche: 'campeche', armada: 'armada',
   straits: 'straits', barbary: 'barbary', malta: 'malta', morea: 'aegean', candia: 'candia', dardanelles: 'dardanelles',
 };
-export const STYLE_FALLBACK = { straits: 'main', barbary: 'main', malta: 'armada', aegean: 'windward', candia: 'armada', dardanelles: 'windward' };
-export const TOWN_LOOKS = ['english', 'spanish', 'shanty', 'village', 'city'];
+export const STYLE_FALLBACK = {};
+// Town looks: the West Indies' five, then the Mediterranean's (a Barbary kasbah of whitewashed cubes, Malta's
+// honey stone, the Greek isles' white houses, Candia's Venetian stucco, Turkish timber houses).
+export const TOWN_LOOKS = ['english', 'spanish', 'shanty', 'village', 'city', 'kasbah', 'maltese', 'greek', 'venetian', 'ottoman'];
 export const STYLE_TOWN = {
   port: 'english', windward: 'shanty', main: 'spanish', golden: 'spanish', pirate: 'shanty', campeche: 'village', armada: 'city',
-  straits: 'spanish', barbary: 'spanish', malta: 'city', aegean: 'village', candia: 'city', dardanelles: 'city',
+  straits: 'spanish', barbary: 'kasbah', malta: 'maltese', aegean: 'greek', candia: 'venetian', dardanelles: 'ottoman',
 };
+// Whose flag a castle or wall may fly (otherwise the region's).
+export const FLAG_IDS = ['english', 'spanish', 'pirate', 'algiers', 'tripoli', 'ottoman', 'venice', 'knights'];
 
 // The land for a battle def: its own `land`, else LANDS by id.
 export const landOf = (B) => (B && (B.land || LANDS[B.id])) || null;
@@ -166,8 +170,37 @@ export const LANDMARKS = {
     params: {}, defaults: {}, where: 'land', extent: () => 17,
   },
   castle: {
-    about: 'A honey-stone bastion on a headland in the style of El Morro, its walls angled to the sea, with a watchtower.',
-    params: {}, defaults: {}, where: 'land', extent: () => 24,
+    about: 'A honey-stone bastion on a headland in the style of El Morro, its walls angled to the sea, with a watchtower. In the Mediterranean it is built in the region’s stone and flies the colours of whoever holds that shore.',
+    params: { flag: `optional: whose flag flies over it: ${FLAG_IDS.join(', ')} (default the region's)` }, defaults: { flag: '' }, where: 'land', extent: () => 24,
+  },
+  // ---------- The Mediterranean's ----------
+  mosque: {
+    about: 'A mosque: on the Barbary coast a white prayer hall under green-tiled roofs with a square minaret; in the Sultan’s lands a lead dome and a slender pencil minaret. Its lamp glows at night.',
+    params: { look: "optional: 'maghrebi' or 'ottoman' (default: the region's)" }, defaults: { look: '' }, where: 'land', extent: () => 12,
+  },
+  kasbah: {
+    about: 'A walled citadel of whitewashed stone: crenellated walls round a square with a tower at each corner, white houses and a minaret inside, the gate to the sea.',
+    params: {}, defaults: {}, where: 'land', extent: () => 20,
+  },
+  walls: {
+    about: 'A bastioned front of a fortress city (Valletta, Candia) along the shore: a high curtain wall with arrow-head bastions thrust out to sea, guns on their terraces and a sentry box at each point. It runs along the shore (or across the island), length map units long.',
+    params: {
+      length: 'optional: how far the wall runs, in map units (default 120)', flag: `optional: whose flag flies over it: ${FLAG_IDS.join(', ')} (default the region's)`,
+      landward: 'optional: 1 = its bastions face inland, a land front against a besieger (default 0: they face the sea)',
+    },
+    defaults: { length: 120, flag: '', landward: 0 }, where: 'land', extent: () => 20,
+  },
+  chapel: {
+    about: 'A little whitewashed chapel of the Greek isles with its dome, vault and bell-gable, two cypresses beside it.',
+    params: {}, defaults: {}, where: 'land', extent: () => 10,
+  },
+  cypresses: {
+    about: 'A row of tall dark cypresses along a road or round a graveyard.',
+    params: { count: 'optional: how many (default 5)' }, defaults: { count: 5 }, where: 'land', extent: (o) => 3 + o.count * 3.3,
+  },
+  siegeworks: {
+    about: 'A besieger’s lines: zig-zag trenches, a battery of guns behind gabions trained on the walls, and the camp’s tents behind, the commander’s red pavilion among them.',
+    params: { tents: 'optional: how many tents (default 6)' }, defaults: { tents: 6 }, where: 'land', extent: () => 30,
   },
   skull: { about: 'Skull Rock: a great white boulder with hollow eyes, staring out to sea.', params: {}, defaults: {}, where: 'land', extent: () => 12 },
   wreck: {
@@ -351,6 +384,8 @@ export function checkLand(L, B, MAPS = [[520, 1100], [620, 930]]) {
       if (typeof dv === 'string' && typeof v !== 'string') out.push(`${at}: '${k}' should be text, got ${JSON.stringify(v)}`);
     }
     if (m.kind === 'town' && m.look !== undefined && !TOWN_LOOKS.includes(m.look)) out.push(`${at}: look must be one of ${TOWN_LOOKS.join(', ')}`);
+    if (m.kind === 'mosque' && m.look !== undefined && m.look !== 'maghrebi' && m.look !== 'ottoman') out.push(`${at}: look must be 'maghrebi' or 'ottoman'`);
+    if (m.flag !== undefined && !FLAG_IDS.includes(m.flag)) out.push(`${at}: flag must be one of ${FLAG_IDS.join(', ')}`);
     if (m.team !== undefined && m.team !== 'player' && m.team !== 'enemy') out.push(`${at}: team must be 'player' or 'enemy'`);
     const o = withDefaults(m);
     const hosts = [m.island !== undefined, m.coast !== undefined, m.x !== undefined || m.y !== undefined].filter(Boolean).length;

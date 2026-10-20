@@ -3,7 +3,7 @@
 //   ONLY=tutorial,cove node tests/land-budget.mjs
 import { launch, open, save } from './lib.mjs';
 
-const ids = process.env.ONLY ? process.env.ONLY.split(',') : ['tutorial', 'tortuga', 'cayman', 'rojo', 'sanlucas', 'silver', 'comodoro', 'cartagena', 'santamarta', 'oro', 'cove', 'wreck', 'kate', 'convoy', 'siege', 'hierro', 'fog', 'blockade', 'armada'];
+const ids = process.env.ONLY ? process.env.ONLY.split(',') : ['tutorial', 'tortuga', 'cayman', 'rojo', 'sanlucas', 'silver', 'comodoro', 'cartagena', 'santamarta', 'oro', 'cove', 'wreck', 'kate', 'convoy', 'siege', 'hierro', 'fog', 'blockade', 'armada', 'tangier', 'gibraltar', 'sale', 'bougie', 'bagnio', 'goletta', 'algiers', 'knights', 'passero', 'tripoli', 'zante', 'navarino', 'candia', 'dia', 'narrows', 'kapudan'];
 const browser = await launch();
 const page = await open(browser, { save: save() });
 page.on('console', (m) => { if (m.type() === 'warning' && /^TIMING/.test(m.text())) console.log(m.text()); });

@@ -28,7 +28,8 @@ export const LOOK_FIELDS = {
 };
 
 // side/castle/wale/ports: hull sides, the upperworks (castle), the wale (the thick strake along her side), and
-// the gunport lids' insides. Colours are "#rrggbb".
+// the gunport lids' insides; band (optional): a painted band along her upper strake; deck (optional): her deck
+// planking, sun-bleached or dark (default the warm pine of every West Indies ship). Colours are "#rrggbb".
 export const PAINTS = {
   oak: { name: 'Oiled oak', about: 'Bright oak sides and a blue wale, as she came off the slip.', cost: 0,
     side: '#a5672f', castle: '#c28145', wale: '#2f6fd6', ports: '#6e2a1c' },
@@ -46,11 +47,11 @@ export const PAINTS = {
     side: '#253a66', castle: '#2f5d9a', wale: '#d9a441', ports: '#a3271c' },
   calico: { name: 'Calico black', about: 'Kate\'s black, with a red wale and gilt ports.', hat: 'kate',
     side: '#211d20', castle: '#3a2b2b', wale: '#a3271c', ports: '#d9a441' },
-  // The Mediterranean's (placeholder colours for the art pass).
-  sale: { name: 'Salé green and white', about: 'Reis Ibrahim\'s green sides and white upperworks, with a red wale.', hat: 'rover',
-    side: '#2f5a46', castle: '#efe6cf', wale: '#a3271c', ports: '#d9a441' },
+  // The Mediterranean's.
+  sale: { name: 'Salé green and white', about: 'Reis Ibrahim\'s green sides and white upperworks, with a red wale and a gilt band.', hat: 'rover',
+    side: '#2f5a46', castle: '#efe6cf', wale: '#a3271c', ports: '#d9a441', band: '#e2b13a' , deck: '#e3c08a' },
   serenissima: { name: 'Serenissima crimson', about: 'Venetian crimson and gold, as the Provveditore\'s galleys wore it.', hat: 'corno',
-    side: '#7a1f2b', castle: '#a8262a', wale: '#e2b13a', ports: '#e2b13a' },
+    side: '#7a1f2b', castle: '#a8262a', wale: '#e2b13a', ports: '#e2b13a' , deck: '#b98352' },
   // The enemy's.
   spain: { foe: true, name: 'Spanish brown', side: '#7a3a28', castle: '#93483a', wale: '#c9a227', ports: '#2a1d17' },
   spainBlack: { foe: true, name: 'Spanish black', side: '#2e2523', castle: '#7a3a28', wale: '#c9a227', ports: '#a3271c' },
@@ -60,15 +61,24 @@ export const PAINTS = {
   pirate: { foe: true, name: 'Tarred', side: '#3a2c28', castle: '#4c3934', wale: '#7a2620', ports: '#1c1614' },
   pirateGrey: { foe: true, name: 'Weathered grey', side: '#5c554e', castle: '#6e655b', wale: '#2a221c', ports: '#7a2620' },
   pirateRed: { foe: true, name: 'Dried-blood red', side: '#4e2420', castle: '#5e302a', wale: '#1c1614', ports: '#c9a227' },
-  barbaryGreen: { foe: true, name: 'Algiers green', side: '#2f5a46', castle: '#e3d6b4', wale: '#a3271c', ports: '#a3271c' },
-  barbaryRed: { foe: true, name: 'Barbary red', side: '#8c3324', castle: '#e3d6b4', wale: '#2f5a46', ports: '#2a221c' },
-  barbaryOchre: { foe: true, name: 'Sand', side: '#c7a46a', castle: '#8c3324', wale: '#2a221c', ports: '#8c3324' },
-  ottomanRed: { foe: true, name: 'Ottoman red', side: '#7e2420', castle: '#2f5a46', wale: '#e2b13a', ports: '#e2b13a' },
-  ottomanGreen: { foe: true, name: 'Ottoman green', side: '#2c4c3e', castle: '#7e2420', wale: '#e2b13a', ports: '#7e2420' },
+  // The corsairs paint their sides bright, with a band of a second colour along the upper strake.
+  barbaryGreen: { foe: true, name: 'Algiers green', side: '#2f5a46', castle: '#e9dfc2', wale: '#a3271c', ports: '#a3271c', band: '#e9dfc2' , deck: '#e3c08a' },
+  barbaryRed: { foe: true, name: 'Barbary red', side: '#8c3324', castle: '#e9dfc2', wale: '#2f5a46', ports: '#2a221c', band: '#e2b13a' , deck: '#e3c08a' },
+  barbaryOchre: { foe: true, name: 'Sand', side: '#c7a46a', castle: '#8c3324', wale: '#2a221c', ports: '#8c3324', band: '#2f5a46' , deck: '#e3c08a' },
+  barbaryBlack: { foe: true, name: 'Tripoli black', side: '#2b2623', castle: '#c9a24a', wale: '#a3271c', ports: '#a3271c', band: '#e9dfc2' , deck: '#e3c08a' },
+  barbaryWhite: { foe: true, name: 'Whitewash', side: '#e6dcc0', castle: '#2f6a4a', wale: '#a3271c', ports: '#2f6a4a', band: '#2f6a4a' , deck: '#e3c08a' },
+  // The Sultan's: deep reds and greens, gilt wales.
+  ottomanRed: { foe: true, name: 'Ottoman red', side: '#7e2420', castle: '#2f5a46', wale: '#e2b13a', ports: '#e2b13a', band: '#e9dfc2' , deck: '#b98352' },
+  ottomanGreen: { foe: true, name: 'Ottoman green', side: '#2c4c3e', castle: '#7e2420', wale: '#e2b13a', ports: '#7e2420', band: '#e2b13a' , deck: '#b98352' },
+  ottomanBlack: { foe: true, name: 'Ottoman black', side: '#26211f', castle: '#7e2420', wale: '#e2b13a', ports: '#e2b13a', band: '#7e2420' , deck: '#b98352' },
+  karaEjder: { foe: true, name: 'The Black Dragon', side: '#1f1b1d', castle: '#7e2420', wale: '#e2b13a', ports: '#e2b13a', band: '#e2b13a' , deck: '#9a6a42' },
+  // Allies: the Order of St John's black and red.
+  religion: { foe: true, name: 'The Religion', side: '#24201e', castle: '#a8262a', wale: '#e2b13a', ports: '#a8262a', band: '#a8262a' , deck: '#b98352' },
   merchant: { foe: true, name: 'Merchant', side: '#a8743f', castle: '#c4925a', wale: '#3d7a52', ports: '#3a2a1e' },
 };
 
-// color: the cloth; stripe: a second colour sewn in every other cloth (optional).
+// color: the cloth; stripe: a second colour sewn in every other cloth (optional), stripeW: how wide that cloth's
+// stripe is, of 16 (default all of it).
 export const CLOTHS = {
   natural: { name: 'Natural canvas', about: 'Unbleached duck, the colour of fresh bread.', cost: 0, color: '#fbf3dc' },
   white: { name: 'Bleached white', about: 'Bleached in the Port Royal sun until it hurts to look at.', cost: 60, color: '#fffcf3' },
@@ -82,6 +92,8 @@ export const CLOTHS = {
   crimson: { foe: true, name: 'Crimson', color: '#a8262a' },
   patched: { foe: true, name: 'Patched', color: '#b9ad95', stripe: '#8f8471' },
   barbary: { foe: true, name: 'Barbary stripes', color: '#f4ecd8', stripe: '#b8402f' },
+  corsair: { foe: true, name: 'Corsair pinstripe', color: '#f6eedb', stripe: '#3f7a52', stripeW: 4 },
+  ottoman: { foe: true, name: 'Ottoman pinstripe', color: '#f6efdc', stripe: '#b8402f', stripeW: 3 },
   merchant: { foe: true, name: 'Merchant', color: '#f7eed6', stripe: '#d9a873' },
 };
 
@@ -96,12 +108,16 @@ export const EMBLEMS = {
   anchor: { name: 'Fouled anchor', about: 'An anchor and its cable, the badge you earned on the shakedown cruise.', hat: 'cabin' },
   skull: { name: 'Kate\'s skull', about: 'The skull and crossbones off the Black Wyvern\'s canvas.', hat: 'kate' },
   crown: { name: 'Crown', about: 'The Captain-General\'s crown, red-jewelled.', hat: 'armada' },
+  markLion: { name: 'Lion of St Mark', about: 'Venice\'s winged lion in gold on a red roundel, as the Provveditore\'s galleys carry it.', hat: 'corno' },
   // The enemy's.
   saltire: { foe: true, name: 'Cross of Burgundy' },
   santiago: { foe: true, name: 'Cross of Santiago' },
   swords: { foe: true, name: 'Crossed cutlasses' },
   hourglass: { foe: true, name: 'Hourglass' },
   crescent: { foe: true, name: 'Crescent' },
+  crescents: { foe: true, name: 'Three crescents' },
+  zulfiqar: { foe: true, name: 'Zulfiqar' },
+  maltese: { foe: true, name: 'Cross of the Order' },
   merchant: { foe: true, name: 'Merchant\'s bands' },
 };
 
@@ -115,6 +131,7 @@ export const FIGUREHEADS = {
   markLion: { name: 'Lion of St Mark', about: 'Venice\'s winged lion with his book, a gift from Candia.', hat: 'corno' },
   // The enemy's.
   saint: { foe: true, name: 'A saint' },
+  ejder: { foe: true, name: 'The black dragon' },
 };
 
 // Every flag but the plain one also flies a great ensign at the stern staff.
@@ -183,15 +200,22 @@ export const FACTION_LOOKS = {
     flag: ['colours', 'pennant'], lanterns: [1, 1, 2], gilding: ['plain'],
   },
   barbary: {
-    paint: ['barbaryGreen', 'barbaryRed', 'barbaryOchre'], cloth: ['white', 'barbary', 'natural'],
-    emblem: ['crescent', 'none', 'swords'], figurehead: ['lion', 'scroll'],
-    flag: ['colours', 'pennant'], lanterns: [1, 2], gilding: ['plain', 'gilt'],
+    paint: ['barbaryGreen', 'barbaryRed', 'barbaryOchre', 'barbaryBlack', 'barbaryWhite'], cloth: ['barbary', 'white', 'corsair', 'natural'],
+    emblem: ['crescent', 'zulfiqar', 'none', 'crescent'], figurehead: ['lion', 'scroll'],
+    flag: ['colours', 'pennant', 'ensign'], lanterns: [1, 2], gilding: ['plain', 'gilt'],
   },
   ottoman: {
-    paint: ['ottomanRed', 'ottomanGreen', 'barbaryRed'], cloth: ['white', 'natural', 'striped'],
-    emblem: ['crescent', 'crescent', 'none'], figurehead: ['lion', 'scroll'],
+    paint: ['ottomanRed', 'ottomanGreen', 'ottomanBlack'], cloth: ['white', 'ottoman', 'natural', 'ottoman'],
+    emblem: ['crescents', 'crescent', 'none'], figurehead: ['lion', 'scroll'],
     flag: ['colours', 'pennant', 'ensign'], lanterns: [1, 2, 3], gilding: ['plain', 'gilt', 'gilt'],
   },
+};
+
+// Allied captains on your side (a ship def with ally: true and faction 'venice' or 'knights') wear their nation's
+// dress; their rail and canvas edge stay a friend's blue (render/models.js).
+export const ALLY_LOOKS = {
+  venice: { paint: 'serenissima', cloth: 'white', emblem: 'markLion', figurehead: 'markLion', flag: 'ensign', lanterns: 3, gilding: 'gilt' },
+  knights: { paint: 'religion', cloth: 'white', emblem: 'maltese', figurehead: 'scroll', flag: 'ensign', lanterns: 3, gilding: 'gilt' },
 };
 
 // Bosses dress as themselves, by the hat they wear (a boss with a hat not listed here takes the richest of her
@@ -204,10 +228,10 @@ export const BOSS_LOOKS = {
   morion: { paint: 'iron', cloth: 'tan', emblem: 'saltire', figurehead: 'saint', flag: 'pennant', lanterns: 3, gilding: 'gilt' },
   armada: { paint: 'spainGold', cloth: 'white', emblem: 'crown', figurehead: 'lion', flag: 'admiral', lanterns: 3, gilding: 'almirante' },
   // The Mediterranean's bosses (src/config/battles-med.js).
-  rover: { paint: 'sale', cloth: 'barbary', emblem: 'crescent', figurehead: 'scroll', flag: 'pennant', lanterns: 2, gilding: 'gilt' },
-  kalpak: { paint: 'barbaryGreen', cloth: 'algerine', emblem: 'swords', figurehead: 'lion', flag: 'pennant', lanterns: 3, gilding: 'gilt' },
+  rover: { paint: 'sale', cloth: 'barbary', emblem: 'zulfiqar', figurehead: 'scroll', flag: 'pennant', lanterns: 2, gilding: 'gilt' },
+  kalpak: { paint: 'barbaryGreen', cloth: 'algerine', emblem: 'crescent', figurehead: 'lion', flag: 'admiral', lanterns: 3, gilding: 'gilt' },
   osman: { paint: 'barbaryRed', cloth: 'tripoli', emblem: 'crescent', figurehead: 'scroll', flag: 'pennant', lanterns: 3, gilding: 'gilt' },
-  kavuk: { paint: 'ottomanRed', cloth: 'white', emblem: 'crescent', figurehead: 'lion', flag: 'admiral', lanterns: 3, gilding: 'kapudan' },
+  kavuk: { paint: 'karaEjder', cloth: 'white', emblem: 'crescents', figurehead: 'ejder', flag: 'admiral', lanterns: 3, gilding: 'kapudan' },
 };
 
 // A small, stable string hash (FNV-1a).

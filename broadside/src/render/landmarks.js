@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { TAU, PI } from '../util.js';
 import { toon, withOutline } from './gl.js';
 import { hullShape, liftedExtrude } from './shapes.js';
-import { bush, palm, broadleaf } from './flora.js';
+import { bush, palm, broadleaf, olive, cypress, scrub } from './flora.js';
 
 // Landmark and plant models for render/land.js. Every builder works in the landmark's own frame: the group sits
 // on the ground at its spot with +x facing out to sea (or into the wind, for a windmill). Builders register
@@ -87,11 +87,36 @@ export function flagCloth(pattern) {
     const head = new THREE.CircleGeometry(1.5, 7).translate(fw / 2, -fh * 0.4, 0);
     for (const z of [0.14, -0.14]) add(g, twoSided(head), '#efe6d2', 0, 0, z);
     head.dispose();
+  } else if (MED_FLAG[pattern]) {
+    // The Med's (the same flags the ships fly, render/models.js drawBanner): a field, then bands or devices.
+    const F = MED_FLAG[pattern];
+    bar(fw, fh, fw / 2, -fh / 2, 0, F.field);
+    if (pattern === 'algiers') { bar(fw, fh / 3, fw / 2, -fh / 2, 0, '#e2b13a'); bar(fw, fh / 3, fw / 2, -fh * 5 / 6, 0, '#2f6a4a'); }
+    if (pattern === 'knights') { bar(fw, 1.3, fw / 2, -fh / 2, 0, '#fbf6ea'); bar(1.3, fh, fw * 0.45, -fh / 2, 0, '#fbf6ea'); }
+    if (pattern === 'venice') { bar(fw * 0.42, fh * 0.34, fw * 0.42, -fh * 0.56, 0, '#e2b13a'); bar(fw * 0.16, fh * 0.3, fw * 0.36, -fh * 0.3, 0.5, '#e2b13a'); }
+    for (const [cx, cy, r] of F.moons || []) {
+      const m = new THREE.RingGeometry(r * 0.62, r, 9, 1, PI * 0.38, PI * 1.24).translate(cx, cy, 0);
+      for (const z of [0.2, -0.2]) add(g, twoSided(m), '#fbf6ea', 0, 0, z);
+      m.dispose();
+    }
   }
   return g;
 }
-const FLAG = { port: 'english', windward: 'pirate', main: 'spanish', golden: 'spanish', pirate: 'pirate', campeche: 'spanish', armada: 'spanish' };
-const flagFor = (o, st) => (o.team === 'player' ? 'english' : o.look === 'shanty' ? 'pirate' : o.look === 'english' ? 'english' : FLAG[st.id] || 'spanish');
+// The Med's flags: field colour, crescents [x, y, r] in the cloth's frame.
+const MED_FLAG = {
+  algiers: { field: '#b8231c' }, tripoli: { field: '#2f6a4a', moons: [[4.2, -3, 2]] }, ottoman: { field: '#b8231c', moons: [[3.4, -1.6, 1.2], [3.4, -4.4, 1.2], [5.8, -3, 1.2]] },
+  venice: { field: '#9c1c24' }, knights: { field: '#b8231c' },
+};
+const FLAG = {
+  port: 'english', windward: 'pirate', main: 'spanish', golden: 'spanish', pirate: 'pirate', campeche: 'spanish', armada: 'spanish',
+  // The Med: whose town it is, and (for your towns) whose your friends' are.
+  straits: 'spanish', barbary: 'algiers', malta: 'knights', aegean: 'ottoman', candia: 'ottoman', dardanelles: 'ottoman',
+};
+const FRIEND_FLAG = { malta: 'knights', aegean: 'venice', candia: 'venice' };
+const flagFor = (o, st) => (o.team === 'player' ? FRIEND_FLAG[st.id] || 'english' : o.look === 'shanty' ? 'pirate' : o.look === 'english' ? 'english'
+  : st.id === 'barbary' && /Tunis|Tripoli/.test(o.name || '') ? 'tripoli' : FLAG[st.id] || 'spanish');
+// A Med style (the Mediterranean's landmarks build in their own manner there).
+export const MED = new Set(['straits', 'barbary', 'malta', 'aegean', 'candia', 'dardanelles']);
 function pole(g, x, z, h, ctx, pattern) {
   const y = ctx.ground(g, x, z);
   add(g, cyl(0.35, 0.45, h, 5), '#6b4a2a', x, y + h / 2, z);
@@ -108,11 +133,22 @@ const LOOK = {
   city: { walls: ['#f2c6c2', '#f4e1a1', '#a9d6e5', '#f7f1e3', '#c9e4b4', '#f0b98d'], roofs: ['#c4613a', '#bb5a39', '#cc6c44'], foot: '#c9b48c', trim: '#7a5232', glass: '#2f5e7a' },
   shanty: { walls: ['#8b6a4a', '#9a7b58', '#7d5f42'], roofs: ['#b4a582', '#a39474', '#7a5a3e'], accent: '#8d4a36', foot: '#6b4f36', trim: '#3a2a1c', glass: '#2a2018' },
   village: { walls: ['#e2cfa8', '#d8c29a'], roofs: ['#caa458', '#bf9a4e', '#d0ac62'], foot: '#b8996a', trim: '#5a3d26', glass: '#3a2a1c' },
+  // The Mediterranean: whitewashed cubes climbing a Barbary hill, Malta's honey limestone with its wooden
+  // balconies, white Greek island houses, Candia's tall Venetian stucco and Turkish timber houses under tile.
+  kasbah: { walls: ['#f7f2e6', '#f2ebdc', '#ece3cf', '#f5ecd8'], roofs: ['#e3d8bf'], foot: '#d7c49c', trim: '#2f6a4a', glass: '#2b3640', accent: '#7a4a2e' },
+  maltese: { walls: ['#ebd29a', '#e4c78d', '#efdaa8'], roofs: ['#d9c08a'], foot: '#c9ad78', trim: '#3f6e4c', glass: '#2f3a42', accent: '#9a3a2a' },
+  greek: { walls: ['#f8f5ee', '#f3efe4', '#eee8da'], roofs: ['#c4613a', '#bb5a39', '#e8e2d4'], foot: '#d6ccb2', trim: '#4f7a5c', glass: '#2f3e48', accent: '#7a5232' },
+  venetian: { walls: ['#ebcd9e', '#e2b98a', '#d8a47a', '#f0dfbc', '#cf9a72'], roofs: ['#b85a38', '#c4673e', '#a8502f'], foot: '#c2a678', trim: '#5a3d26', glass: '#2f4652' },
+  ottoman: { walls: ['#f2e8d2', '#ead2ac', '#e8c6ae', '#dcb990'], roofs: ['#b5583a', '#c0643f', '#a95536'], foot: '#bfa780', trim: '#5a3d26', glass: '#3a4a52' },
 };
 const pick = (list, rnd) => list[Math.floor(rnd(0, list.length)) % list.length];
 // How big a house is, by look: w along the street (the ridge), d deep, h to the eaves.
 function plan(look, rnd) {
-  if (look === 'city') return { w: rnd(8.4, 10.6), d: rnd(7.8, 9), h: rnd(9.5, 13) };
+  if (look === 'city' || look === 'venetian') return { w: rnd(8.4, 10.6), d: rnd(7.8, 9), h: rnd(9.5, 13) };
+  if (look === 'kasbah') return { w: rnd(7, 9.2), d: rnd(7, 8.6), h: rnd(5.5, 9.5) };
+  if (look === 'maltese') return { w: rnd(8, 10), d: rnd(7.6, 8.6), h: rnd(8, 11) };
+  if (look === 'greek') return { w: rnd(7, 8.8), d: rnd(6.6, 7.6), h: rnd(5.2, 6.8) };
+  if (look === 'ottoman') return { w: rnd(8, 10), d: rnd(7.4, 8.4), h: rnd(7.4, 9.2) };
   if (look === 'shanty') return { w: rnd(6.6, 8.4), d: rnd(5.8, 7), h: rnd(5, 6.2) };
   if (look === 'village') return { w: 9, d: 9, h: 5 };
   return { w: rnd(8.4, 10.6), d: rnd(7.3, 8.4), h: look === 'english' ? rnd(6.2, 7.3) : rnd(5.8, 7.2) };
@@ -145,6 +181,8 @@ function house(g, look, x, z, yaw, rnd, ctx, p) {
     add(b, box(1.8, 3, 0.4), L.trim, rnd(-1.5, 1.5), 5.5, d / 2 + 0.05);
     add(b, box(1.4, 1.2, 0.4), L.glass, w * 0.28, 4 + h * 0.6, d / 2 + 0.05);
     top = 5 + h;
+  } else if (MED_HOUSE[look]) {
+    top = MED_HOUSE[look](b, L, w, d, h, wall, rnd, ctx);
   } else {
     footing(b, w, d, L.foot);
     add(b, box(w, h, d), wall, 0, h / 2, 0, 0.035);
@@ -179,7 +217,7 @@ function house(g, look, x, z, yaw, rnd, ctx, p) {
     const floors = h > 8 ? 2 : 1;
     for (let f = 0; f < floors; f++) {
       const wy = floors > 1 ? h * (f ? 0.74 : 0.36) : h * 0.6;
-      for (const s of [-1, 1]) if (!(f === 0 && Math.abs(s * w * 0.3 - dx) < 1.8)) add(b, pane(1.3, 1.5), L.glass, s * w * 0.3, wy, d / 2 + 0.06);
+      for (const s of [-1, 1]) if (!(f === 0 && Math.abs(s * w * 0.3 - dx) < 1.8)) { add(b, pane(1.3, 1.5), L.glass, s * w * 0.3, wy, d / 2 + 0.06); ctx.window(b, s * w * 0.3, wy, d / 2 + 0.3); }
     }
     if (look === 'city' && floors > 1) add(b, box(w * 0.55, 0.35, 1.2), L.trim, 0, h * 0.58, d / 2 + 0.5);
   }
@@ -188,12 +226,104 @@ function house(g, look, x, z, yaw, rnd, ctx, p) {
   return b;
 }
 
+// The Med's houses: (b, the look's palette, w, d, h, the wall colour, rnd, ctx) -> the height of the top. Front
+// (door, windows) to local +z.
+const parapet = (b, w, d, h, wall, roof) => {
+  add(b, box(w + 0.4, 1, d + 0.4), wall, 0, h + 0.4, 0, 0.03);
+  add(b, box(w - 0.7, 0.3, d - 0.7), roof, 0, h + 0.82, 0);
+};
+const front = (b, L, w, d, h, rnd, opt = {}, ctx) => {
+  const dx = rnd(-0.2, 0.2) * w;
+  add(b, pane(1.8, opt.arch ? 2.8 : 3.1), opt.door || '#4a3020', dx, 1.45, d / 2 + 0.06);
+  const floors = h > 8 ? 2 : 1;
+  for (let f = 0; f < floors; f++) {
+    const wy = floors > 1 ? h * (f ? 0.74 : 0.38) : h * 0.62;
+    for (const sd of opt.one ? [rnd() < 0.5 ? -1 : 1] : [-1, 1]) {
+      if (f === 0 && Math.abs(sd * w * 0.3 - dx) < 1.8) continue;
+      add(b, pane(opt.small ? 0.9 : 1.3, opt.small ? 1.1 : 1.5), L.glass, sd * w * 0.3, wy, d / 2 + 0.06);
+      if (ctx && rnd() < 0.6) ctx.window(b, sd * w * 0.3, wy, d / 2 + 0.3);
+    }
+  }
+};
+const MED_HOUSE = {
+  // Barbary: a whitewashed cube, a flat roof behind a parapet, a door and a small window; now and then a little
+  // dome or a stair-house on the roof.
+  kasbah(b, L, w, d, h, wall, rnd, ctx) {
+    footing(b, w, d, L.foot);
+    add(b, box(w, h, d), wall, 0, h / 2, 0, 0.035);
+    parapet(b, w, d, h, wall, L.roofs[0]);
+    front(b, L, w, d, h, rnd, { door: rnd() < 0.5 ? L.trim : L.accent, one: true, small: true }, ctx);
+    let top = h + 1;
+    const u = rnd();
+    if (u < 0.22) { add(b, new THREE.SphereGeometry(2.4, 8, 4, 0, TAU, 0, PI / 2), wall, rnd(-1, 1), h + 0.9, rnd(-1, 1), 0.06); top = h + 3.3; }
+    else if (u < 0.5) { const sx = (rnd() < 0.5 ? -1 : 1) * (w / 2 - 1.8); add(b, box(3, 2.6, 3), wall, sx, h + 2, -d / 2 + 1.8, 0.04); top = h + 3.3; }
+    return top;
+  },
+  // Malta: honey limestone, a flat roof, and a closed wooden balcony (a gallarija) painted green or red.
+  maltese(b, L, w, d, h, wall, rnd, ctx) {
+    footing(b, w, d, L.foot);
+    add(b, box(w, h, d), wall, 0, h / 2, 0, 0.035);
+    parapet(b, w, d, h, wall, L.roofs[0]);
+    front(b, L, w, d, h, rnd, { door: L.trim }, ctx);
+    add(b, box(w * 0.42, 2.6, 1.6), rnd() < 0.6 ? L.trim : L.accent, rnd(-0.15, 0.15) * w, h * 0.7, d / 2 + 0.8, 0.04);
+    if (rnd() < 0.3) { add(b, box(1.2, 2.4, 1.2), wall, w * 0.3, h + 1.8, -d * 0.25); ctx.chimney(b, w * 0.3, h + 3.2, -d * 0.25); }
+    return h + 1;
+  },
+  // The Greek isles: a white cube with a coloured door, flat-roofed or under a low tiled roof.
+  greek(b, L, w, d, h, wall, rnd, ctx) {
+    footing(b, w, d, L.foot);
+    add(b, box(w, h, d), wall, 0, h / 2, 0, 0.035);
+    front(b, L, w, d, h, rnd, { door: rnd() < 0.6 ? L.trim : L.accent, one: true }, ctx);
+    if (rnd() < 0.55) { parapet(b, w, d, h, wall, L.roofs[2]); return h + 1; }
+    const rh = d * 0.32;
+    add(b, gable(w, d, rh, 0.5), pick(L.roofs.slice(0, 2), rnd), 0, h, 0, 0.03);
+    if (rnd() < 0.4) { add(b, box(1.2, 2.6, 1.2), wall, -w * 0.3, h + rh * 0.6, -d * 0.2); ctx.chimney(b, -w * 0.3, h + rh * 0.6 + 1.4, -d * 0.2); }
+    return h + rh;
+  },
+  // Candia: tall Venetian stucco in ochre and sienna under terracotta, with the funnel chimneys of Venice.
+  venetian(b, L, w, d, h, wall, rnd, ctx) {
+    footing(b, w, d, L.foot);
+    add(b, box(w, h, d), wall, 0, h / 2, 0, 0.035);
+    front(b, L, w, d, h, rnd, {}, ctx);
+    const rh = Math.min(w, d) * 0.42;
+    if (rnd() < 0.5) add(b, gable(w, d, rh, 0.7), pick(L.roofs, rnd), 0, h, 0, 0.03); else add(b, hip(w, d, rh), pick(L.roofs, rnd), 0, h, 0, 0.03);
+    if (rnd() < 0.6) {
+      const cx = rnd(-w / 4, w / 4);
+      add(b, box(1.1, 3.4, 1.1), wall, cx, h + rh * 0.6, -d * 0.18);
+      add(b, cyl(1.4, 0.6, 1.6, 6), wall, cx, h + rh * 0.6 + 2.4, -d * 0.18, 0.08);
+      ctx.chimney(b, cx, h + rh * 0.6 + 3.3, -d * 0.18);
+    }
+    return h + rh;
+  },
+  // The Dardanelles: a Turkish timber house, its upper storey jutting out over the street, under a hipped roof
+  // with deep eaves.
+  ottoman(b, L, w, d, h, wall, rnd, ctx) {
+    footing(b, w, d, L.foot);
+    const lo = h * 0.48;
+    add(b, box(w, lo, d), L.walls[0], 0, lo / 2, 0, 0.035);
+    add(b, box(w + 1.6, h - lo, d + 1.6), wall, 0, lo + (h - lo) / 2, 0, 0.035);
+    add(b, box(w + 1.7, 0.45, d + 1.7), L.trim, 0, lo + 0.2, 0);
+    add(b, pane(1.8, 3), '#4a3020', rnd(-0.2, 0.2) * w, 1.5, d / 2 + 0.06);
+    for (const sd of [-1, 0, 1]) { add(b, pane(1.1, 1.5), L.glass, sd * w * 0.32, lo + (h - lo) * 0.55, d / 2 + 0.86); if (rnd() < 0.4) ctx.window(b, sd * w * 0.32, lo + (h - lo) * 0.55, d / 2 + 1.1); }
+    const rh = Math.min(w, d) * 0.4;
+    add(b, hip(w + 2.2, d + 2.2, rh), pick(L.roofs, rnd), 0, h, 0, 0.03);
+    if (rnd() < 0.4) { add(b, box(1.1, 2.6, 1.1), '#b5a48a', w * 0.25, h + rh * 0.55, 0); ctx.chimney(b, w * 0.25, h + rh * 0.55 + 1.4, 0); }
+    return h + rh;
+  },
+};
+
 // The focal building a town gathers round, its front to local +x: a Spanish chapel with a bell tower, an
-// English church with a slate spire, a pirate tavern with its lantern and flag.
+// English church with a slate spire, a pirate tavern with its lantern and flag; in the Med, a mosque, Malta's
+// domed church, a white chapel, a church with a Venetian campanile.
 function focal(g, look, x, z, rnd, ctx, o) {
   const y = ctx.ground(g, x, z), b = new THREE.Group();
   b.position.set(x, y, z);
   g.add(b);
+  if (look === 'kasbah') { mosque(b, 'maghrebi', ctx, 0.85); return; }
+  if (look === 'ottoman') { mosque(b, 'ottoman', ctx, 0.85); return; }
+  if (look === 'maltese') { domeChurch(b, ctx, 0.8); return; }
+  if (look === 'greek') { chapel(b, ctx, 1); return; }
+  if (look === 'venetian') { campanileChurch(b, ctx, 0.85); return; }
   if (look === 'shanty') {
     house(b, 'shanty', 0, 0, PI / 2, rnd, ctx, { w: 12, d: 9, h: 8.5 });
     ctx.lamp(b, 5.6, 9.5, 0);
@@ -250,6 +380,7 @@ function goods(g, x, z, rnd, ctx) {
 // street's direction (local z, at yaw 0) to its direction there.
 // A bigger town (and any city) has a back lane with a third row of houses behind the landward one, if there's
 // room inland; a city fills out its rows with more houses than its sim count.
+const DENSE = { city: 0.5, kasbah: 1, venetian: 0.6, maltese: 0.5 };
 export function townLayout(o) {
   const ext = 6 + 4.5 * Math.sqrt(o.houses), bend = o.bend || 0;
   const half = bend ? Math.min(ext * 1.3, bend * 0.9) : ext * 1.3;
@@ -258,9 +389,113 @@ export function townLayout(o) {
     const a = along / bend, R = bend + off;
     return [-bend + Math.cos(a) * R, Math.sin(a) * R, -a];
   };
-  const back = o.look !== 'village' && (o.houses >= 6 || o.look === 'city') && (!bend || bend >= 48);
-  const count = o.houses + Math.round(o.houses * (o.look === 'city' ? 0.5 : back ? 0.3 : 0));
-  return { half, ext, at, back, count };
+  // A city (and the Med's close-built towns: a kasbah, Valletta, Candia) fills out its rows and its back lane.
+  const dense = DENSE[o.look] || 0;
+  const back = o.look !== 'village' && o.look !== 'greek' && (o.houses >= 6 || dense > 0) && (!bend || bend >= 48);
+  const count = o.houses + Math.round(o.houses * (dense || (back ? 0.3 : 0)));
+  // A kasbah town climbs the hill behind: two more lanes of houses above the back lane, where there is room.
+  const climb = back && o.look === 'kasbah' && !bend ? [-35, -50.5] : [];
+  return { half, ext, at, back, count, climb };
+}
+
+// ---------- The Med's buildings ----------
+// A mosque, its front to local +x. maghrebi: a white prayer hall under green-tiled roofs and a square minaret with
+// a lantern on top (the Barbary coast, Tangier); ottoman: a hall under a lead dome with half-domes, and a slender
+// pencil minaret with a balcony and a conical lead cap (the Sultan's lands).
+function mosque(b, kind, ctx, k = 1) {
+  const g = new THREE.Group();
+  g.scale.setScalar(k);
+  b.add(g);
+  const white = '#f6f1e4', lead = '#8e959b';
+  ctx.shadow(g, -2, 0, 11, 20, 0.32);
+  footing(g, 14, 12, '#d7c49c');
+  if (kind === 'maghrebi') {
+    add(g, box(14, 7, 12), white, 0, 3.5, 0, 0.035);
+    for (const zz of [-3, 3]) add(g, hip(14, 5, 2.6), '#3f7a52', 0, 7, zz, 0.03);
+    add(g, box(0.4, 3.6, 2.4), '#2f6a4a', 7.05, 1.8, 0);
+    // The minaret: a square tower banded in green tile, a crenellated gallery, a small lantern and gilt finial.
+    const mx = -5, mz = -5.4;
+    add(g, box(4.4, 22, 4.4), white, mx, 11, mz, 0.04);
+    for (const yy of [8, 15]) add(g, box(4.6, 0.8, 4.6), '#3f7a52', mx, yy, mz);
+    for (const [dx, dz] of [[1.6, 1.6], [-1.6, 1.6], [1.6, -1.6], [-1.6, -1.6]]) add(g, box(1, 1.2, 1), white, mx + dx, 22.6, mz + dz);
+    add(g, box(2.2, 3.2, 2.2), white, mx, 23.6, mz, 0.06);
+    add(g, hip(2.2, 2.2, 1.6), '#3f7a52', mx, 25.2, mz, 0.06);
+    for (const yy of [27.3, 28.4]) add(g, new THREE.SphereGeometry(0.42, 6, 4), '#e2b13a', mx, yy, mz);
+    ctx.window(g, mx, 24, mz);
+  } else {
+    add(g, box(12, 7, 12), white, 0, 3.5, 0, 0.035);
+    add(g, cyl(5.6, 6, 2, 12), white, 0, 7.8, 0, 0.04);
+    add(g, new THREE.SphereGeometry(5.6, 12, 6, 0, TAU, 0, PI / 2), lead, 0, 8.8, 0, 0.04);
+    for (const [dx, dz] of [[6, 0], [-6, 0]]) add(g, new THREE.SphereGeometry(3.2, 10, 4, 0, TAU, 0, PI / 2), lead, dx * 0.92, 6.8, dz, 0.05);
+    add(g, cyl(0.25, 0.25, 2, 4), '#e2b13a', 0, 15.2, 0);
+    add(g, new THREE.TorusGeometry(0.5, 0.15, 4, 8, PI * 1.3).rotateZ(PI * 0.35), '#e2b13a', 0, 16.5, 0);
+    add(g, box(0.4, 3.4, 2.2), '#4a3020', 6.05, 1.7, 0);
+    // The pencil minaret.
+    const mx = -4.6, mz = -7.6;
+    add(g, cyl(1.5, 1.7, 4, 8), white, mx, 2, mz, 0.05);
+    add(g, cyl(1.15, 1.35, 22, 10), white, mx, 14, mz, 0.06);
+    add(g, cyl(1.9, 1.5, 0.9, 10), white, mx, 20, mz, 0.06);
+    add(g, new THREE.ConeGeometry(1.25, 6.5, 10), lead, mx, 28.2, mz, 0.06);
+    add(g, cyl(0.15, 0.15, 1.6, 4), '#e2b13a', mx, 32, mz);
+    ctx.window(g, mx, 20.6, mz);
+  }
+}
+// Malta's: a honey-stone church with a great dome on a drum and twin bell towers at its front (+x).
+function domeChurch(b, ctx, k = 1) {
+  const g = new THREE.Group();
+  g.scale.setScalar(k);
+  b.add(g);
+  const stone = '#e8cc92', dark = '#c9aa70';
+  ctx.shadow(g, -2, 0, 12, 22, 0.32);
+  footing(g, 18, 12, dark);
+  add(g, box(18, 9, 9), stone, -1, 4.5, 0, 0.035);
+  add(g, box(9, 9, 15), stone, -3, 4.5, 0, 0.035);
+  add(g, box(18.4, 0.8, 9.4), dark, -1, 9.2, 0);
+  add(g, cyl(4.2, 4.4, 4, 12), stone, -3, 11, 0, 0.04);
+  add(g, new THREE.SphereGeometry(4.5, 12, 6, 0, TAU, 0, PI / 2), '#b5533a', -3, 13, 0, 0.04);
+  add(g, cyl(0.9, 1, 2.6, 8), stone, -3, 18.6, 0, 0.06);
+  add(g, new THREE.ConeGeometry(1.1, 1.6, 8), '#b5533a', -3, 20.6, 0);
+  for (const z of [-3.6, 3.6]) {
+    add(g, box(3.4, 14, 3.4), stone, 6.6, 7, z, 0.04);
+    add(g, new THREE.SphereGeometry(1.8, 8, 4, 0, TAU, 0, PI / 2), dark, 6.6, 14, z, 0.06);
+  }
+  add(g, box(0.5, 4, 2.6), '#4a3020', 8.05, 2, 0);
+  add(g, box(0.5, 1.8, 1.8), '#2f3a42', 8.05, 6.8, 0);
+}
+// The Greek isles': a little whitewashed chapel, a vaulted roof, a dome on a drum and a bell-gable.
+function chapel(b, ctx, k = 1) {
+  const g = new THREE.Group();
+  g.scale.setScalar(k);
+  b.add(g);
+  const white = '#f8f5ee';
+  ctx.shadow(g, 0, 0, 7.5, 12, 0.3);
+  footing(g, 10, 6.5, '#d6ccb2');
+  add(g, box(10, 5.5, 6.5), white, 0, 2.75, 0, 0.035);
+  add(g, new THREE.CylinderGeometry(3.25, 3.25, 10, 10, 1, false, 0, PI).rotateZ(PI / 2), white, 0, 5.5, 0, 0.04);
+  add(g, cyl(2, 2.1, 2.2, 10), white, -1, 8.4, 0, 0.05);
+  add(g, new THREE.SphereGeometry(2.2, 10, 5, 0, TAU, 0, PI / 2), white, -1, 9.5, 0, 0.05);
+  add(g, box(0.3, 1.6, 0.3), '#7a5232', -1, 12.3, 0);
+  add(g, box(0.3, 0.3, 1.2), '#7a5232', -1, 12.6, 0);
+  // The bell-gable over the door, with its arch.
+  add(g, box(1, 4.4, 4.4), white, 5.3, 7, 0, 0.05);
+  add(g, box(1.1, 1.8, 1.4), '#3a3430', 5.3, 7.3, 0);
+  add(g, pane(1.6, 2.8).rotateY(PI / 2), '#4f7a5c', 5.06, 1.4, 0);
+}
+// Candia's: a stuccoed church with a tall brick campanile under a pyramid cap.
+function campanileChurch(b, ctx, k = 1) {
+  const g = new THREE.Group();
+  g.scale.setScalar(k);
+  b.add(g);
+  ctx.shadow(g, -2, 0, 10, 26, 0.32);
+  footing(g, 15, 8, '#c2a678');
+  add(g, box(15, 9, 8), '#ead2a6', -1, 4.5, 0, 0.035);
+  add(g, gable(15, 8, 4, 0.6), '#b85a38', -1, 9, 0, 0.03);
+  add(g, box(0.5, 4, 2.6), '#4a3020', 6.55, 2, 0);
+  add(g, cyl(1.3, 1.3, 0.4, 10).rotateZ(PI / 2), '#2f4652', 6.6, 7.4, 0);
+  add(g, box(4.6, 24, 4.6), '#b86a48', -6, 12, -5.2, 0.04);
+  add(g, box(5, 4, 5), '#e8d2a8', -6, 21, -5.2, 0.04);
+  for (const [dx, dz] of [[2.55, 0], [0, 2.55], [-2.55, 0], [0, -2.55]]) add(g, box(dx ? 0.3 : 2, 2.6, dz ? 0.3 : 2), '#3a2c22', -6 + dx, 21, -5.2 + dz);
+  add(g, hip(4.6, 4.6, 5), '#b85a38', -6, 23, -5.2, 0.05);
 }
 
 // ---------- Landmarks ----------
@@ -303,6 +538,7 @@ export const BUILD = {
     // Rows: off = where the fronts are (seaward of the street); dir = which way they face (+1 out to sea).
     const rows = [{ off: 4, dir: -1, used: hasFocal ? [[-5.5, 5.5]] : [] }, { off: -4, dir: 1, used: hasFocal ? [[-5.4, 5.4]] : [] }];
     if (L.back) rows.push({ off: -19.5, dir: 1, used: [], end: 0.82 });
+    for (const [i, off] of L.climb.entries()) rows.push({ off, dir: 1, used: [], end: 0.7 - i * 0.14 });
     let left = (hasFocal ? L.count - 1 : L.count), k = 0, stuck = 0;
     const tryPut = (row, sgn) => {
       const p = plan(look, rnd), gap = rnd(0.5, 1.3);
@@ -330,7 +566,10 @@ export const BUILD = {
       add(g, cyl(0.45, 0.6, look === 'english' ? 3.4 : 2.4, 6), stone, fx, fy + 1.4, fz);
       for (const sd of [-1, 1]) {
         const [px, pz] = L.at(2.2, sd * 4.3), py = ctx.ground(g, px, pz);
-        if (look === 'english') { if (sd > 0) broadleaf(g, px, py, pz, 0.72, rnd, ctx.st.F); } else if (look !== 'shanty' || sd > 0) palm(g, px, py, pz, 0.78, rnd, ctx.st.F, ctx);
+        // In the Med: date palms by a Barbary square, a cypress and an olive by a Christian or a Turkish one.
+        if (look === 'kasbah') palm(g, px, py, pz, 0.78, rnd, ctx.st.F, ctx, null, true);
+        else if (MED.has(ctx.st.id) && look !== 'english' && look !== 'spanish') { if (sd > 0) cypress(g, px, py, pz, 0.8, rnd, ctx.st.F); else olive(g, px, py, pz, 0.75, rnd, ctx.st.F); }
+        else if (look === 'english') { if (sd > 0) broadleaf(g, px, py, pz, 0.72, rnd, ctx.st.F); } else if (look !== 'shanty' || sd > 0) palm(g, px, py, pz, 0.78, rnd, ctx.st.F, ctx);
       }
     }
     // Gardens: a tree at the end of a row now and then, so the town settles into the land round it.
@@ -339,13 +578,14 @@ export const BUILD = {
       const zEnd = sgn > 0 ? Math.max(...row.used.map((u) => u[1])) + 4.6 : Math.min(...row.used.map((u) => u[0])) - 4.6;
       if (Math.abs(zEnd) > half * 1.12) continue;
       const [x, z] = L.at(row.off - row.dir * 4, zEnd);
-      broadleaf(g, x, ctx.ground(g, x, z), z, 0.7, rnd, ctx.st.F);
+      if (MED.has(ctx.st.id)) { if (look === 'kasbah') palm(g, x, ctx.ground(g, x, z), z, 0.72, rnd, ctx.st.F, ctx, null, true); else if (rnd() < 0.5) cypress(g, x, ctx.ground(g, x, z), z, 0.75, rnd, ctx.st.F); else olive(g, x, ctx.ground(g, x, z), z, 0.72, rnd, ctx.st.F); }
+      else broadleaf(g, x, ctx.ground(g, x, z), z, 0.7, rnd, ctx.st.F);
     }
-    // The street and the square, packed earth.
-    const pts = [];
+    // The street and the square, packed earth (paler dust in the Med).
+    const pts = [], dirt = MED.has(ctx.st.id) ? '#cdb487' : '#b49a6c';
     for (let i = 0; i <= 10; i++) { const [x, z] = L.at(0, -half + (2 * half * i) / 10); pts.push([x, z]); }
-    ctx.flat(g, pts, 4.6, '#b49a6c', 0.5);
-    if (hasFocal) ctx.flat(g, [L.at(1.5, 0)], 6, '#b49a6c', 0.45);
+    ctx.flat(g, pts, 4.6, dirt, 0.5);
+    if (hasFocal) ctx.flat(g, [L.at(1.5, 0)], 6, dirt, 0.45);
     if (look !== 'shanty') { const [x, z] = hasFocal ? L.at(4.5, 0) : L.at(1.2, half * 0.55); pole(g, x, z, 14, ctx, flagFor(o, ctx.st)); }
     { const [x, z] = L.at(1.5, half * 0.86); goods(g, x, z, rnd, ctx); }
     // Rowing boats drawn up on the beach below the town, where there is a beach.
@@ -392,6 +632,7 @@ export const BUILD = {
   },
   // The landmarks stand a little larger than life, so each reads as a silhouette at the comfort zoom.
   lighthouse(g, o, ctx) {
+    if (MED.has(ctx.st.id)) { lanterna(g, o, ctx); return; }
     const y = 0;
     g.scale.setScalar(1.4);
     ctx.shadow(g, 0, 0, 6.5, 30, 0.32);
@@ -406,6 +647,7 @@ export const BUILD = {
     ctx.gulls(g, 0, y + 30, 0, o.sight > 0 ? 2 : 3, 22, 18);
   },
   windmill(g, o, ctx) {
+    if (MED.has(ctx.st.id)) { medWindmill(g, ctx); return; }
     g.scale.setScalar(1.3);
     ctx.shadow(g, 0, 0, 6, 18, 0.3);
     add(g, cyl(3.6, 5, 16, 8), '#e2d6bb', 0, 8, 0, 0.05);
@@ -426,6 +668,13 @@ export const BUILD = {
     ctx.spin(hub);
   },
   church(g, o, ctx) {
+    // The Med's church is the region's own: Malta's dome, an island chapel, Candia's campanile, a mosque on
+    // Muslim shores.
+    const med = { malta: 'dome', aegean: 'chapel', candia: 'campanile', barbary: 'mosque', dardanelles: 'mosque' }[ctx.st.id];
+    if (med === 'dome') { domeChurch(g, ctx, 1.15); return; }
+    if (med === 'chapel') { chapel(g, ctx, 1.3); return; }
+    if (med === 'campanile') { campanileChurch(g, ctx, 1.1); return; }
+    if (med === 'mosque') { mosque(g, ctx.st.id === 'barbary' ? 'maghrebi' : 'ottoman', ctx, 1.05); return; }
     const spanish = ctx.st.id !== 'port' && o.look !== 'english';
     g.scale.setScalar(1.2);
     ctx.shadow(g, 0, 0, 10, 20, 0.32);
@@ -456,6 +705,7 @@ export const BUILD = {
     add(g, box(0.5, 0.5, 2.2), '#5a3d26', 6.8, 16.8, 0);
   },
   ruin(g, o, ctx) {
+    if (MED.has(ctx.st.id)) { classicalRuin(g, o, ctx); return; }
     const { rnd } = ctx, stone = '#b4ad97', moss = '#7f9a5a';
     g.scale.setScalar(1.15);
     ctx.shadow(g, 0, 0, 13, 12, 0.28);
@@ -483,8 +733,10 @@ export const BUILD = {
     ctx.glint(g, 0, 13, 0);
   },
   castle(g, o, ctx) {
-    // A bastioned trace: the walls angle out into arrow-head bastions toward the sea.
-    const stone = '#d8c08a', top = '#c2a86f';
+    // A bastioned trace: the walls angle out into arrow-head bastions toward the sea. In the Med its stone is the
+    // region's and it flies the colours of whoever holds that shore (o.flag overrides).
+    const med = MED_STONE[ctx.st.id];
+    const stone = med ? med[0] : '#d8c08a', top = med ? med[1] : '#c2a86f';
     g.scale.setScalar(1.12);
     ctx.shadow(g, 0, 0, 15, 14, 0.3);
     const sh = new THREE.Shape(), pts = [[12, 0], [6, 7], [8, 13], [-2, 11], [-10, 14], [-12, 4], [-12, -4], [-10, -14], [-2, -11], [8, -13], [6, -7]];
@@ -505,8 +757,99 @@ export const BUILD = {
     add(g, cyl(2, 2, 2.6, 8), '#fff1b0', -5, 25.3, 0);
     add(g, new THREE.ConeGeometry(2.6, 2.6, 8), '#7a4a2e', -5, 27.9, 0, 0.06);
     ctx.lamp(g, -5, 25.3, 0);
-    pole(g, 2, -4, 9, { ...ctx, ground: () => 10 }, 'spanish');
+    pole(g, 2, -4, 9, { ...ctx, ground: () => 10 }, o.flag || (med ? CASTLE_FLAG[ctx.st.id] : 'spanish'));
     ctx.people(g, [[-8, 6], [6, 6]], 2, 10.3);
+  },
+  // ---------- The Mediterranean's ----------
+  mosque(g, o, ctx) { mosque(g, o.look || (ctx.st.id === 'barbary' || ctx.st.id === 'straits' ? 'maghrebi' : 'ottoman'), ctx, 1.15); },
+  chapel(g, o, ctx) { chapel(g, ctx, 1.25); if (o.cypress !== 0) for (const z of [-6, 6]) cypress(g, -3, ctx.ground(g, -3, z * 1.4), z * 1.4, 0.9, ctx.rnd, ctx.st.F); },
+  kasbah(g, o, ctx) {
+    // A walled citadel on its hill: crenellated walls round a square, a tower at each corner, the gate to the sea,
+    // white buildings inside under a square minaret.
+    const { rnd } = ctx, wall = '#e9dcc0', dark = '#c9b48c', W = 30;
+    g.scale.setScalar(1.05);
+    ctx.shadow(g, 0, 0, 20, 14, 0.3);
+    footing(g, W, W, dark);
+    for (const [x, z, rx] of [[W / 2, 0, 0], [-W / 2, 0, 0], [0, W / 2, 1], [0, -W / 2, 1]]) {
+      const seg = add(g, box(rx ? W : 2, 8, rx ? 2 : W), wall, x, 4, z, 0.04);
+      void seg;
+      for (let i = -3; i <= 3; i++) add(g, box(1.3, 1.4, 1.3), wall, x + (rx ? i * W / 7 : 0), 8.7, z + (rx ? 0 : i * W / 7));
+    }
+    for (const [x, z] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      add(g, box(5, 11, 5), wall, x * W / 2, 5.5, z * W / 2, 0.04);
+      for (const [dx, dz] of [[1.8, 1.8], [-1.8, 1.8], [1.8, -1.8], [-1.8, -1.8]]) add(g, box(1.2, 1.4, 1.2), wall, x * W / 2 + dx, 11.7, z * W / 2 + dz);
+    }
+    add(g, box(0.5, 4.4, 3.2), '#4a3020', W / 2 + 1.05, 2.2, 0);
+    for (let i = 0; i < 5; i++) {
+      const p = { w: rnd(6, 8), d: rnd(6, 8), h: rnd(6, 10) };
+      house(g, 'kasbah', rnd(-9, 9), rnd(-9, 9), (i % 2) * PI / 2, rnd, ctx, p);
+    }
+    const mg = new THREE.Group(); mg.position.set(-6, 0, -6); g.add(mg);
+    mosque(mg, 'maghrebi', ctx, 0.75);
+    pole(g, W / 2 - 2, W / 2 - 2, 12, { ...ctx, ground: () => 11 }, CASTLE_FLAG[ctx.st.id] || 'algiers');
+    ctx.people(g, [[W / 2 + 3, -6], [W / 2 + 3, 6]], 2);
+  },
+  walls(g, o, ctx) {
+    // A bastioned front along the shore (local z), its arrow-head bastions out to sea (+x): Valletta's and Candia's
+    // great walls. length: how far it runs.
+    const med = MED_STONE[ctx.st.id] || ['#d8c08a', '#c2a86f'], stone = med[0], top = med[1], len = o.length, H = 11;
+    if (o.landward) g.rotation.y += PI;
+    const n = Math.max(2, Math.round(len / 46));
+    ctx.shadow(g, 0, 0, len * 0.42, 12, 0.22);
+    add(g, box(6, H + 6, len), stone, -2, H / 2 - 3, 0, 0.02);
+    add(g, box(6.4, 1, len), top, -2, H + 0.4, 0);
+    for (let i = 0; i < n; i++) {
+      const z = (i / (n - 1) - 0.5) * (len - 16), sh = new THREE.Shape();
+      sh.moveTo(0, -8); sh.lineTo(13, -5); sh.lineTo(17, 0); sh.lineTo(13, 5); sh.lineTo(0, 8); sh.closePath();
+      const bs = new THREE.Mesh(liftedExtrude(sh, H + 5, 0.6, 0), toon(stone));
+      bs.position.set(0, -5, z);
+      withOutline(bs, 0.025);
+      g.add(bs);
+      const tp = new THREE.Shape(); tp.moveTo(0, -6.4); tp.lineTo(11.4, -4); tp.lineTo(14.8, 0); tp.lineTo(11.4, 4); tp.lineTo(0, 6.4); tp.closePath();
+      const ter = new THREE.Mesh(liftedExtrude(tp, 0.6, 0, 0), toon(top));
+      ter.position.set(0, H + 0.2, z);
+      g.add(ter);
+      for (const dz of [-2.4, 2.4]) add(g, cyl(0.55, 0.7, 3.6, 6), '#2a2522', 13.6, H + 1.4, z + dz).rotation.z = PI / 2;
+      // A sentry box (guardiola) at the bastion's point.
+      add(g, cyl(1.3, 1.3, 3, 6), stone, 16, H + 1.6, z, 0.08);
+      add(g, new THREE.ConeGeometry(1.6, 2, 6), top, 16, H + 4.1, z);
+    }
+    if (o.gate !== 0) add(g, box(1, 6, 4.4), '#4a3020', 1.1, 3, (n > 2 ? 0.5 / (n - 1) : 0.25) * (len - 16));
+    pole(g, -2, -len / 2 + 4, 12, { ...ctx, ground: () => H }, o.flag || CASTLE_FLAG[ctx.st.id] || 'spanish');
+    ctx.people(g, [[-2, -len * 0.3], [-2, len * 0.3]], 2, H + 0.5);
+  },
+  cypresses(g, o, ctx) {
+    // A row of cypresses along a road or round a graveyard.
+    const n = o.count;
+    for (let i = 0; i < n; i++) {
+      const z = (i - (n - 1) / 2) * 6.5, x = ctx.rnd(-1, 1);
+      cypress(g, x, ctx.ground(g, x, z), z, ctx.rnd(0.85, 1.1), ctx.rnd, ctx.st.F);
+      ctx.shadow(g, x, z, 3, 18, 0.25);
+    }
+  },
+  siegeworks(g, o, ctx) {
+    // The Turkish lines before Candia: zig-zag trenches cut in the earth, a battery behind gabions with its guns
+    // trained on the walls (+x), and the camp's tents behind, the Pasha's red one among them.
+    const { rnd } = ctx;
+    const zig = [];
+    for (let i = 0; i <= 6; i++) zig.push([10 - i * 4 + (i % 2 ? 5 : -5), (i - 3) * 9]);
+    ctx.flat(g, zig, 3.4, '#6b5236', 0.6);
+    ctx.flat(g, [[16, -24], [16, 24]], 3.2, '#6b5236', 0.55);
+    for (let i = -3; i <= 3; i++) {
+      const z = i * 6.5;
+      add(g, cyl(1.5, 1.6, 2.6, 7), '#9a7c52', 19, ctx.ground(g, 19, z) + 1.3, z, 0.08);
+      if (i % 2 === 0) add(g, cyl(0.7, 0.85, 7, 6), '#2a2522', 17, ctx.ground(g, 17, z + 3.2) + 1.6, z + 3.2, 0.1).rotation.z = PI / 2 - 0.2;
+    }
+    for (let i = 0; i < o.tents; i++) {
+      const x = -16 - (i % 3) * 8 + rnd(-2, 2), z = (Math.floor(i / 3) - (o.tents / 6 - 0.5)) * 10 + rnd(-2, 2);
+      const big = i === 1, col = big ? '#a8262a' : i % 2 ? '#f2ead6' : '#e6d6b2';
+      add(g, new THREE.ConeGeometry(big ? 5 : 3.4, big ? 6.4 : 4.6, 8), col, x, ctx.ground(g, x, z) + (big ? 3.2 : 2.3), z, 0.06);
+      add(g, cyl(0.15, 0.15, big ? 8.6 : 6, 4), '#5a3d26', x, ctx.ground(g, x, z) + (big ? 4.3 : 3), z);
+      ctx.shadow(g, x, z, big ? 5 : 3.6, 6, 0.25);
+    }
+    pole(g, -22, 0, 14, ctx, 'ottoman');
+    ctx.chimney(g, -30, ctx.ground(g, -30, 6) + 1, 6);
+    ctx.people(g, [[12, -14], [12, 14]], 3);
   },
   skull(g, o, ctx) {
     const bone = '#e6e0d2';
@@ -566,6 +909,76 @@ export const BUILD = {
   peak() {}, // part of the terrain itself (land.js)
   volcano() {}, // the terrain plus a plume (land.js)
 };
+
+// Stone and colours for the Med's castles and walls: [stone, the walkway's top].
+const MED_STONE = {
+  straits: ['#d6cfbd', '#b8b09c'], barbary: ['#e9dcc0', '#cdb98f'], malta: ['#e6cb93', '#c9aa70'],
+  aegean: ['#ddd6c6', '#bdb5a3'], candia: ['#dcc595', '#bfa673'], dardanelles: ['#d2cab6', '#b0a892'],
+};
+const CASTLE_FLAG = { straits: 'spanish', barbary: 'algiers', malta: 'knights', aegean: 'ottoman', candia: 'venice', dardanelles: 'ottoman' };
+
+// The Med's windmill: a white tower under a thatched cone, its sails eight triangles of cloth on spars (the
+// Cyclades, Malta, Crete, the Dardanelles).
+function medWindmill(g, ctx) {
+  g.scale.setScalar(1.3);
+  ctx.shadow(g, 0, 0, 6, 18, 0.3);
+  add(g, cyl(4.4, 4.8, 13, 10), '#f6f2e8', 0, 6.5, 0, 0.05);
+  add(g, new THREE.ConeGeometry(5, 4.4, 10), '#b89a62', 0, 15.2, 0, 0.06);
+  add(g, box(0.4, 3.2, 1.8), '#4f7a5c', 4.7, 1.6, 0);
+  add(g, box(0.4, 1.2, 1), '#2f3e48', 4.5, 9, 0);
+  const hub = new THREE.Group();
+  hub.position.set(5, 12.5, 0);
+  g.add(hub);
+  add(hub, cyl(0.7, 0.7, 2, 6), '#5a3d26', 0, 0, 0).rotation.z = PI / 2;
+  for (let i = 0; i < 8; i++) {
+    const arm = new THREE.Group();
+    arm.rotation.x = (i / 8) * TAU;
+    hub.add(arm);
+    add(arm, box(0.3, 11, 0.3), '#5a3d26', 0.6, 5.5, 0);
+    const sail = new THREE.Shape(); sail.moveTo(0, 2); sail.lineTo(0, 10.5); sail.lineTo(3.2, 4); sail.closePath();
+    add(arm, twoSided(new THREE.ShapeGeometry(sail).rotateY(PI / 2)), '#f4ecd8', 0.7, 0, 0);
+  }
+  ctx.spin(hub);
+}
+// The Med's light: a round stone tower (a lanterna) with a gallery and a lantern under a lead cap.
+function lanterna(g, o, ctx) {
+  const st = MED_STONE[ctx.st.id] || ['#d8cfbd', '#b8b09c'];
+  g.scale.setScalar(1.35);
+  ctx.shadow(g, 0, 0, 6.5, 30, 0.32);
+  add(g, cyl(6, 6.8, 3, 10), st[1], 0, 1.2, 0, 0.05);
+  add(g, cyl(3.6, 4.6, 20, 10), st[0], 0, 12, 0, 0.05);
+  add(g, cyl(5, 4.2, 1.6, 10), st[1], 0, 22.6, 0, 0.05);
+  for (let i = 0; i < 8; i++) { const a = (i / 8) * TAU; add(g, box(1, 1.2, 1), st[0], Math.cos(a) * 4.4, 24, Math.sin(a) * 4.4); }
+  add(g, cyl(2.3, 2.3, 3.4, 8), '#fff1b0', 0, 25.4, 0);
+  add(g, new THREE.SphereGeometry(2.8, 8, 4, 0, TAU, 0, PI / 2), '#8e959b', 0, 27.1, 0, 0.06);
+  add(g, box(0.4, 3, 1.6), '#4a3020', 4.3, 3.6, 0);
+  ctx.lamp(g, 0, 25.4, 0);
+  ctx.gulls(g, 0, 28, 0, o.sight > 0 ? 2 : 3, 22, 18);
+}
+// A classical ruin (Carthage, Troy, the Roman stones of the Barbary coast): a stepped platform, a row of standing
+// columns, a scrap of architrave over two of them, fallen drums, scrub growing through.
+function classicalRuin(g, o, ctx) {
+  const { rnd } = ctx, marble = '#e6dfcf', worn = '#cfc6b2';
+  g.scale.setScalar(1.15);
+  ctx.shadow(g, 0, 0, 14, 10, 0.26);
+  footing(g, 26, 16, '#bdb39c');
+  add(g, box(26, 1.6, 16), worn, 0, 0.8, 0, 0.03);
+  add(g, box(23, 1.4, 13), marble, 0, 2.3, 0, 0.03);
+  const cols = [];
+  for (let i = 0; i < 6; i++) for (const z of [-5, 5]) cols.push([-9.5 + i * 3.8, z]);
+  cols.forEach(([x, z], i) => {
+    const h = i === 2 || i === 4 ? 13 : rnd() < 0.4 ? rnd(2, 6) : rnd() < 0.5 ? 13 : 0;
+    if (h <= 0) return;
+    add(g, cyl(0.95, 1.1, h, 8), marble, x, 3 + h / 2, z, 0.08);
+    if (h > 12) add(g, box(2.6, 0.8, 2.6), marble, x, 3 + h + 0.4, z);
+  });
+  add(g, box(4.8, 1.6, 2.4), marble, -1.9, 17.6, -5, 0.06);
+  for (let i = 0; i < 4; i++) {
+    const a = rnd(0, TAU), d = rnd(10, 15), x = Math.cos(a) * d, z = Math.sin(a) * d * 0.7;
+    add(g, cyl(1, 1, rnd(2.4, 4), 8), marble, x, ctx.ground(g, x, z) + 1, z).rotation.set(PI / 2, 0, rnd(0, TAU));
+  }
+  for (let i = 0; i < 3; i++) { const a = (i / 3) * TAU + 0.6; scrub(g, Math.cos(a) * 12, ctx.ground(g, Math.cos(a) * 12, Math.sin(a) * 8), Math.sin(a) * 8, 0.8, rnd, ctx.st.F); }
+}
 
 // A small rowing boat, bow along +x (in a town's frame: drawn up the beach, bow to the sea), with a thwart.
 function rowboat(color) {

@@ -1,6 +1,5 @@
 // Captains' hats: the collection you build by finishing the tutorial and beating each boss (and one given as a
 // gift). `world` says which campaign's cabinet shelf it sits on (src/config/worlds.js; the West Indies by default).
-// The Mediterranean hats are placeholder art for the art pass to refine.
 export const HATS = {
   cabin:    { name: "Cabin boy's cap",       from: 'Finish the Shakedown Cruise' },
   rojo:     { name: 'Red tricorne',          from: 'Capitán Rojo of La Bruja' },
@@ -83,42 +82,56 @@ const ART = {
     '<circle cx="42" cy="17" r="3" fill="#f2b632"/><circle cx="60" cy="9" r="3.4" fill="#f2b632"/><circle cx="78" cy="17" r="3" fill="#f2b632"/>' +
     '<circle cx="60" cy="29" r="3.6" fill="#d23c2c" stroke-width="2"/>' +
     '<circle cx="50.5" cy="32" r="2.4" fill="#2f5aa8" stroke-width="2"/><circle cx="69.5" cy="32" r="2.4" fill="#2f5aa8" stroke-width="2"/>',
-  // Reis Ibrahim of Salé: a white muslin turban wound round a red cap, with a silver brooch.
+  // Reis Ibrahim of Salé: a Moroccan turban of white muslin wound in swathes round a red cap, its loose end hanging
+  // at the back, pinned with a silver brooch set with a green stone.
   rover:
-    '<path d="M24 50 Q20 26 40 18 Q60 10 80 18 Q100 26 96 50 Q60 60 24 50 Z" fill="#f5efe0"/>' +
-    '<path d="M48 18 Q50 4 60 3 Q70 4 72 18 Q60 15 48 18 Z" fill="#c8402f"/>' +
-    '<path d="M27 42 Q60 26 93 42 M25 34 Q58 20 90 30 M30 26 Q62 14 86 22" fill="none" stroke="#c9bfa8" stroke-width="3"/>' +
-    '<path d="M20 50 Q60 64 100 50 Q98 60 60 64 Q22 60 20 50 Z" fill="#e8dfca"/>' +
-    '<circle cx="60" cy="33" r="6" fill="#c9d0d8"/><circle cx="60" cy="33" r="2.5" fill="#2f5aa8" stroke="none"/>',
-  // Kara Hasan Reis, Admiral of Algiers: a tall black fur kalpak with a red crown-bag and a gold aigrette.
+    '<path d="M84 32 Q104 38 103 64 Q97 70 92 64 Q94 48 80 40 Z" fill="#ebe3cf"/>' +
+    '<path d="M46 20 Q48 5 60 4 Q72 5 74 20 Q60 16 46 20 Z" fill="#c8402f"/>' +
+    '<path d="M22 52 Q15 30 36 19 Q60 9 84 19 Q105 30 98 52 Q60 63 22 52 Z" fill="#f8f2e4"/>' +
+    '<path d="M27 45 Q50 27 89 31 M25 36 Q48 20 81 21 M35 53 Q63 36 96 43" fill="none" stroke="#cfc5ad" stroke-width="3"/>' +
+    '<path d="M20 51 Q60 66 100 51 Q99 62 60 66 Q21 62 20 51 Z" fill="#e8dfca"/>' +
+    '<circle cx="57" cy="36" r="6.5" fill="#d3d9df"/><circle cx="57" cy="36" r="3" fill="#3f8a4f" stroke="none"/>',
+  // Kara Hasan Reis, Admiral of Algiers: a tall black fur kalpak, its red crown-cloth tumbling over one side, a
+  // gold band set with stones and a gold aigrette holding a white plume.
   kalpak:
-    '<path d="M66 8 Q90 -2 104 14 Q96 22 80 24 Z" fill="#c8402f"/>' +
-    '<path d="M30 60 L34 14 Q60 4 86 14 L90 60 Q60 68 30 60 Z" fill="#2a2630"/>' +
-    '<path d="M38 22 L36 54 M50 16 L49 58 M62 14 L62 60 M74 16 L75 58 M84 22 L86 54" fill="none" stroke="#4a4450" stroke-width="2"/>' +
+    '<path d="M50 13 Q30 3 18 19 Q24 31 37 23 Q42 17 52 19 Z" fill="#c8402f"/>' +
+    '<path d="M30 62 L33 16 Q60 6 87 16 L90 62 Q60 70 30 62 Z" fill="#2a2630"/>' +
+    '<path d="M39 25 l2 -4 M49 21 l2 -4 M61 20 l2 -4 M73 21 l2 -4 M82 25 l2 -4 M37 39 l2 -4 M51 35 l2 -4 M66 35 l2 -4 M79 38 l2 -4 M40 51 l2 -4 M56 49 l2 -4 M71 49 l2 -4 M84 51 l2 -4" fill="none" stroke="#5c5666" stroke-width="2"/>' +
     '<path d="M28 58 Q60 68 92 58 L92 66 Q60 76 28 66 Z" fill="#f2b632"/>' +
-    '<path d="M56 30 L60 4 L64 30 Z" fill="#f2b632"/><circle cx="60" cy="32" r="5" fill="#c8402f"/>',
-  // Osman Reis of Tripoli: a green turban with a gold crescent pin and a white plume.
+    '<g stroke="none"><circle cx="42" cy="64" r="2.2" fill="#2f5aa8"/><circle cx="60" cy="67" r="2.4" fill="#c8402f"/><circle cx="78" cy="64" r="2.2" fill="#2f5aa8"/></g>' +
+    '<path d="M61 16 Q53 0 65 -2 Q71 7 63 19 Z" fill="#fbf3dc"/>' +
+    '<path d="M57 36 L60 15 L63 36 Z" fill="#f2b632"/><circle cx="60" cy="38" r="4.5" fill="#c8402f"/>',
+  // Osman Reis of Tripoli: a full green turban wound over a red cap, a gold crescent pinned at the front and a
+  // white plume.
   osman:
-    '<path d="M74 22 Q88 -2 106 0 Q100 14 82 30 Z" fill="#fbf3dc"/>' +
-    '<path d="M22 52 Q18 28 40 20 Q60 12 80 20 Q102 28 98 52 Q60 62 22 52 Z" fill="#3f8a4f"/>' +
-    '<path d="M25 44 Q60 28 95 44 M26 36 Q60 20 92 32" fill="none" stroke="#2c6a3a" stroke-width="3"/>' +
-    '<path d="M20 52 Q60 66 100 52 Q98 62 60 66 Q22 62 20 52 Z" fill="#2c6a3a"/>' +
-    '<path d="M54 26 A10 10 0 1 0 66 40 A8 8 0 1 1 54 26 Z" fill="#f2b632"/>',
-  // The Provveditore of Candia: a Venetian corno of red velvet, its horn rising at the back, with a gold band.
+    '<path d="M71 23 Q83 -2 103 -3 Q99 12 81 29 Z" fill="#fbf3dc"/>' +
+    '<path d="M79 25 Q90 9 99 2" fill="none" stroke-width="2"/>' +
+    '<path d="M49 19 Q51 7 60 6 Q69 7 71 19 Z" fill="#c8402f"/>' +
+    '<path d="M20 54 Q13 30 38 20 Q60 12 82 20 Q107 30 100 54 Q60 64 20 54 Z" fill="#3f8a4f"/>' +
+    '<path d="M24 46 Q53 26 92 32 M27 36 Q55 20 86 24 M31 55 Q62 37 98 45" fill="none" stroke="#2c6a3a" stroke-width="3"/>' +
+    '<path d="M18 54 Q60 68 102 54 Q100 64 60 68 Q20 64 18 54 Z" fill="#2c6a3a"/>' +
+    '<path d="M51 29 A11 11 0 1 0 66 46 A9 9 0 1 1 51 29 Z" fill="#f2b632"/>',
+  // The Provveditore of Candia: the Venetian corno, crimson brocade rising at the back into its rounded horn,
+  // over a white linen coif, a gold band and a ruby at the front.
   corno:
-    '<path d="M24 58 Q22 30 46 22 Q70 14 86 4 Q96 2 96 14 Q98 36 96 58 Q60 66 24 58 Z" fill="#a8262a"/>' +
-    '<path d="M86 6 Q94 4 95 14 L95 30 Q90 18 82 12 Z" fill="#c8402f"/>' +
-    '<path d="M22 54 Q60 64 98 54 L98 62 Q60 72 22 62 Z" fill="#f2b632"/>' +
-    '<path d="M30 46 Q50 36 70 34" fill="none" stroke="#d65a4c" stroke-width="3"/>' +
-    '<circle cx="40" cy="58" r="2.2" fill="#fbf3dc" stroke="none"/><circle cx="60" cy="61" r="2.2" fill="#fbf3dc" stroke="none"/><circle cx="80" cy="59" r="2.2" fill="#fbf3dc" stroke="none"/>',
-  // Bahri Ömer Pasha, Kapudan Pasha: a tall white kavuk wound with muslin, a gold band and a jewelled plume.
+    '<path d="M25 58 Q60 70 97 58 L98 66 Q60 78 23 66 Z" fill="#f5efe0"/>' +
+    '<path d="M26 60 Q21 40 34 31 Q52 21 71 13 Q88 5 97 9 Q103 16 101 30 Q101 46 97 60 Q60 68 26 60 Z" fill="#a8262a"/>' +
+    '<path d="M38 46 Q46 39 54 43 Q62 47 70 39 Q78 32 86 37 M42 56 Q50 50 58 53 Q66 57 74 50 Q82 44 90 49" fill="none" stroke="#e2a93a" stroke-width="2.5"/>' +
+    '<path d="M79 14 Q91 9 96 18" fill="none" stroke="#d65a4c" stroke-width="3"/>' +
+    '<path d="M25 55 Q60 66 98 55 L98 61 Q60 72 25 61 Z" fill="#f2b632"/>' +
+    '<circle cx="60" cy="61" r="3.2" fill="#d23c2c" stroke-width="2"/>',
+  // Bahri Ömer Pasha, Kapudan Pasha: a tall kavuk wound slantwise in white muslin, a gold band, and a jewelled
+  // aigrette holding heron plumes, one dyed red.
   kavuk:
-    '<path d="M58 22 Q48 -6 62 -6 Q74 -2 64 22 Z" fill="#fbf3dc"/>' +
-    '<path d="M62 22 Q70 0 84 -2 Q80 12 66 24 Z" fill="#d23c2c"/>' +
-    '<path d="M32 62 Q28 34 34 18 Q60 10 86 18 Q92 34 88 62 Q60 70 32 62 Z" fill="#f5efe0"/>' +
-    '<path d="M34 26 Q60 34 86 26 M33 38 Q60 46 87 38 M32 50 Q60 58 88 50" fill="none" stroke="#c9bfa8" stroke-width="3"/>' +
-    '<path d="M30 60 Q60 70 90 60 L90 68 Q60 78 30 68 Z" fill="#f2b632"/>' +
-    '<circle cx="60" cy="24" r="5" fill="#2f5aa8"/><circle cx="60" cy="24" r="2" fill="#fbf3dc" stroke="none"/>',
+    '<g transform="translate(6 5) scale(0.9)">' +
+    '<path d="M56 15 Q43 -3 53 -2 Q61 3 60 17 Z" fill="#fbf3dc"/>' +
+    '<path d="M63 15 Q68 -3 78 -2 Q76 8 65 19 Z" fill="#fbf3dc"/>' +
+    '<path d="M60 17 Q56 0 62 -2 Q67 5 63 19 Z" fill="#d23c2c"/>' +
+    '<path d="M30 64 Q26 38 34 15 Q60 7 86 15 Q94 38 90 64 Q60 72 30 64 Z" fill="#f6f0e2"/>' +
+    '<path d="M35 22 Q60 14 86 28 M32 33 Q60 25 88 40 M31 45 Q60 37 89 52 M33 56 Q60 49 90 62" fill="none" stroke="#c9bfa8" stroke-width="3"/>' +
+    '<path d="M28 60 Q60 70 92 60 L92 68 Q60 78 28 68 Z" fill="#f2b632"/>' +
+    '<path d="M53 31 Q60 19 67 31 Q60 38 53 31 Z" fill="#f2b632"/>' +
+    '<circle cx="60" cy="30" r="3" fill="#2f5aa8"/><circle cx="60" cy="39" r="2.4" fill="#d23c2c" stroke-width="2"/>' + '</g>',
 };
 
 // Inline SVG art for a hat; locked hats render as a faded silhouette.

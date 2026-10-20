@@ -123,8 +123,9 @@ expectCaught('look with too many lanterns', (B) => { B.enemy[0].look = { lantern
   }
   for (const [fac, pal] of Object.entries(C.FACTION_LOOKS)) for (const [k, list] of Object.entries(pal)) for (const v of list) P.push(...C.checkLook({ [k]: v }, { foe: true }).map((m) => `FACTION_LOOKS.${fac}: ${m}`));
   for (const [hat, look] of Object.entries(C.BOSS_LOOKS)) { if (!C.HATS[hat]) P.push(`BOSS_LOOKS.${hat}: no such hat`); P.push(...C.checkLook(look, { foe: true }).map((m) => `BOSS_LOOKS.${hat}: ${m}`)); }
+  for (const [nat, look] of Object.entries(C.ALLY_LOOKS || {})) P.push(...C.checkLook(look, { foe: true }).map((m) => `ALLY_LOOKS.${nat}: ${m}`));
   for (const p of P) console.log('       ' + p);
-  check(P.length === 0, `the looks catalogue, faction palettes and boss looks are sound (${P.length} problems)`, failures);
+  check(P.length === 0, `the looks catalogue, faction palettes, boss and ally looks are sound (${P.length} problems)`, failures);
   const save = C.checkLook({ paint: 'spain' });
   check(save.some((m) => m.includes('only for the enemy')), `a save may not dress your ship in the enemy's fashions ("${save[0]}")`, failures);
 }

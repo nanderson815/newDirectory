@@ -259,6 +259,8 @@ export function syncScene() {
   P.ball.instanceMatrix.needsUpdate = P.ballShadow.instanceMatrix.needsUpdate = true;
 
   const nr = [0, 0, 0];
+  const night = WX.night;
+  let gunLight = 0;
   for (const p of S.particles) {
     const k = p.life / p.max, f = 1 - k;
     const X = wx(p.x), Z = wz(p.y);
@@ -271,8 +273,10 @@ export function syncScene() {
         break;
       }
       case 'flash': case 'fire': {
-        const sc = p.size * (0.4 + k * 0.8);
+        // At night a gun's flash is bigger and lights up the sea for a moment (night, below).
+        const sc = p.size * (0.4 + k * 0.8) * (night && p.kind === 'flash' ? 1.5 : 1);
         if (ng < 400) { setInst(P.glow, ng, X, p.z, Z, sc, sc, sc); P.glow.setColorAt(ng, C3[p.kind]); ng++; }
+        if (night && p.kind === 'flash') { gunLight += k * p.size * 0.02; if (ng < 400) { setInst(P.glow, ng, X, 0.45, Z, sc * 2.2, 0.05, sc * 2.2); P.glow.setColorAt(ng++, C3.fire); } }
         break;
       }
       case 'splinter': case 'plank': case 'sand': case 'stone': {
@@ -299,6 +303,23 @@ export function syncScene() {
     }
   }
 
+  // Night: every gun fired lights the whole sea for an instant; the stern lanterns burn, their light lying on the
+  // water under them.
+  if (night) {
+    R.hemi.intensity = WX.hemi * (1 + Math.min(1.1, gunLight) * (1 + WX.flash));
+    for (const s of G.ships) {
+      const m = shipMeshes.get(s.id);
+      if (!m || !m.g.visible || m.vis < 0.6 || s.state === 'sunk' || s.hidden === true) continue;
+      const c = Math.cos(s.h), sn = Math.sin(s.h), bodyY = m.body.position.y;
+      for (const [lx, ly, lz, lr] of m.tpl.lanterns || []) {
+        if (ng >= 396) break;
+        const ax = lx * MODEL_SCALE, az = lz * MODEL_SCALE, x = wx(s.x + ax * c - az * sn), z = wz(s.y + ax * sn + az * c);
+        const f = 1 + 0.08 * Math.sin(clock * 7 + s.bob + lz);
+        setInst(P.glow, ng, x, (ly + bodyY) * MODEL_SCALE, z, lr * 1.3 * f, lr * 1.3 * f, lr * 1.3 * f); P.glow.setColorAt(ng++, C3.flash);
+        setInst(P.glow, ng, x, 0.42, z, lr * 1.1, 0.04, lr * 4 * f); P.glow.setColorAt(ng++, C3.flame);
+      }
+    }
+  }
   // Ship effects drawn straight from the ship state (no sim particles): bow spray and deck fires.
   for (const s of G.ships) {
     const m = shipMeshes.get(s.id);

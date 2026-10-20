@@ -13,7 +13,8 @@ import { R } from './gl.js';
 
 // Read by syncScene: swell scales ship and mine bob and roll; lift is the shadow offset per unit of height.
 // name and flash (the current lightning level, 0..1) are for tests.
-export const WX = { name: null, swell: 1, lift: [0.3, 0.36], flash: 0 };
+// night: the preset is dark (lanterns and fires glow, render/scene.js); hemi: the hemisphere light's own intensity.
+export const WX = { name: null, swell: 1, lift: [0.3, 0.36], flash: 0, night: false, hemi: 1.6 };
 
 const GULLS = 12, GULL_SIZE = 1.3;
 let fx = null, cur = null, lastClock = 0;
@@ -36,7 +37,7 @@ export function applyWeather(G) {
   setRGB(u.uCrest.value, wa.crest); setRGB(u.uFoam.value, wa.foam); setRGB(u.uGlint.value, wa.glint);
   u.uCloud.value.set(wa.clouds, 0.0005 * wa.cloudScale, 14);
   u.uGlow.value.set(...hexRGB(wa.glow || '#ffffff'), wa.glowA || 0);
-  u.uCaps.value = wa.caps; u.uFlow.value = wa.flow;
+  u.uCaps.value = wa.caps; u.uFlow.value = wa.flow; u.uSpark.value = wa.sparkle || 0;
 
   const L = w.light;
   R.hemi.color.set(L.sky); R.hemi.groundColor.set(L.ground); R.hemi.intensity = L.hemi;
@@ -47,7 +48,7 @@ export function applyWeather(G) {
   for (const m of [P.ballShadow, P.mineShadow, P.shipShadow]) m.material.color.set(sh.color);
   P.ballShadow.material.opacity = P.mineShadow.material.opacity = sh.opacity;
   P.shipShadow.material.opacity = sh.opacity - 0.04;
-  WX.lift = sh.lift; WX.swell = w.swell; WX.name = w.name; WX.flash = 0;
+  WX.lift = sh.lift; WX.swell = w.swell; WX.name = w.name; WX.flash = 0; WX.night = !!w.night; WX.hemi = L.hemi;
 
   setupScreen(w.screen);
   setupGulls(G, w.gulls || 0, sh);
@@ -370,6 +371,14 @@ function moveFog(G, clock) {
     if (k >= FOG_EYES) break;
     if (s.team !== 'player' || s.state === 'sunk' || s.state === 'escaped') continue;
     u.uEye.value[k++].set(s.x - G.W / 2, s.y - G.H / 2, 1);
+  }
+  // At night a ship on fire lights the water round her, whoever's she is (src/sim/fog.js shows her to every gunner).
+  if (G.night) {
+    for (const s of G.ships) {
+      if (k >= FOG_EYES) break;
+      if (s.team === 'player' || s.state === 'sunk' || !(s.burning || s.fireT > 0)) continue;
+      u.uEye.value[k++].set(s.x - G.W / 2, s.y - G.H / 2, 0.55);
+    }
   }
   // Lighthouses with sight (src/sim/land.js) clear the fog round them too.
   const R0 = u.uR.value || 1;
