@@ -99,7 +99,7 @@ const CARIBBEAN = [
       { x: 0.5, y: 0.7, r: 54, stretch: 3, angle: 0 }, { x: 0.94, y: 0.52, r: 34, stretch: 1.4, angle: 90 },
       { x: 0.1, y: 0.62, r: 34, stretch: 1.8, angle: 70 }, { x: 0.86, y: 0.8, r: 30, stretch: 1.6, angle: -30 },
     ],
-    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.82, hpMul: 1.4 },
+    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 1.05, hpMul: 1.7 },
   },
   {
     id: 'rojo', region: 'windward', roman: 'III', year: 1656, name: 'La Bruja', foe: 'Capitán Rojo',
@@ -137,7 +137,7 @@ const CARIBBEAN = [
     shoals: [{ x: 0.38, y: 0.19, r: 40, stretch: 1.5, angle: 80 }, { x: 0.38, y: 0.68, r: 40, stretch: 1.5, angle: 100 }],
     currents: [{ x: 0.3, y: 0.42, r: 90, stretch: 3, angle: 0, speed: 10 }],
     forts: [{ island: 0, name: 'Fort San Lucas', hp: 380, guns: 2, need: 10 }],
-    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 0.85, hpMul: 1.7 },
+    ai: { spread: 0.12, reloadMul: 1.1, dmgMul: 1.0, hpMul: 1.7 },
   },
   {
     id: 'silver', region: 'main', roman: 'V', year: 1657, name: 'The Silver Fleet', foe: 'treasure convoy',
@@ -159,7 +159,7 @@ const CARIBBEAN = [
     ],
     islands: [{ x: 0.2, y: 0.18, r: 32 }, { x: 0.26, y: 0.86, r: 28, stretch: 1.8, angle: 20 }],
     currents: [{ x: 0.7, y: 0.52, r: 70, stretch: 6, angle: -90, speed: 12 }],
-    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.95, hpMul: 1.6 },
+    ai: { spread: 0.13, reloadMul: 1.15, dmgMul: 0.85, hpMul: 1.6 },
   },
   {
     id: 'comodoro', region: 'main', roman: 'VI', year: 1658, name: 'San Cristóbal', foe: 'El Comodoro',
@@ -181,10 +181,10 @@ const CARIBBEAN = [
     ],
     shoals: [{ x: 0.15, y: 0.37, r: 46, stretch: 3.2, angle: 15 }],
     forts: [
-      { island: 0, name: 'Fort Santa Fe', hp: 140, guns: 2, need: 10 },
-      { island: 1, name: 'Fort Santa Inés', hp: 140, guns: 2, need: 10 },
+      { island: 0, name: 'Fort Santa Fe', hp: 110, guns: 2, need: 10 },
+      { island: 1, name: 'Fort Santa Inés', hp: 110, guns: 2, need: 10 },
     ],
-    ai: { spread: 0.12, reloadMul: 1.05, dmgMul: 0.95, hpMul: 1.35 },
+    ai: { spread: 0.12, reloadMul: 1.05, dmgMul: 0.85, hpMul: 1.2 },
   },
 
   {
@@ -282,7 +282,7 @@ const CARIBBEAN = [
       { enemiesLeft: 1, banner: ['The Black Dog!', 'The smugglers’ brig joins the hunt'],
         spawn: [{ type: 'brig', name: 'Black Dog', x: 0.5, y: 0.17, h: 90 }] },
     ],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.3, hpMul: 2.3 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.45, hpMul: 2.5 },
   },
   {
     id: 'wreck', region: 'pirate', roman: 'XI', year: 1660, name: 'The Treasure Wreck', foe: 'pirate salvors',
@@ -312,7 +312,7 @@ const CARIBBEAN = [
     shoals: [{ x: 0.5, y: 0.3, r: 44, stretch: 2.2, angle: 0 }],
     islands: [{ x: 0.5, y: 0.72, r: 24 }, { x: 0.9, y: 0.68, r: 22 }],
     currents: [{ x: 0.5, y: 0.45, r: 100, stretch: 4.5, angle: 0, speed: 9 }],
-    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.25, hpMul: 2.4 },
+    ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.18, hpMul: 2.4 },
   },
   {
     id: 'kate', region: 'pirate', roman: 'XII', year: 1661, name: 'Black Wyvern', foe: 'Calico Kate',
@@ -366,6 +366,8 @@ const CARIBBEAN = [
       { at: 15, wind: 180, banner: ['The wind backs into the east!', 'On the beam now: the convoy picks up speed'] },
       { at: 20, banner: ['Oars astern!', 'Two xebecs row up behind the convoy'],
         spawn: [{ type: 'xebec', name: 'El Puñal', x: 0.2, y: 0.94, h: -45 }, { type: 'xebec', name: 'La Navaja', x: 0.8, y: 0.94, h: -135 }] },
+      { at: 40, banner: ['A galley out of the creek!', 'El Estoque rows out to cut off the convoy'],
+        spawn: [{ type: 'xebec', name: 'El Estoque', x: 0.12, y: 0.3, h: 0 }] },
     ],
     // The road inside the keys: the mainland on the left with a xebec in its creek, a long barrier cay on the right
     // with a back lane behind it where a second xebec waits, and the keys beyond. The convoy keeps the main road;
@@ -377,7 +379,7 @@ const CARIBBEAN = [
       { x: 0.93, y: 0.18, r: 28, stretch: 3, angle: 80 }, { x: 0.94, y: 0.48, r: 28, stretch: 3, angle: 95 }, { x: 0.93, y: 0.76, r: 28, stretch: 3, angle: 85 },
     ],
     shoals: [{ x: 0.8, y: 0.26, r: 34, stretch: 1.6, angle: 30 }],
-    ai: { spread: 0.1, reloadMul: 0.9, dmgMul: 1.35, hpMul: 1.5 },
+    ai: { spread: 0.1, reloadMul: 0.85, dmgMul: 1.35, hpMul: 1.8 },
   },
   {
     id: 'siege', region: 'campeche', roman: 'XIV', year: 1662, name: 'The Siege of Port Royal', foe: 'Spanish siege fleet',
@@ -411,7 +413,7 @@ const CARIBBEAN = [
     goal: 'boss', hat: 'morion', reward: 640, wind: 0,
     brief: 'The Marqués de Hierro has fitted his galleon with mortars. Watch for the red rings: that is where his shells will land. Close in fast.',
     enemy: [
-      { type: 'galleon', name: 'San Jerónimo', x: 0.5, y: 0.12, h: 90, hp: 900, chasers: 1,
+      { type: 'galleon', name: 'San Jerónimo', x: 0.5, y: 0.12, h: 90, hp: 850, chasers: 1,
         abilities: { mortar: { range: 480, reload: 5, dmg: 26, radius: 40 } },
         boss: { captain: 'Marqués de Hierro', title: 'San Jerónimo', hat: 'morion' } },
       { type: 'bomb', name: 'El Martillo', x: 0.25, y: 0.14, h: 90 },
@@ -433,7 +435,7 @@ const CARIBBEAN = [
       { x: 0.52, y: 0.43, r: 70, stretch: 2.6, angle: -6, tidal: true },
     ],
     tide: { level: 0.5, turns: [{ at: 45, to: 0.9, secs: 14 }] },
-    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.25, hpMul: 1.6 },
+    ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.18, hpMul: 1.6 },
   },
 
   // ---------- The Last Armada ----------
@@ -494,7 +496,7 @@ const CARIBBEAN = [
       { at: 30, banner: ['A galley from the shore!', 'La Jabalina rows out to close the gap'],
         spawn: [{ type: 'xebec', name: 'La Jabalina', x: 0.42, y: 0.07, h: 60 }] },
     ],
-    ai: { spread: 0.08, reloadMul: 1.05, dmgMul: 1.25, hpMul: 1.35 },
+    ai: { spread: 0.08, reloadMul: 1.05, dmgMul: 1.3, hpMul: 1.35 },
   },
   {
     id: 'armada', region: 'armada', roman: 'XVIII', year: 1665, name: 'La Gran Armada', foe: 'Capitán General',
