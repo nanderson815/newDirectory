@@ -13,7 +13,7 @@ ones: [EXTENDING.md](EXTENDING.md).
 - [Guns and slots](#guns-and-slots): `long`, `demicannon`, `carronade`, `swivel`, `bowChaser`, `sternChaser`, `mortar`, `firepot`
 - [Hats](#hats): `cabin`, `rojo`, `comodoro`, `oro`, `kate`, `morion`, `armada`, `rover`, `kalpak`, `osman`, `corno`, `kavuk`
 - [Geography and openings](#geography-and-openings): `islands`, `shoals`, `reefs`, `coast`, `currents`, `tide`, `booms`, `fleetAt`
-- [Land and landmarks](#land-and-landmarks): `town`, `harbour`, `lighthouse`, `peak`, `volcano`, `church`, `windmill`, `ruin`, `castle`, `skull`, `wreck`, `stacks`, `mangroves`
+- [Land and landmarks](#land-and-landmarks): `town`, `harbour`, `lighthouse`, `peak`, `volcano`, `church`, `windmill`, `ruin`, `castle`, `mosque`, `kasbah`, `walls`, `chapel`, `cypresses`, `siegeworks`, `skull`, `wreck`, `stacks`, `mangroves`
 - [Combat rules](#combat-rules): raking fire, critical hits
 
 ## Goals
@@ -686,7 +686,7 @@ Houses round a square in the region’s style: English timber and brick, Spanish
 | param | default | description |
 |---|---|---|
 | `houses` | `6` | optional: how many buildings (default 6) |
-| `look` | (the region’s) | optional: english, spanish, shanty, village, city (default: the region's) |
+| `look` | (the region’s) | optional: english, spanish, shanty, village, city, kasbah, maltese, greek, venetian, ottoman (default: the region's) |
 | `name` | `the town` | optional: what the banner calls it (default "the town") |
 | `loot` | `0` | optional: prize gold for sacking it, 0 = scenery only (default 0) |
 | `hp` | `60` | optional: how much shot it takes to sack (default 60, about fifteen balls) |
@@ -748,7 +748,53 @@ A crumbling stone temple overgrown with jungle: a stepped platform, broken colum
 
 ### `castle`
 
-A honey-stone bastion on a headland in the style of El Morro, its walls angled to the sea, with a watchtower.
+A honey-stone bastion on a headland in the style of El Morro, its walls angled to the sea, with a watchtower. In the Mediterranean it is built in the region’s stone and flies the colours of whoever holds that shore.
+
+| param | default | description |
+|---|---|---|
+| `flag` | (the region’s) | optional: whose flag flies over it: english, spanish, pirate, algiers, tripoli, ottoman, venice, knights (default the region's) |
+
+### `mosque`
+
+A mosque: on the Barbary coast a white prayer hall under green-tiled roofs with a square minaret; in the Sultan’s lands a lead dome and a slender pencil minaret. Its lamp glows at night.
+
+| param | default | description |
+|---|---|---|
+| `look` | (the region’s) | optional: 'maghrebi' or 'ottoman' (default: the region's) |
+
+### `kasbah`
+
+A walled citadel of whitewashed stone: crenellated walls round a square with a tower at each corner, white houses and a minaret inside, the gate to the sea.
+
+### `walls`
+
+A bastioned front of a fortress city (Valletta, Candia) along the shore: a high curtain wall with arrow-head bastions thrust out to sea, guns on their terraces and a sentry box at each point. It runs along the shore (or across the island), length map units long.
+
+| param | default | description |
+|---|---|---|
+| `length` | `120` | optional: how far the wall runs, in map units (default 120) |
+| `flag` | (the region’s) | optional: whose flag flies over it: english, spanish, pirate, algiers, tripoli, ottoman, venice, knights (default the region's) |
+| `landward` | `0` | optional: 1 = its bastions face inland, a land front against a besieger (default 0: they face the sea) |
+
+### `chapel`
+
+A little whitewashed chapel of the Greek isles with its dome, vault and bell-gable, two cypresses beside it.
+
+### `cypresses`
+
+A row of tall dark cypresses along a road or round a graveyard.
+
+| param | default | description |
+|---|---|---|
+| `count` | `5` | optional: how many (default 5) |
+
+### `siegeworks`
+
+A besieger’s lines: zig-zag trenches, a battery of guns behind gabions trained on the walls, and the camp’s tents behind, the commander’s red pavilion among them.
+
+| param | default | description |
+|---|---|---|
+| `tents` | `6` | optional: how many tents (default 6) |
 
 ### `skull`
 
