@@ -14,7 +14,7 @@ export const MED_LANDS = {
       { kind: 'castle', coast: 0, at: 0.1, inland: 90 },
       { kind: 'church', coast: 0, at: 0.32, inland: 70 },
       { kind: 'peak', coast: 0, at: 0.92, inland: 90, height: 55, size: 0.5, lee: 2 },
-      { kind: 'lighthouse', island: 0, at: -60, d: 0.8 },
+      { kind: 'lighthouse', island: 0, at: -60, d: 0.7 },
       { kind: 'harbour', island: 1, at: 90, rate: 2.5, stock: 140 },
       { kind: 'town', coast: 1, at: 0.6, inland: 24, houses: 3, look: 'spanish', name: 'Tarifa' },
       { kind: 'windmill', coast: 1, at: 0.3, inland: 20 },
@@ -98,7 +98,7 @@ export const MED_LANDS = {
   // The admiral's harbour in the corner; the chain of islets down the sea, the big one high enough to cast a lee.
   algiers: {
     style: 'barbary',
-    relief: [{ island: 0, height: 1.0, cliffs: 0.4, at: -90 }, { island: 1, height: 0.7 }, { island: 2, height: 1.2, cliffs: 0.4, at: 0 }, { island: 3, height: 0.8 }],
+    relief: [{ island: 0, height: 1.0, cliffs: 0.4, at: -90 }, { island: 1, height: 0.7 }, { island: 2, height: 1.2, cliffs: 0.4, at: 0 }],
     landmarks: [
       { kind: 'town', coast: 1, at: 0.3, inland: 50, houses: 9, look: 'city', name: 'Algiers' },
       { kind: 'castle', coast: 1, at: 0.44, inland: 60 },
@@ -106,8 +106,8 @@ export const MED_LANDS = {
       { kind: 'windmill', coast: 0, at: 0.5, inland: 50 },
       { kind: 'peak', island: 2, at: -90, d: 0.35, height: 55, size: 0.6, lee: 2.5 },
       { kind: 'ruin', island: 0, at: 90, d: 0.4 },
-      { kind: 'stacks', island: 3, at: 180, count: 3 },
-      { kind: 'wreck', x: 0.62, y: 0.575 },
+      { kind: 'stacks', island: 1, at: 180, count: 3 },
+      { kind: 'wreck', x: 0.62, y: 0.57 },
     ],
   },
 
@@ -216,8 +216,8 @@ export const MED_LANDS = {
       { kind: 'peak', island: 0, at: 180, d: 0.55, height: 50, size: 0.4, lee: 2 },
       { kind: 'ruin', island: 0, at: 10, d: 0.6 },
       { kind: 'stacks', island: 2, at: 0, count: 3 },
-      { kind: 'stacks', island: 5, at: 90, count: 2 },
-      { kind: 'wreck', x: 0.28, y: 0.3 },
+      { kind: 'stacks', island: 4, at: 90, count: 2 },
+      { kind: 'wreck', x: 0.27, y: 0.265 },
     ],
   },
 

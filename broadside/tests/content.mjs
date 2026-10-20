@@ -146,7 +146,7 @@ expectCaught('ship on a coast', (B) => { B.coast = { side: 'top', depth: 0.25 };
 expectCaught('big ship aground on a shoal', (B) => { B.shoals = [{ x: ship0(B).x, y: ship0(B).y, r: 30 }]; ship0(B).type = 'frigate'; }, 'starts aground on shoal 0');
 expectCaught('fleet slot on a shoal', (B) => { B.shoals = [{ x: 0.5, y: 0.8, r: 30 }]; }, 'fleet slot 0: starts aground on shoal 0', find((B) => !B.player && B.enemy.length));
 expectCaught('ship on a reef', (B) => { B.reefs = [{ x: ship0(B).x, y: ship0(B).y, r: 10, stretch: 3 }]; }, 'starts on reef 0');
-expectCaught('ship on a long island', (B) => { B.islands = [{ x: ship0(B).x + 0.15, y: ship0(B).y, r: 20, stretch: 4, angle: 0 }]; }, 'is on (or touching) island 0');
+expectCaught('ship on a long island', (B) => { B.islands = [{ x: ship0(B).x + 0.06, y: ship0(B).y, r: 20, stretch: 4, angle: 0 }]; }, 'is on (or touching) island 0');
 expectCaught('coast on an unknown side', (B) => { B.coast = { side: 'west', depth: 0.2 }; }, "side must be one of");
 expectCaught('island stretched too far', (B) => { B.islands[0].stretch = 20; }, 'stretch must be a number from 1 to 8');
 expectCaught('unknown shoal field', (B) => { B.shoals = [{ x: 0.5, y: 0.5, r: 20, depth: 3 }]; }, "shoals[0]: unknown field 'depth'");
