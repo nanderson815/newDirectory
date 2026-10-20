@@ -487,15 +487,17 @@ function coastMesh(cr, st, root, glass, sea, cover) {
 // How many of each plant the last build made (tests and the perf report).
 const PLANTS = { grove: 0, edge: 0, palm: 0, lone: 0, small: 0 };
 function planter(st, ctx, shade, crownAt) {
-  const F = st.F, V = st.veg, n = PLANTS;
+  const F = st.F, V = st.veg, n = PLANTS, FO = { ...F, canopy: F.olive || F.canopy };
   for (const k of Object.keys(n)) n[k] = 0;
   return {
     grove(g, x, y, z, s, r, edge, wpos) {
       n[edge ? 'edge' : 'grove']++;
+      // Far inland in olive country (edge null: plantCoast's far band) the woods are plain olive-green crowns.
+      if (V.grove === 'olive' && edge === null) { crown(g, x, y, z, s * 0.8, r, FO, { lo: true, ink: false }); crownAt(wpos[0], wpos[1], 6 * s); return; }
       // An olive orchard: every tree outlined and shaded, in its row (the orchard reads as rows, not a wood).
       if (V.grove === 'olive') { olive(g, x, y, z, s * 0.66, r, F); shade(wpos[0], wpos[1], 3.6 * s, 5 * s, 0.3); crownAt(wpos[0], wpos[1], 4 * s); return; }
       if (V.grove === 'pine') pine(g, x, y, z, s * (edge ? 0.92 : 1.02), r, F, { ink: edge });
-      else if (V.grove === 'stone' || (V.grove === 'mixed' && r() < 0.3)) stonePine(g, x, y, z, s * (edge ? 0.92 : 1), r, F, { ink: edge });
+      else if (V.grove === 'stone' || (V.grove === 'mixed' && r() < 0.3)) stonePine(g, x, y, z, s * (edge ? 0.92 : 1), r, F, { ink: edge, lo: !edge });
       else crown(g, x, y, z, s * (edge ? 0.94 : 1.04), r, F, { lo: !edge, ink: edge, two: edge && r() < 0.25 });
       if (edge) shade(wpos[0], wpos[1], 6.2 * s, 9 * s, 0.3);
       crownAt(wpos[0], wpos[1], 7.5 * s);
@@ -573,7 +575,8 @@ function plantIsland(G, q, ii, st, pads, root, P, r) {
       if (r() > Math.min(1, 0.55 + want * 0.45)) continue; // a few gaps, so light gets in
       const edge = ![at(c.i - 1, c.j), at(c.i + 1, c.j), at(c.i, c.j - 1), at(c.i, c.j + 1)].every(inGrove);
       if (V.orchard) {
-        // An orchard stands in rows: the cell's own centre, not a jittered spot.
+        // An orchard stands in rows: the cell's own centre, not a jittered spot, every other cell (a quincunx).
+        if ((c.i + c.j) % 2) continue;
         const ox = (c.i + 0.5) * cell - ext, oz = (c.j + 0.5) * cell - ext;
         P.grove(g, ox, rl.h(ox, oz, null), oz, 1, r, edge, [wx(is.x) + ox, wz(is.y) + oz]);
         continue;
@@ -633,8 +636,10 @@ function plantCoast(G, q, st, root, P, r) {
         // Past the near band's far side counts as more wood, so no seam of outlines runs along it.
         const nb = [at(c.i - 1, c.j), at(c.i + 1, c.j), at(c.i, c.j - 1), at(c.i, c.j + 1)].map((q2, w) => (!q2 && ((w === 3 && near) || (w === 2 && !near)) ? { ok: true, gv: 1 } : q2));
         // Far inland (past the first band) every crown is the plain kind: nobody looks closely at the edge of the chart.
+        if (V.orchard && !near) { P.grove(g, x, c.y, z, s, r, null, wp); continue; }
         if (V.orchard) {
-          // Rows of olives along the shore: each tree at its cell's centre.
+          // Rows of olives along the shore: each tree at its cell's centre, every other cell.
+          if ((c.i + c.j) % 2) continue;
           const ot = -0.12 + ((c.i + 0.5) * cell) / cr.len, os = s0 + (c.j + 0.5) * cell, [mx, my] = cr.point(ot, os);
           P.grove(g, wx(mx), cr.h(ot, os, null, mx, my), wz(my), k * 0.72, r, true, [wx(mx), wz(my)]);
           continue;

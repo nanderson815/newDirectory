@@ -3,6 +3,7 @@
 // rules work: a peak's lee steals the wind, a harbour patches hulls, an enemy town can be sacked for plunder,
 // and a lighthouse with sight lifts the fog. Plus the living details show only when you zoom in.
 import { launch, open, check, save } from './lib.mjs';
+import { BATTLES } from '../src/config/battles.js';
 
 const failures = [];
 const browser = await launch();
@@ -43,7 +44,9 @@ check(CAMPAIGN.every((id) => all.entries.includes(id)), 'every campaign battle h
 for (const r of all.out) {
   check(r.n >= 3 && r.kinds >= 3, `${r.id}: ${r.n} landmarks of ${r.kinds} kinds (${r.style})`, failures);
   check(r.bad.length === 0, `${r.id}: landmarks inside the land ships collide with${r.bad.length ? ': ' + r.bad.join('; ') : ''}`, failures);
-  check(r.calls <= 9 && r.verts < 150000, `${r.id}: land draws in ${r.calls} calls, ${r.verts} vertices`, failures);
+  // The budget grows with the sea the land must cover (the Med's seas are up to 1.6 times the usual size).
+  const cap = 150000 * Math.max(1, (BATTLES.find((x) => x.id === r.id) || {}).sea || 1);
+  check(r.calls <= 9 && r.verts < cap, `${r.id}: land draws in ${r.calls} calls, ${r.verts} vertices (of ${Math.round(cap / 1000)}k)`, failures);
 }
 check(page.errors.length === 0, `no page errors building every battle ${page.errors.slice(0, 3).join(' | ')}`, failures);
 

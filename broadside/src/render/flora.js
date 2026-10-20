@@ -226,16 +226,12 @@ export function olive(parent, x, y, z, s, rnd, F, opts = {}) {
   t.rotation.y = rnd(0, TAU);
   parent.add(t);
   const k = s * rnd(0.85, 1.05), c = pick(F.olive || F.canopy, rnd), w = opts.ink === false ? 0 : INK;
-  for (const [a, lean] of [[0, 0.32], [2.3, 0.26]]) {
-    const st = part(t, g.trunk, F.oliveTrunk || F.trunk, Math.cos(a) * 0.5 * k, -0.4, Math.sin(a) * 0.5 * k, 0.8 * k, 4.6 * k, 0.8 * k);
-    st.rotation.set(Math.sin(a) * lean, 0, -Math.cos(a) * lean);
-  }
-  const top = part(t, g.puff, c, 0, 5.6 * k, 0, 5.4 * k, 3.1 * k, 5.4 * k);
+  const st = part(t, g.trunk, F.oliveTrunk || F.trunk, 0.4 * k, -0.4, 0, 0.85 * k, 4.6 * k, 0.85 * k);
+  st.rotation.z = 0.3;
+  // A lumpy crown: one clump outlined, two smaller ones leaning out of it (their outline is the big one's).
+  const top = part(t, g.puff, c, 0, 5.6 * k, 0, 5.2 * k, 3 * k, 5.2 * k);
   if (w) ink(top, w);
-  for (const a of [0.9, 3.1, 5]) {
-    const m = part(t, g.puffLo, c, Math.cos(a) * 3.3 * k, 4.7 * k, Math.sin(a) * 3.3 * k, 3.1 * k, 2.2 * k, 3.1 * k);
-    if (w) ink(m, w);
-  }
+  for (const a of [0.9, 3.6]) part(t, g.puffLo, c, Math.cos(a) * 3.2 * k, 5.2 * k, Math.sin(a) * 3.2 * k, 3 * k, 2.3 * k, 3 * k);
   return t;
 }
 // A cypress: a tall dark spindle on a stub of trunk.
@@ -253,6 +249,8 @@ export function stonePine(parent, x, y, z, s, rnd, F, opts = {}) {
   t.rotation.y = rnd(0, TAU);
   parent.add(t);
   const k = s * rnd(0.9, 1.1), c = pick(F.stone || F.pine, rnd), lean = rnd(0.08, 0.2);
+  // Inside a wood (opts.lo) only its flat crown shows from above: one clump, no trunk.
+  if (opts.lo) { part(t, g.puffLo, c, 0, 12 * k, 0, 7 * k, 2.4 * k, 7 * k); return t; }
   const tr = part(t, g.trunk, F.pineTrunk || F.trunk, 0, -0.5, 0, 0.95 * k, 12 * k, 0.95 * k);
   tr.rotation.z = lean;
   const hx = -Math.sin(lean) * 11.5 * k, hy = Math.cos(lean) * 11.5 * k;
