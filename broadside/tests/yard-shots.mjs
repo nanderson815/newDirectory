@@ -76,24 +76,29 @@ for (const [o, width, height] of [['p', 390, 844], ['l', 844, 390]]) {
   await page.context().close();
 }
 
-// In battle: the dressed squadron against Calico Kate's pirates, close in.
+// In battle: the dressed squadron closing with seeded enemies (a Spanish squadron, then pirates), close in.
+const TIPS = ['fleet', 'ammo', 'mine', 'land', 'board', 'fireship', 'mortar', 'exit', 'chest', 'reach', 'protect', 'hunt', 'fog', 'rake', 'crit', 'shoal', 'reef'];
+const fight = (faction) => ({
+  name: 'Yard test', wind: -60, islands: [{ x: 0.88, y: 0.42, r: 26 }], faction,
+  player: fleet.slice(0, 3).map((f, i) => ({ type: f.cls, name: f.name, x: 0.36 + i * 0.13, y: 0.58 + (i % 2) * 0.04, h: -90, look: f.look, loadout: f.loadout })),
+  enemy: [['brig', 'Santa Ana'], ['brig', 'San Pedro'], ['frigate', 'Rosario'], ['brig', 'San Telmo']].map(([type, name], i) => ({ type, name, x: 0.32 + i * 0.12, y: 0.44 - (i % 2) * 0.04, h: 90, passive: true })),
+  ai: { dmgMul: 0, spread: 0.1, reloadMul: 1, hpMul: 1 },
+});
 for (const [o, width, height] of [['p', 390, 844], ['l', 844, 390]]) {
-  if (!want(`battle-${o}`) && !want(`battle-spain-${o}`)) continue;
-  const page = await open(browser, { width, height, save: won, fonts: true });
-  for (const [name, id] of [[`battle-${o}`, 'cayman'], [`battle-spain-${o}`, 'cartagena']]) {
+  if (!want(`battle-${o}`) && !want(`battle-pirate-${o}`)) continue;
+  const page = await open(browser, { width, height, save: { ...won, tips: TIPS }, fonts: true });
+  for (const [name, faction] of [[`battle-${o}`, undefined], [`battle-pirate-${o}`, 'pirate']]) {
     if (!want(name)) continue;
-    await page.evaluate((id) => {
+    await page.evaluate((def) => {
       const B = window.__broadside;
       B.lockDpr(1.5);
-      B.startBattle(id); B.step(240);
+      B.playDef(def); B.step(20);
       const G = B.G, cam = B.cam;
       cam.mode = 'manual'; cam.idle = 0;
-      const mine = G.ships.filter((s) => s.team === 'player');
-      const foe = G.ships.filter((s) => s.team === 'enemy');
-      const all = [...mine.slice(0, 2), ...foe.slice(0, 2)];
-      cam.tx = all.reduce((a, s) => a + s.x, 0) / all.length; cam.ty = all.reduce((a, s) => a + s.y, 0) / all.length; cam.d = cam.dComfort;
-      B.step(30);
-    }, id);
+      cam.tx = G.ships.reduce((a, s) => a + s.x, 0) / G.ships.length; cam.ty = G.ships.reduce((a, s) => a + s.y, 0) / G.ships.length;
+      cam.d = Math.max(cam.dMin, cam.dComfort * 0.62);
+      B.step(20);
+    }, fight(faction));
     await snap(page, name);
   }
   errors.push(...page.errors);

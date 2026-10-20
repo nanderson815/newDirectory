@@ -250,7 +250,7 @@ function buildEnvironment() {
   scene.add(sky);
   // Calm water: deeper in the berth, paling into the haze, with slow glints and the wharf's shade.
   Y.water = new THREE.Mesh(new THREE.PlaneGeometry(14000, 14000, 1, 1).rotateX(-PI / 2), new THREE.ShaderMaterial({
-    uniforms: { uT: { value: 0 }, near: { value: new THREE.Color('#2e8fb4') }, far: { value: new THREE.Color('#7cbac6') }, haze: { value: new THREE.Color('#f2dcb6') } },
+    uniforms: { uT: { value: 0 }, near: { value: new THREE.Color('#2a84a6') }, far: { value: new THREE.Color('#8cbfc4') }, haze: { value: new THREE.Color('#f2dcb6') } },
     vertexShader: 'varying vec3 vW; void main() { vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
     fragmentShader: `uniform float uT; uniform vec3 near, far, haze; varying vec3 vW;
       void main() {
@@ -324,9 +324,14 @@ function buildEnvironment() {
   };
   palm(-360, 120, 40, 0.18); palm(-372, 150, 34, -0.1); palm(-350, -190, 44, 0.12); palm(-400, 60, 30, 0.05);
   // Across the harbour: Port Royal on its spit, the Point's fort, and the Blue Mountains behind in the haze.
-  const hill = (x, z, r, h, col, seg = 18) => put(new THREE.Mesh(new THREE.SphereGeometry(r, seg, 8, 0, TAU, 0, PI / 2), toon(col)), x, -2, z).scale.y = h / r;
-  hill(-500, -2900, 1500, 420, '#7f9cbc'); hill(900, -3300, 1700, 560, '#7895b8'); hill(-2300, -2300, 1200, 360, '#88a2bf');
-  hill(2400, -2500, 1100, 380, '#86a0bd'); hill(-300, -1150, 760, 60, '#9db58c');
+  // The mountains and clouds are flat painted silhouettes (unlit), paling with distance like a print's background.
+  const far = new THREE.Group();
+  into = far;
+  const hill = (x, z, r, h, col, seg = 22) => put(new THREE.Mesh(new THREE.SphereGeometry(r, seg, 6, 0, TAU, 0, PI / 2), toon(col)), x, -2, z).scale.y = h / r;
+  hill(900, -3600, 1900, 640, '#9fb4cc'); hill(-1100, -3400, 1500, 520, '#a6b9cf'); hill(2700, -3000, 1300, 420, '#a9bbd0');
+  hill(-300, -2700, 1300, 330, '#8ea7c2'); hill(-2400, -2400, 1100, 300, '#97aec7'); hill(1800, -2300, 900, 250, '#93abc5');
+  hill(-200, -1300, 900, 70, '#9cb390');
+  into = rest;
   for (let i = 0; i < 26; i++) {
     const x = -900 + i * 46 + (i % 3) * 7, z = -980 - (i % 4) * 26 - Math.abs(i - 13) * 6;
     const hgt = 16 + (i % 3) * 8;
@@ -343,7 +348,9 @@ function buildEnvironment() {
   put(new THREE.Mesh(new THREE.CylinderGeometry(4, 3, 18, 8, 1, false, 0, PI).rotateZ(PI / 2).rotateX(PI), toon('#a5672f', { side: THREE.DoubleSide })), 150, 2.5, 60, [0, 0.4, 0], 0.05);
   // A few soft clouds over the hills.
   for (const [x, y, z, s] of [[-900, 620, -2600, 1], [300, 760, -3000, 1.4], [1500, 560, -2300, 0.9], [-2200, 700, -1800, 1.1]]) {
-    for (let k = 0; k < 5; k++) ball(70 * s * (k === 2 ? 1.5 : 1), '#fbf4e6', x + (k - 2) * 90 * s, y + (k === 2 ? 30 : 0) * s, z);
+    into = far;
+    for (let k = 0; k < 5; k++) ball(70 * s * (k === 2 ? 1.5 : 1), '#fff8ec', x + (k - 2) * 90 * s, y + (k === 2 ? 30 : 0) * s, z).scale.y = 0.6;
+    into = rest;
   }
   const bake = (g, cut) => {
     const b = bakeStatic(g);
@@ -356,6 +363,9 @@ function buildEnvironment() {
   Y.cut = { value: 0 };
   bake(wharf, Y.cut);
   bake(rest, null);
+  const fb = bakeStatic(far);
+  far.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+  scene.add(new THREE.Mesh(fb.solid, new THREE.MeshBasicMaterial({ vertexColors: true })));
 }
 
 // ---------- The 3D window ----------
