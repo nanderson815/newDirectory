@@ -71,7 +71,7 @@ export const GUNS = {
   },
   firepot: {
     label: 'Fire-pot engine', short: 'Fire-pots', about: 'A sling that hurls pots of pitch and wildfire. Short reach, and every pot that lands sets her burning.',
-    fits: ['deck'], fires: 'pot', range: 140, reload: 4.5, dmg: 2, burn: 7, weight: 1.5, arc: 180,
+    fits: ['deck'], fires: 'pot', range: 140, reload: 5, dmg: 2, burn: 6, weight: 1.5, arc: 180,
     shot: [], crew: 3, cost: 160, render: { barrel: 0.9, bore: 1.1 }, auto: true, single: true, traverse: 3.2,
   },
 };

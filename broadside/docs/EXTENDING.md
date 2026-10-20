@@ -238,7 +238,7 @@ on a slotted class or on a simple class's implicit slots:
 
 ```js
 { type: 'frigate', name: 'Black Wyvern', ..., loadout: { port: 'carronade' } },          // carronades to larboard
-{ type: 'greatship', name: 'Real Felipe', ..., loadout: { portLower: 'demicannon', starboardLower: 'demicannon', forecastle: 'mortar', quarterdeck: 'firepot' } },
+{ type: 'greatship', name: 'Real Felipe', ..., loadout: { portLower: 'demicannon', starboardLower: 'demicannon', portUpper: 'swivel', starboardUpper: 'swivel', forecastle: 'mortar' } },
 ```
 
 The validator names an unknown slot or gun, a gun its slot won't take, and an overweight loadout. A ship's captain

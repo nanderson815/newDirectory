@@ -362,7 +362,7 @@ refit those (an enemy frigate with carronades to port). Numbers are per gun; ran
 | `bowChaser` | Bow chasers | bow | ball | 270 | 2.4 | 4 | 2.4 | 18° | round, chain | 4 | 60 | 1.5 × 0.95 | auto, traverse 0.35 |
 | `sternChaser` | Stern chasers | stern | ball | 260 | 2.4 | 4 | 2.4 | 18° | round, chain | 4 | 60 | 1.5 × 0.95 | auto, traverse 0.35 |
 | `mortar` | Sea mortar | deck | shell | 460 | 6.5 | 22 | 8 | 180° | (its own) | 8 | 340 | 0.6 × 2.2 | auto, single, minRange 110, radius 36 |
-| `firepot` | Fire-pot engine | deck | pot | 140 | 4.5 | 2 | 1.5 | 180° | (its own) | 3 | 160 | 0.9 × 1.1 | auto, single, burn 7, traverse 3.2 |
+| `firepot` | Fire-pot engine | deck | pot | 140 | 5 | 2 | 1.5 | 180° | (its own) | 3 | 160 | 0.9 × 1.1 | auto, single, burn 6, traverse 3.2 |
 
 - `long`: Culverins: the long reach of the line. Steady, heavy, slow to load.
 - `demicannon`: Thirty-two pounders for the lower tier. They hit like a church falling, and load like one.

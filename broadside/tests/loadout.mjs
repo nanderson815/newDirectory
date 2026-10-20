@@ -99,8 +99,8 @@ const armada = await B(() => {
   b.sim(60 * 8);
   return { ...info, result: b.G.result, stars: b.save.stars.armada || 0, offer: !!b.guns.greatOffer(b.save.fleet[0]) };
 });
-check(armada.type === 'greatship' && armada.guns.includes('demicannon') && armada.guns.includes('mortar') && armada.guns.includes('firepot'),
-  `the Real Felipe is Spain's great ship, with demi-cannon, a mortar and a fire-pot engine (${armada.guns.join(', ')})`, failures);
+check(armada.type === 'greatship' && armada.guns.includes('demicannon') && armada.guns.includes('mortar') && armada.guns.includes('swivel'),
+  `the Real Felipe is Spain's great ship, with demi-cannon, swivels and a mortar (${armada.guns.join(', ')})`, failures);
 check(armada.result === 'win' && armada.stars > 0 && armada.offer, 'winning La Gran Armada puts the great ship on offer', failures);
 await page.context().close();
 
