@@ -126,7 +126,7 @@ export const MED_BATTLES = [
     tide: { level: 0.5, turns: [{ at: 80, to: 0.2, secs: 16 }] },
     islands: [{ x: 0.64, y: 0.53, r: 44 }, { x: 0.3, y: 0.16, r: 34, stretch: 1.5, angle: 30 }, { x: 0.36, y: 0.8, r: 40 }],
     forts: [{ island: 0, name: 'the Kasbah', hp: 300, guns: 3, need: 15 }],
-    ai: { spread: 0.1, reloadMul: 0.9, dmgMul: 1.54, hpMul: 2.04 },
+    ai: { spread: 0.1, reloadMul: 0.85, dmgMul: 1.54, hpMul: 2.04 },
   },
 
   // ---------- The Barbary Coast ----------
@@ -228,7 +228,7 @@ export const MED_BATTLES = [
     shoals: [{ x: 0.17, y: 0.66, r: 46, stretch: 2.6, angle: -4 }],
     fleetAt: { slots: [[0.5, 0.3], [0.42, 0.26], [0.58, 0.26], [0.46, 0.2], [0.54, 0.2]], h: 90 },
     forts: [{ island: 1, name: 'La Goletta', hp: 300, guns: 3, need: 15 }],
-    ai: { spread: 0.1, reloadMul: 0.8, dmgMul: 2.4, hpMul: 2.75 },
+    ai: { spread: 0.1, reloadMul: 0.8, dmgMul: 2.6, hpMul: 2.75 },
   },
   {
     id: 'algiers', world: W, region: 'barbary', roman: 'VII', year: 1668, name: 'The Admiral of Algiers', foe: 'Kara Hasan Reis',
@@ -282,6 +282,7 @@ export const MED_BATTLES = [
       { type: 'galley', name: 'Asad', x: 0.34, y: 0.44, h: 70 },
       { type: 'galley', name: 'Saqr', x: 0.84, y: 0.32, h: 110 },
       { type: 'tartane', name: 'Rih', x: 0.6, y: 0.48, h: 90 },
+      { type: 'galley', name: 'Hamza', x: 0.5, y: 0.38, h: 90 },
     ],
     events: [
       { at: 50, banner: ['Galleys from behind Gozo!', 'They mean to take the Knights in the flank'],
@@ -298,7 +299,7 @@ export const MED_BATTLES = [
       capes: [{ at: 0.68, width: 0.05, depth: 0.14 }, { at: 0.78, width: 0.05, depth: 0.16 }] },
     islands: [{ x: 0.34, y: 0.655, r: 36 }, { x: 0.22, y: 0.16, r: 120, stretch: 1.6, angle: -12 }, { x: 0.54, y: 0.3, r: 36 }],
     forts: [{ island: 0, name: 'Fort St Elmo', hp: 240, guns: 3, need: 10, team: 'player' }],
-    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 2.2, hpMul: 2.8 },
+    ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 2.4, hpMul: 2.8 },
   },
   {
     id: 'passero', world: W, region: 'malta', roman: 'IX', year: 1668, name: 'Storm off Cape Passero', foe: 'Tripoli rovers',
@@ -329,7 +330,7 @@ export const MED_BATTLES = [
     islands: [{ x: 0.34, y: 0.5, r: 40 }, { x: 0.16, y: 0.74, r: 36, stretch: 1.5, angle: -20 }],
     reefs: [{ x: 0.25, y: 0.5, r: 12, stretch: 3, angle: 0 }, { x: 0.7, y: 0.7, r: 16, stretch: 2, angle: 10 }, { x: 0.62, y: 0.3, r: 12, stretch: 3, angle: 80 }],
     currents: [{ x: 0.4, y: 0.6, r: 90, stretch: 3, angle: 0, dir: -20, speed: 11 }],
-    ai: { spread: 0.09, reloadMul: 0.92, dmgMul: 2.93, hpMul: 3.56 },
+    ai: { spread: 0.09, reloadMul: 0.85, dmgMul: 2.93, hpMul: 3.56 },
   },
   {
     id: 'tripoli', world: W, region: 'malta', roman: 'X', year: 1669, name: 'The Reefs of Tripoli', foe: 'Osman Reis',
@@ -337,7 +338,7 @@ export const MED_BATTLES = [
     goals: [{ kind: 'boss' }, { kind: 'capture', bonus: true, gold: 180 }],
     brief: 'Osman Reis keeps his galleass behind the reefs that guard Tripoli roads and sends fire galleys out through the gaps. Thread the gaps, sink the fire galleys before they touch you, and bring him to action under the Red Castle.',
     enemy: [
-      { type: 'galleass', name: 'Hilal', x: 0.5, y: 0.25, h: 90, hp: 1000, chasers: 3,
+      { type: 'galleass', name: 'Hilal', x: 0.5, y: 0.25, h: 90, hp: 900, chasers: 3,
         abilities: { launcher: { type: 'firegalley', name: 'Fire galley', every: 17, max: 2, range: 560, banner: ['Fire galley!', 'She rows straight for you: sink her'] } },
         boss: { captain: 'Osman Reis', title: 'Hilal', hat: 'osman' } },
       { type: 'polacre', name: 'Nur', x: 0.3, y: 0.3, h: 90 },
@@ -391,7 +392,7 @@ export const MED_BATTLES = [
     coast: { side: 'right', depth: 0.03, rough: 0.5, seed: 14, capes: [{ at: 0.18, width: 0.24, depth: 0.12 }] },
     islands: [{ x: 0.12, y: 0.32, r: 96, stretch: 2.4, angle: 72 }, { x: 0.78, y: 0.67, r: 94, stretch: 2, angle: -50 }, { x: 0.5, y: 0.48, r: 40 }],
     currents: [{ x: 0.48, y: 0.5, r: 110, stretch: 5, angle: -72, speed: 9 }],
-    ai: { spread: 0.09, reloadMul: 0.9, dmgMul: 2.0, hpMul: 2.53 },
+    ai: { spread: 0.09, reloadMul: 0.9, dmgMul: 2.1, hpMul: 2.53 },
   },
   {
     id: 'navarino', world: W, region: 'morea', roman: 'XII', year: 1669, name: 'Navarino Bay', foe: 'the Ottoman squadron',
