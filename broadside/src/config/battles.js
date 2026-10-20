@@ -466,22 +466,22 @@ export const BATTLES = [
       { type: 'xebec', name: 'El Venablo', x: 0.7, y: 0.46, h: 180 },
       { type: 'bomb', name: 'El Bronce', x: 0.5, y: 0.1, h: 90 },
     ],
-    // A long thin strait: shores on both hands pinch to the narrows under El Morro at the top, reef lines cross it
-    // with three gaps to run, and a current sets up the middle toward the exit. Ride the stream through the
-    // middle gap past the galleons, or hug a shore through a side gap out of their reach.
+    // A long thin strait: shores on both hands pinch to the narrows under El Morro at the top, a reef line crosses
+    // it, and a current sets up the middle toward the exit. Ride the stream through the middle gap past the
+    // galleons, or slip a small ship through a side gap by the shore out of their reach.
     sea: 1.4,
     fleetAt: { slots: [[0.5, 0.82], [0.38, 0.86], [0.62, 0.86], [0.44, 0.93], [0.56, 0.93]], h: -90 },
     coast: [
-      { side: 'left', depth: 0.13, rough: 0.35, seed: 3, capes: [{ at: 0.14, width: 0.2, depth: 0.08 }] },
-      { side: 'right', depth: 0.13, rough: 0.35, seed: 11, capes: [{ at: 0.16, width: 0.2, depth: 0.08 }] },
+      { side: 'left', depth: 0.17, rough: 0.25, seed: 3, capes: [{ at: 0.13, width: 0.18, depth: 0.12 }] },
+      { side: 'right', depth: 0.17, rough: 0.25, seed: 11, capes: [{ at: 0.15, width: 0.18, depth: 0.12 }] },
     ],
-    reefs: [{ x: 0.3, y: 0.36, r: 11, stretch: 3, angle: -8 }, { x: 0.7, y: 0.34, r: 11, stretch: 3, angle: 12 }],
-    islands: [{ x: 0.5, y: 0.5, r: 26, stretch: 1.6, angle: 0 }],
+    reefs: [{ x: 0.31, y: 0.37, r: 12, stretch: 6, angle: -6 }, { x: 0.69, y: 0.35, r: 12, stretch: 6, angle: 8 }],
+    islands: [{ x: 0.5, y: 0.56, r: 34, stretch: 1.8, angle: 0 }],
     currents: [{ x: 0.5, y: 0.5, r: 100, stretch: 6, angle: -90, speed: 13 }],
     events: [
       { at: 18, wind: 0, banner: ['The wind veers!', 'A fresh breeze on the beam: crack on for the gap'] },
       { at: 30, banner: ['A galley from the shore!', 'La Jabalina rows out to close the gap'],
-        spawn: [{ type: 'xebec', name: 'La Jabalina', x: 0.3, y: 0.1, h: 45 }] },
+        spawn: [{ type: 'xebec', name: 'La Jabalina', x: 0.42, y: 0.07, h: 60 }] },
     ],
     ai: { spread: 0.1, reloadMul: 1.05, dmgMul: 1.24, hpMul: 1.6 },
   },

@@ -3,6 +3,7 @@ import { PI, clamp, rand, lerp } from '../util.js';
 import { corePt, coreDist, makeCapsule, tideStage } from './terrain.js';
 import { spawn } from './particles.js';
 import { sfx } from '../audio/sfx.js';
+import { callout } from './hazards.js';
 
 // The sea that changes under you (battle fields documented in TERRAIN, src/sim/terrain.js):
 //   currents  zones where the water sets every ship along (drift(), applied after the helm, preview too)
@@ -134,5 +135,15 @@ function updateBooms(G, dt) {
 export function updateFlow(G, dt) {
   if (G.tide) updateTide(G, dt);
   if (G.booms && G.booms.length) updateBooms(G, dt);
-  if (G.currents && G.currents.length) for (const s of G.ships) if (afloat(s) && !s.boarding) drift(s, dt);
+  if (G.currents && G.currents.length) {
+    for (const s of G.ships) {
+      if (!afloat(s) || s.boarding) continue;
+      drift(s, dt);
+      // Your captains say so when the stream first takes hold of them (once a while per ship).
+      if (s.team !== 'player') continue;
+      const [vx, vy] = currentAt(G, s.x, s.y), on = vx * vx + vy * vy > 36;
+      if (on && !s.inSet && G.t - (s.setSaid || -99) > 25) { s.setSaid = G.t; callout(s, 'The current takes her', 'sea'); }
+      s.inSet = on;
+    }
+  }
 }

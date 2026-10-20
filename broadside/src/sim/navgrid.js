@@ -17,7 +17,7 @@ import { geoStamp } from './flow.js';
 //
 // Cells: 0 open water, 1 near the land (allowed, dearer), 2 tight (allowed, much dearer, never cut across when
 // smoothing), 3 blocked (the ship's centre can't be there: land, a reef, a shoal she'd ground on, a closed boom).
-export const NAV = { cell: 18, near: 0.55, tight: 10, edge: 34, cost: [1, 2.2, 6, Infinity], bucket: 12, replan: 2.5, reach: 46 };
+export const NAV = { cell: 18, near: 0.55, tight: 10, edge: 34, cost: [1, 2.2, 6, Infinity], bucket: 12, replan: 2.5, reach: 46, greed: 1.6 };
 
 const grids = new Map();
 let gridG = null, gridStamp = '';
@@ -138,7 +138,7 @@ function pop() {
   }
   return top;
 }
-const DIRS = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, Math.SQRT2], [1, -1, Math.SQRT2], [-1, 1, Math.SQRT2], [-1, -1, Math.SQRT2]];
+const DI = [1, -1, 0, 0, 1, 1, -1, -1], DJ = [0, 0, 1, -1, 1, -1, 1, -1], DW = [1, 1, 1, 1, Math.SQRT2, Math.SQRT2, Math.SQRT2, Math.SQRT2];
 
 // Cells from start cell k0 to the first cell that passes goal(k), as a list of cell indices; null if none.
 // (hx, hy) steers the search (the heuristic aims there, less `slack`).
@@ -147,7 +147,9 @@ function astar(g, k0, goal, hx, hy, slack = 0, minRoom = -Infinity) {
   ensure(n);
   if (++pass >= 0xffffffff) { Seen.fill(0); pass = 1; }
   size = 0;
-  const h = (k) => Math.max(0, Math.hypot(cx(g, k) - hx, cy(g, k) - hy) - slack) / g.cs;
+  // Weighted (NAV.greed): a little longer than the best route at worst, and far fewer cells searched.
+  const gx = hx / g.cs - 0.5, gy = hy / g.cs - 0.5, sl = slack / g.cs, nx = g.nx;
+  const h = (k) => { const ci = k % nx, dx = ci - gx, dy = (k - ci) / nx - gy; return Math.max(0, Math.sqrt(dx * dx + dy * dy) - sl) * NAV.greed; };
   Gs[k0] = 0; F[k0] = h(k0); From[k0] = -1; Seen[k0] = pass; push(k0, F[k0]);
   let found = -1, budget = n * 9;
   while (size && budget-- > 0) {
@@ -155,7 +157,8 @@ function astar(g, k0, goal, hx, hy, slack = 0, minRoom = -Infinity) {
     if (topK > F[k] + 1e-4) continue; // a stale entry: this cell was reached more cheaply since
     if (goal(k)) { found = k; break; }
     const i = k % g.nx, j = (k - i) / g.nx;
-    for (const [di, dj, w] of DIRS) {
+    for (let d = 0; d < 8; d++) {
+      const di = DI[d], dj = DJ[d], w = DW[d];
       const a = i + di, b = j + dj;
       if (a < 0 || b < 0 || a >= g.nx || b >= g.ny) continue;
       const q = b * g.nx + a, cq = g.c[q];
