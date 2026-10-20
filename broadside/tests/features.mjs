@@ -91,12 +91,12 @@ await B(() => {
   const ev = (type, q) => cv.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 9, pointerType: 'touch', isPrimary: true, clientX: rc.left + q.x, clientY: rc.top + q.y }));
   ev('pointerdown', pts[0]); for (const q of pts.slice(1)) ev('pointermove', q); ev('pointerup', pts[pts.length - 1]);
 });
-const withPaths = await B(() => window.__broadside.G.ships.filter((s) => s.team === 'player' && s.state === 'afloat' && !s.boarding && s.path.length).length);
-// The preview ribbons for the whole squadron are each ship's own real track.
-const previews = await B(() => window.__broadside.G.ships.filter((s) => s.team === 'player' && s.state === 'afloat' && s.path.length).map((s) => { const p = window.__broadside.preview(s.id); return p && p.n > 5; }));
-check(previews.length >= 3 && previews.every(Boolean), 'every ship in the squadron gets a course preview', failures);
-const fleetSize = await B(() => window.__broadside.G.ships.filter((s) => s.team === 'player' && s.state === 'afloat' && !s.boarding).length);
-check(withPaths === fleetSize && fleetSize >= 3, `one drawn course moves every ship (${withPaths}/${fleetSize})`, failures);
+// The chosen ship sails the course (with her real track previewed) and the rest of the squadron forms a line on her
+// (tests/fleet.mjs checks the line itself).
+const fleetOrders = await B(() => window.__broadside.G.ships.filter((s) => s.team === 'player' && s.state === 'afloat' && !s.boarding).map((s) => ({ path: s.path.length, kind: s.order && s.order.kind, pv: s.path.length ? (window.__broadside.preview(s.id) || { n: 0 }).n : 0 })));
+const heads = fleetOrders.filter((o) => o.path), line = fleetOrders.filter((o) => o.kind === 'line');
+check(heads.length === 1 && heads[0].pv > 5, 'the chosen ship sails the course, with its preview', failures);
+check(line.length === fleetOrders.length - 1 && fleetOrders.length >= 3, `one drawn course moves every ship: the rest form a line on her (${line.length + heads.length}/${fleetOrders.length})`, failures);
 await B(() => window.__broadside.step(30));
 await shot(page, 'f4-fleet-orders');
 
@@ -105,6 +105,7 @@ console.log('Spanish boarders');
 await B(() => {
   const b = window.__broadside, G = b.G;
   b.S.selectAll = false;
+  for (const s of G.ships) if (s.order && s.order.kind === 'line') s.order = null; // break the line from the fleet test
   const swift = G.ships.find((s) => s.name === 'Swift');
   const e = G.ships.find((s) => s.team === 'enemy' && s.state === 'afloat');
   swift.path = []; swift.pivot = swift.h; swift.hp = Math.round(swift.maxHp * 0.25); swift.marines = 4;

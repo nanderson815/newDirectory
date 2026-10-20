@@ -20,12 +20,13 @@ import { wayClear } from './steering.js';
 // The course preview (src/sim/predict.js) runs this too, with the other ships sailed on along their present
 // course for the time it is looking ahead (AV.tau), so the track it draws bends round them as she will.
 export const AVOID = {
-  horizon: 3.5,      // seconds ahead she watches friends
+  horizon: 2,        // seconds ahead she watches friends
   foeHorizon: 1.0,   // ... and enemies
-  ally: 0.62,        // friends keep (L1 + L2) * ally between centres: about half a length of open water end to end
-  // In action (an enemy inside her gun range) a captain fights his ship and only keeps clear of his friends'
-  // hulls: a tighter ring, watched less far ahead.
-  allyAction: 0.45, actionHorizon: 2, actionSlow: true, // (actionSlow: may she ease sail to let a friend by in action)
+  ally: 0.5,         // friends keep (L1 + L2) * ally between centres: a third of a length of open water end to end,
+                     // much more abeam (a line ahead keeps its own, wider spacing: src/sim/formation.js)
+  // In action (an enemy ship or fort inside her gun range) a captain fights his ship: he only keeps clear of his
+  // friends' hulls (a tighter ring, watched less far ahead) and never shortens sail for them.
+  allyAction: 0.42, actionHorizon: 1.2, actionSlow: false, actionTurn: 1.25, // (actionTurn: how far she may bear away)
   foe: 0.36,         // enemies may come to (L1 + L2) * foe: alongside, inside boarding reach (0.45), outside the hulls (0.34)
   fan: [0, 0.18, -0.18, 0.4, -0.4, 0.65, -0.65, 0.95, -0.95, 1.25, -1.25], // heading offsets tried (radians)
   slow: 0.55,        // the reduced-sail candidates: this share of her way
@@ -99,9 +100,10 @@ export function avoidShips(s, desired, dt) {
   if (s.pivot != null || s.passive || s.boarding || s.fled) { s.avoidOff = 0; s.avoidV = 1; return desired; }
   const G = S.G, tau = AV.tau;
   const vs = Math.max(s.v, s.speed * 0.4);
-  // In action: an enemy afloat inside her gun range.
+  // In action: an enemy ship afloat, or a hostile fort still firing, inside her gun range (plus the fort's island).
   let action = false;
   for (const o of G.ships) if (o.team !== s.team && afloat(o) && Math.abs(o.x - s.x) < s.range && Math.abs(o.y - s.y) < s.range && Math.hypot(o.x - s.x, o.y - s.y) < s.range) { action = true; break; }
+  if (!action) for (const f of G.forts) if (f.team !== s.team && f.state === 'active' && Math.hypot(f.x - s.x, f.y - s.y) < s.range + G.islands[f.island].r) { action = true; break; }
   let n = 0;
   for (const o of G.ships) {
     if (o === s || o.id === s.self || !afloat(o) || (o.fled && o.state !== 'afloat')) continue;
@@ -134,7 +136,7 @@ export function avoidShips(s, desired, dt) {
       let m = 0;
       for (const k of [1, AVOID.slow]) {
         for (const off of AVOID.fan) {
-          if ((!off && k === 1) || (k < 1 && action && !AVOID.actionSlow)) continue;
+          if ((!off && k === 1) || (k < 1 && action && !AVOID.actionSlow) || (action && Math.abs(off) > AVOID.actionTurn)) continue;
           const a = base + off, v = vs * k;
           const cost = Math.abs(off) - (off > 0 ? AVOID.starboard : 0) + (k < 1 ? AVOID.slowCost : 0) + AVOID.stick * Math.abs(off - prev) + riskOf(Math.cos(a) * v, Math.sin(a) * v, n, k < 1 ? 1 : 0);
           if (cost < keep) { CAND[m++] = cost; CAND[m++] = off; CAND[m++] = k; }
