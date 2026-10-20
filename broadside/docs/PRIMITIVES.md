@@ -358,7 +358,7 @@ refit those (an enemy frigate with carronades to port). Numbers are per gun; ran
 | `long` | Long guns | broadside | ball | 300 | 3.4 | 4 | 3 | 36° | round, chain, grape | 6 | 30 | 1 × 1 |  |
 | `demicannon` | Demi-cannon | broadside | ball | 265 | 4.4 | 6.5 | 4.5 | 34° | round, chain, grape | 9 | 55 | 1.1 × 1.3 |  |
 | `carronade` | Carronades | broadside | ball | 150 | 2.3 | 7 | 1.6 | 40° | round, grape | 4 | 45 | 0.55 × 1.4 |  |
-| `swivel` | Swivel guns | broadside, bow, stern, deck | ball | 100 | 1.3 | 0.8 | 0.3 | 70° | grape | 1 | 15 | 0.45 × 0.4 | auto, pellets 3, crewKill 0.5, repel 3, traverse 1.2 |
+| `swivel` | Swivel guns | broadside, bow, stern, deck | ball | 100 | 1.6 | 0.8 | 0.3 | 70° | grape | 1 | 15 | 0.45 × 0.4 | auto, pellets 3, crewKill 0.3, repel 2, traverse 1.2 |
 | `bowChaser` | Bow chasers | bow | ball | 270 | 2.4 | 4 | 2.4 | 18° | round, chain | 4 | 60 | 1.5 × 0.95 | auto, traverse 0.35 |
 | `sternChaser` | Stern chasers | stern | ball | 260 | 2.4 | 4 | 2.4 | 18° | round, chain | 4 | 60 | 1.5 × 0.95 | auto, traverse 0.35 |
 | `mortar` | Sea mortar | deck | shell | 460 | 6.5 | 22 | 8 | 180° | (its own) | 8 | 340 | 0.6 × 2.2 | auto, single, minRange 110, radius 36 |

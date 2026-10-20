@@ -50,9 +50,9 @@ export const GUNS = {
   },
   swivel: {
     label: 'Swivel guns', short: 'Swivel', about: 'Murderers on the rail. They sweep a deck at pistol shot on their own, and make boarders think twice.',
-    fits: ['broadside', 'bow', 'stern', 'deck'], fires: 'ball', range: 100, reload: 1.3, dmg: 0.8, weight: 0.3, arc: 70,
+    fits: ['broadside', 'bow', 'stern', 'deck'], fires: 'ball', range: 100, reload: 1.6, dmg: 0.8, weight: 0.3, arc: 70,
     shot: ['grape'], crew: 1, cost: 15, render: { barrel: 0.45, bore: 0.4 },
-    auto: true, pellets: 3, crewKill: 0.5, repel: 3, traverse: 1.2,
+    auto: true, pellets: 3, crewKill: 0.3, repel: 2, traverse: 1.2,
   },
   bowChaser: {
     label: 'Bow chasers', short: 'Bow chaser', about: 'Long guns run out through the bow, for the ship you are chasing.',

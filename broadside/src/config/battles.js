@@ -225,9 +225,10 @@ export const BATTLES = [
   {
     id: 'kate', region: 'pirate', roman: 'XII', year: 1661, name: 'Black Wyvern', foe: 'Calico Kate',
     faction: 'pirate', goal: 'boss', hat: 'kate', reward: 560, wind: 90,
-    brief: 'Calico Kate, queen of the Brethren, sends burning fireships ahead of her frigate. Sink the fireships before they reach you, then sink her. Hurt her and she will call for help.',
+    brief: 'Calico Kate, queen of the Brethren, sends burning fireships ahead of her frigate. Sink the fireships before they reach you, then sink her. Hurt her and she will call for help. Her larboard guns are carronades: stand off, or keep to her starboard side.',
     enemy: [
-      { type: 'frigate', name: 'Black Wyvern', x: 0.5, y: 0.1, h: 90, hp: 930, chasers: 2, abilities: { launcher: { type: 'fireship', every: 13 } },
+      // Carronades to larboard (src/config/guns.js): she closes to smash with them, so keep off her left side.
+      { type: 'frigate', name: 'Black Wyvern', x: 0.5, y: 0.1, h: 90, hp: 930, chasers: 2, abilities: { launcher: { type: 'fireship', every: 13 } }, loadout: { port: 'carronade' },
         boss: { captain: 'Calico Kate', title: 'Black Wyvern', hat: 'kate' } },
       { type: 'schooner', name: 'Viper', x: 0.25, y: 0.16, h: 90 },
       { type: 'schooner', name: 'Adder', x: 0.75, y: 0.16, h: 90 },
@@ -365,8 +366,10 @@ export const BATTLES = [
     goal: 'boss', hat: 'armada', reward: 900, wind: 0,
     brief: 'The Capitán General leads the last great Armada in the Real Felipe: mines astern, mortars aboard, a harbour fort behind her and galleys in reserve. Win this and the sea is England’s.',
     enemy: [
-      { type: 'manowar', name: 'Real Felipe', x: 0.5, y: 0.08, h: 90, hp: 780, chasers: 2,
-        abilities: { mineLayer: { every: 9 }, mortar: { range: 460, reload: 7, dmg: 24, radius: 38 } },
+      // Spain's great ship (src/config/flagship.js): demi-cannon below, a sea mortar forward, a fire-pot engine aft.
+      { type: 'greatship', name: 'Real Felipe', x: 0.5, y: 0.08, h: 90, hp: 780,
+        loadout: { portLower: 'demicannon', starboardLower: 'demicannon', forecastle: 'mortar', quarterdeck: 'firepot' },
+        abilities: { mineLayer: { every: 9 } },
         boss: { captain: 'Capitán General', title: 'Real Felipe', hat: 'armada' } },
       { type: 'galleon', name: 'San Felipe', x: 0.26, y: 0.14, h: 90 },
       { type: 'galleon', name: 'Santiago', x: 0.74, y: 0.14, h: 90 },

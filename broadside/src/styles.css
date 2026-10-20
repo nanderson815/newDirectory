@@ -587,6 +587,26 @@ html.no-fell-sc .btn { font-variant-caps: small-caps; }
 .buy.maxed { border-color: transparent; font-variant-caps: normal; font-style: italic; font-size: 16px; color: var(--c-on-paper-3); padding: 0; min-width: 0; opacity: 1; }
 .hire .up-row { border-top: 1px solid var(--c-paper-rule); }
 .hire:empty { display: none; }
+/* The gun decks (a great ship): a Fell head with the tons aboard set right, small-capital group heads, one line a
+   slot with a ruled "change"; an open slot lists the guns it takes beneath it, set in a step under a hairline. */
+.lo-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); padding: 14px 0 2px; border-top: 1px solid var(--c-paper-rule); }
+.lo-head h4 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 21px; line-height: 1.1; }
+.lo-tons { font-size: 16px; color: var(--c-on-paper-2); font-variant-numeric: oldstyle-nums tabular-nums; white-space: nowrap; }
+.lo-group {
+  margin: 10px 0 0; font-family: var(--font-ui); font-weight: 400; font-size: 15px; line-height: 1.2; color: var(--c-on-paper-3);
+  font-variant-caps: all-small-caps; letter-spacing: var(--track-caption);
+}
+.up-list .lo-group + .up-row { border-top-color: transparent; padding-top: 4px; }
+.lo-slot .up-desc { font-style: italic; }
+.buy.change { min-width: 72px; }
+.lo-slot.open .buy.change { background: var(--p-ink); color: var(--p-paper); }
+.lo-options { margin: 0 0 6px 14px; border-top: 1px solid var(--c-paper-line); }
+.lo-options .up-row { padding: 8px 0; }
+.lo-options .up-row:first-child { border-top: 0; }
+.lo-gun .up-name { font-size: 17px; }
+.lo-gun .up-price { font-size: 20px; }
+.lo-stats { margin-top: 2px; font-size: 14px; line-height: 1.3; color: var(--c-on-paper-3); font-variant-numeric: oldstyle-nums; }
+.lo-stats em { color: var(--c-on-paper-2); font-style: italic; }
 .row.foot { margin-top: var(--s-1); }
 
 /* ---------- End of battle ---------- */
