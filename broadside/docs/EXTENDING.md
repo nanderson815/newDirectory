@@ -1,6 +1,6 @@
 # Extending Broadside
 
-Battles are data built from five kinds of primitive. Each lives in a registry, and the validator, the docs
+Battles are data built from six kinds of primitive. Each lives in a registry, and the validator, the docs
 and the test bot all read those registries, so adding a primitive is one module plus one line in a list.
 
 | primitive | where | registry |
@@ -8,7 +8,8 @@ and the test bot all read those registries, so adding a primitive is one module 
 | goal (what wins or loses a battle) | `src/sim/goals/<id>.js` | `GOALS` in `src/sim/goals/index.js` |
 | ability (a ship behaviour) | `src/sim/abilities/<id>.js` | `ABILITIES` in `src/sim/abilities/index.js` |
 | event condition / action | `src/sim/events.js` | `WHEN` / `DO` |
-| ship type | `src/config/ships.js` | `TYPES` |
+| ship type | `src/config/ships.js` (the great ship: `src/config/flagship.js`) | `TYPES` |
+| gun (a kind of piece a slot can mount) | `src/config/guns.js` | `GUNS` (slots: `src/config/slots.js`) |
 | landmark (scenery, or land that matters) | `src/sim/land.js` + `src/render/landmarks.js` | `LANDMARKS` / `BUILD` |
 
 [PRIMITIVES.md](PRIMITIVES.md) lists every one of them with its params and defaults. It is generated, so
@@ -51,7 +52,8 @@ With no `goal`/`goals` the goal is `sink`. Optional fields:
 - `events`, `hat`, `fog` (how far your lookouts see), `land` (its look and landmarks; see Dress the land), `sea` (size multiplier for the battle's sea on top of the camera's `SEA_SCALE`: 1.2 for a wide-open chase, 0.85 for a tight harbour).
 
 Ship defs take `type`, `name`, `x`, `y` and `h`, plus optional `hp` (fixed hull; otherwise the type's hull ×
-`ai.hpMul`), `chasers`, `reloadMul`, `passive`, `boss` and `abilities`.
+`ai.hpMul`), `chasers`, `reloadMul`, `passive`, `boss`, `abilities` and `loadout` (her guns slot by slot; see
+[Guns and slots](#guns-and-slots)).
 
 ## Shape the sea (geography and openings)
 
@@ -197,7 +199,98 @@ pinnace: { label: 'Pinnace', L: 50, B: 17, hp: 50, guns: 2, reload: 2.1, speed: 
 
 `rig` is `square` (the default), `fore-aft` (points high into the wind) or `lateen`; the sailing curves are in
 `src/sim/wind.js`. Also add the plural to `PLURAL` in `src/ui/screens.js`, which builds the chart's roster
-line ("2 pinnaces"). To make the type one the player can refit into, add it to `REFIT`/`REFIT_COST`.
+line ("2 pinnaces"). To make the type one the player can refit into, add it to `REFIT`/`REFIT_COST`. A type
+that fits its guns slot by slot sets `slots` and `tons` (see [Guns and slots](#guns-and-slots)); without them it
+fires `guns` long guns a side.
+
+## Guns and slots
+
+Every ship fires through **batteries**, one per gun slot (`src/sim/guns.js`, fired by `updateGuns` and
+`fireBattery` in `src/sim/combat.js`). Most classes never say so: a class without `slots` gets implicit ones, a
+`port` and a `starboard` broadside of its `guns` long guns (plus the shipyard's extra guns) firing with the class's
+own `range` and `reload`, and a `bow` slot of chasers when the ship def or an upgrade gives it any. The great ship
+(`src/config/flagship.js`, merged into `TYPES`) is the one class that declares its slots, and the player fits them
+one by one at the shipyard. [PRIMITIVES.md](PRIMITIVES.md#guns-and-slots) has the full gun table.
+
+**A gun** is an entry in `GUNS` (`src/config/guns.js`); every field is described in `GUN_PARAMS`, and the
+validator rejects anything else:
+
+```js
+culverin: {
+  label: 'Long culverins', short: 'Culverin', about: 'One line for the ledger, in the game\'s voice.',
+  fits: ['broadside'],            // positions: broadside, bow, stern, deck (POSITIONS in src/config/slots.js)
+  fires: 'ball',                  // 'ball', 'shell' (lobbed like the mortar ability) or 'pot' (sets her burning)
+  range: 330, reload: 4, dmg: 3.5, weight: 3.4, arc: 30,      // per gun; arc is the half-angle off the slot's facing
+  shot: ['round', 'chain'],       // what it can load; the first is what it fires when her chosen shot won't fit
+  crew: 7, cost: 40,              // cost is gold per gun: a slot of five costs five times this to fit
+  render: { barrel: 1.2, bore: 0.9 },   // relative to a long gun, for the battle model and the 3D yard
+  // optional: auto (fires on its own in Manual), single (one piece fills the slot), pellets, crewKill, repel,
+  // minRange, radius (shell), burn (pot), traverse
+},
+```
+
+Then list it in a slot's `accepts` to make it fittable. Hand-fired guns (`auto` unset) are the broadside: they
+fire on their own for the enemy and in Auto, and on the Fire tiles in Manual. Guns marked `auto` (swivels,
+chasers, mortars, fire-pots) always look after themselves. Each battery waits for a target inside its own reach
+and arc, so short guns (carronades) only speak when the enemy is close.
+
+**Slots** belong to a class. A class with `slots` must also set `tons`, the most weight of guns she may carry;
+her `speed` and `turn` are quoted with the default loadout, and each ton more or less moves them by
+`WEIGHT.speed` / `WEIGHT.turn` of themselves per `tons` (`src/config/slots.js`). Her `guns`, `reload` and `range`
+are only the at-a-glance figures for the type table.
+
+```js
+slots: {
+  portLower: { label: 'Lower tier', pos: 'broadside', side: 'port', tier: 'lower', count: 5,
+               accepts: ['long', 'demicannon'], default: 'long', at: [-0.3, 0.3] },
+  bow: { label: 'Bow', pos: 'bow', count: 2, accepts: ['bowChaser', 'swivel'], default: 'bowChaser' },
+  forecastle: { label: 'Forecastle', pos: 'deck', count: 2, accepts: ['swivel', 'mortar', 'firepot'], default: 'swivel', at: [0.3, 0.36] },
+},
+tons: 92,
+```
+
+`at` is where along the hull the guns sit (fractions of her length from amidships: 0.5 the bow), used for the
+muzzles in battle, the battle model and the 3D yard. `npm run check` checks every slot table (positions, sides,
+tiers, that each accepted gun fits the position, that the default loadout isn't overweight).
+
+**A loadout** is `{ slotId: gunId }`; slots it leaves out take their `default`. Battle ship defs may carry one,
+on a slotted class or on a simple class's implicit slots:
+
+```js
+{ type: 'frigate', name: 'Black Wyvern', ..., loadout: { port: 'carronade' } },          // carronades to larboard
+{ type: 'greatship', name: 'Real Felipe', ..., loadout: { portLower: 'demicannon', starboardLower: 'demicannon', portUpper: 'swivel', starboardUpper: 'swivel', forecastle: 'mortar' } },
+```
+
+The validator names an unknown slot or gun, a gun its slot won't take, and an overweight loadout. A ship's captain
+fights at the reach of her *main battery*, the one throwing the most weight of shot a second (`s.range`): a ship
+heavy in carronades closes in, one heavy in long guns stands off.
+
+**The campaign** offers the great ship once `FLAGSHIP.unlock` (La Gran Armada) is won: a frigate or a man-o'-war
+from `FLAGSHIP.from` can be rebuilt as one, one to a squadron (`greatOffer`/`buyGreatShip` in `src/save.js`).
+Fitting a slot costs the gun's `cost` times the guns it takes (`fitOffer`/`fitGun`); a fit that would take her
+over `tons` is refused. Her slots replace the simple *More guns* and *Bow chasers* upgrades; hull, canvas,
+marines, mines and shot carry over.
+
+**The save** is v2 (`src/save.js`, key `broadside.save.v2`; a v1 save under `broadside.save.v1` is migrated on
+load and left in place as a backup):
+
+```js
+{ v: 2, gold, stars: { battleId: 1-3 }, hats: [hatId], hired, best?, tips?: [tipId],
+  fleet: [{ name, cls, up: { upgradeId: level, chain?: 1, grape?: 1 },
+            loadout: { slotId: gunId },   // every slot, for a slotted class; {} otherwise
+            look: {} }] }                  // cosmetics, empty for now: see LOOK_FIELDS
+```
+
+`look` is for cosmetics a 3D shipyard will set (`LOOK_FIELDS` in `src/save.js`: `paint`, `sails`, `figurehead`,
+`flags`, `lanterns`); every field is optional and a missing one means the class's usual look. Add new fields to
+`LOOK_FIELDS` and keep them plain JSON; the migration keeps whatever is there.
+
+**In battle** a ship carries `s.batteries` (plain JSON, saved with the battle) and summaries the rest of the game
+reads: `s.guns`, `s.chasers`, `s.range`, `s.reloadTime`, `s.reload[side]` (seconds until that side's first
+hand-fired battery is loaded; writing it shifts that side's batteries, so `s.reload = [0, 0]` still means "loaded")
+and `s.repel` (her swivels' help against boarders). `hasten(s, secs)` loads every gun aboard faster (the rally
+ability uses it). The HUD's Fire tiles split their reload rule into one segment per battery on that side
+(`sideLoad`), and the selected ship shows a range rim for each different reach.
 
 ## Write an ability module
 

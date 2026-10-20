@@ -2,7 +2,7 @@
 // planner (src/sim/navgrid.js) for a way from every spawn of your fleet to everything the battle asks you to
 // reach: each enemy's start (to within gun range), each fort's landing spot, the exit, every chest, reach ring
 // and working harbour, and each harbour boom (to within gun range, with the boom still across). It sails the
-// biggest ship you could bring (the largest refit class, and never less than 1.2x a man-o'-war), so every
+// biggest ship you could bring (the largest class you can sail: the refit classes and the great ship), so every
 // channel, gap and lagoon mouth a battle relies on is wide enough for her. Chests on shoals may be left to small
 // ships. Also checks that every ship starts in open water for her size. Used by npm run check
 // (tests/content.mjs) and tests/maps.mjs.
@@ -26,13 +26,15 @@ export async function navCheck(C, { only = null, log = null } = {}) {
   const { penetration } = await import('../src/sim/steering.js');
   const { shoalsFor } = await import('../src/sim/terrain.js');
   const { REFIT } = await import('../src/config/ships.js');
+  const { FLAGSHIP } = await import('../src/config/flagship.js').catch(() => ({ FLAGSHIP: null }));
   const { TYPES, BATTLES } = C;
-  const classes = [...new Set([...Object.keys(REFIT), ...Object.values(REFIT)])].filter((k) => TYPES[k]);
-  const biggest = Math.max(...classes.map((k) => TYPES[k].L), TYPES.manowar ? TYPES.manowar.L * 1.2 : 0);
+  const classes = [...new Set([...Object.keys(REFIT), ...Object.values(REFIT), ...(FLAGSHIP ? [FLAGSHIP.type] : [])])].filter((k) => TYPES[k]);
+  const bigT = classes.map((k) => TYPES[k]).reduce((a, t) => (t.L > a.L ? t : a));
+  const biggest = bigT.L, beamOf = (L) => (L === biggest ? bigT.B : L * 0.36);
   const small = Math.min(...classes.map((k) => TYPES[k].L));
   const problems = [];
   // Every channel on the way: her clearance plus ROOM beams of clear water (half each side of her track).
-  const room = (L) => (ROOM / 2) * L * 0.36;
+  const room = (L) => (ROOM / 2) * beamOf(L);
   const fleet = [0, 1, 2, 3, 4].map((i) => ({ name: `Ship${i}`, cls: i ? 'sloop' : 'frigate', up: {} }));
   const rnd = Math.random;
   let seed = 1;
@@ -50,7 +52,7 @@ export async function navCheck(C, { only = null, log = null } = {}) {
         nav.forgetNav();
         const where = `battle '${B.id}' (${W}x${H})`;
         const bad = (m) => problems.push(`${where}: ${m}`);
-        const big = { L: biggest, B: biggest * 0.36 };
+        const big = { L: biggest, B: bigT.B };
         const starts = G.ships.filter((s) => s.team === 'player');
         // Everyone starts in open water for her size (your fleet's slots for the biggest ship).
         for (const s of G.ships) {

@@ -23,10 +23,45 @@ const GOAL_HOOKS = ['setup', 'update', 'failed', 'hud', 'sunk', 'escaped', 'weig
 const ABILITY_HOOKS = ['init', 'update', 'steer', 'wind', 'sunk'];
 const STATS = ['hp', 'guns', 'reload', 'speed', 'turn', 'range', 'marines', 'masts'];
 
+// Guns (src/config/guns.js), slot positions and the classes that declare slots (src/config/slots.js, flagship.js).
+const GUN_BEHAVIOUR = ['auto', 'single', 'pellets', 'crewKill', 'repel', 'minRange', 'radius', 'burn', 'traverse'];
+function renderGuns({ TYPES, GUNS, GUN_PARAMS, POSITIONS, SLOT_PARAMS, WEIGHT, FLAGSHIP, loadoutWeight, accepts }) {
+  const out = ['## Guns and slots', '',
+    'From `GUNS` in `src/config/guns.js` and `src/config/slots.js`. A class with `slots` (the great ship) fits one gun kind',
+    'per slot, chosen slot by slot at the shipyard and saved as the fleet ship\'s `loadout` (`{ slotId: gunId }`); a battle ship',
+    'def may carry a `loadout` too. Every other class has implicit slots: `port` and `starboard` broadsides of its `guns`',
+    'long guns (firing with the class\'s own `range` and `reload`) and a `bow` slot when it has chasers; a battle may still',
+    'refit those (an enemy frigate with carronades to port). Numbers are per gun; range is with the gun\'s first shot type',
+    '(chain and grape scale it by their `range`), arc is the half-angle either side of the slot\'s facing.', ''];
+  out.push(table(['gun', 'label', 'fits', 'fires', 'range', 'reload', 'dmg', 'weight', 'arc', 'shot', 'crew', 'cost', 'render', 'behaviour'],
+    Object.entries(GUNS).map(([id, G]) => [code(id), G.label, G.fits.join(', '), G.fires, G.range, G.reload, G.dmg, G.weight, `${G.arc}°`,
+      G.shot.length ? G.shot.join(', ') : '(its own)', G.crew, G.cost, `${G.render.barrel} × ${G.render.bore}`,
+      GUN_BEHAVIOUR.filter((k) => G[k] != null && G[k] !== false).map((k) => (G[k] === true ? k : `${k} ${G[k]}`)).join(', ')])), '');
+  out.push(Object.entries(GUNS).map(([id, G]) => `- ${code(id)}: ${G.about}`).join('\n'), '');
+  out.push('Gun fields:', '', table(['field', 'description'], Object.entries(GUN_PARAMS).map(([k, d]) => [code(k), d])), '');
+  out.push('Positions a slot can take:', '', table(['pos', 'facing', 'description'], Object.entries(POSITIONS).map(([k, P]) => [code(k),
+    k === 'broadside' ? 'abeam (port -90°, starboard 90°)' : P.face == null ? 'all round' : `${P.face}°`, P.about])), '');
+  out.push('Slot fields:', '', table(['field', 'description'], Object.entries(SLOT_PARAMS).map(([k, d]) => [code(k), d])), '');
+  for (const [id, T] of Object.entries(TYPES)) {
+    if (!T.slots) continue;
+    const def = loadoutWeight ? loadoutWeight(T, {}) : '?';
+    out.push(`### \`${id}\` slots`, '', `${T.label}: carries at most ${T.tons} tons of guns; the default loadout weighs ${def}. Her speed (${T.speed}) and turn (${T.turn})`,
+      `are with the default loadout; every ton more or less moves them by ${WEIGHT.speed} and ${WEIGHT.turn} of themselves per ${T.tons} tons.`, '');
+    out.push(table(['slot', 'label', 'pos', 'side / tier', 'guns', 'takes', 'default'], Object.entries(T.slots).map(([sid, sl]) => [code(sid), sl.label, sl.pos,
+      [sl.side, sl.tier].filter(Boolean).join(' / '), sl.count, (accepts ? accepts(sl) : sl.accepts || []).join(', '), sl.default])), '');
+  }
+  if (FLAGSHIP) {
+    out.push(`The campaign offers the \`${FLAGSHIP.type}\` once \`${FLAGSHIP.unlock}\` is won: a ${Object.entries(FLAGSHIP.from).map(([c, g]) => `${c} rebuilds for ${g} gold`).join(', a ')},`,
+      'one to a squadron. Fitting a slot costs the gun\'s price times the guns it takes.', '');
+  }
+  return out;
+}
+
 export function renderPrimitives(C) {
   // Only the registries and the type/hat tables go in, never the battles, so rebalancing battles.js never
   // makes this file stale.
   const { TYPES, HATS, GOALS, ABILITIES, WHEN, DO, TERRAIN, RAKE, CRIT, LANDMARKS = {}, LAND_FIELDS = {}, LANDMARK_PLACE = {} } = C;
+  const { GUNS = {}, GUN_PARAMS = {}, POSITIONS = {}, SLOT_PARAMS = {}, WEIGHT = {}, FLAGSHIP = null } = C;
   const out = [
     '# Broadside primitives',
     '',
@@ -40,6 +75,7 @@ export function renderPrimitives(C) {
     `- [Event conditions](#event-conditions-when): ${Object.keys(WHEN).map(code).join(', ')}`,
     `- [Event actions](#event-actions-do): ${Object.keys(DO).map(code).join(', ')}`,
     `- [Ship types](#ship-types): ${Object.keys(TYPES).map(code).join(', ')}`,
+    `- [Guns and slots](#guns-and-slots): ${Object.keys(GUNS).map(code).join(', ')}`,
     `- [Hats](#hats): ${Object.keys(HATS).map(code).join(', ')}`,
     `- [Geography and openings](#geography-and-openings): ${Object.keys(TERRAIN).map(code).join(', ')}`,
     `- [Land and landmarks](#land-and-landmarks): ${Object.keys(LANDMARKS).map(code).join(', ')}`,
@@ -86,8 +122,12 @@ export function renderPrimitives(C) {
     code(id), T.label, ...STATS.map((k) => T[k]), `${T.L} × ${T.B}`, T.rig || 'square',
     T.abilities ? Object.entries(T.abilities).map(([a, c]) => (c === true ? a : `${a} ${JSON.stringify(c)}`)).join(', ') : '',
   ])), '');
-  const extra = Object.entries(TYPES).flatMap(([id, T]) => Object.keys(T).filter((k) => !['label', 'L', 'B', 'rig', 'abilities', ...STATS].includes(k)).map((k) => `${code(id)}: ${code(k)} = ${code(T[k])}`));
+  const extra = Object.entries(TYPES).flatMap(([id, T]) => Object.keys(T).filter((k) => !['label', 'L', 'B', 'rig', 'abilities', 'slots', 'tons', ...STATS].includes(k)).map((k) => `${code(id)}: ${code(k)} = ${code(T[k])}`));
   if (extra.length) out.push(`Other flags: ${extra.join('; ')}.`, '');
+  const slotted = Object.entries(TYPES).filter(([, T]) => T.slots).map(([id]) => code(id));
+  if (slotted.length) out.push(`Classes with gun slots (see [Guns and slots](#guns-and-slots)): ${slotted.join(', ')}.`, '');
+
+  out.push(...renderGuns({ TYPES, GUNS, GUN_PARAMS, POSITIONS, SLOT_PARAMS, WEIGHT, FLAGSHIP, loadoutWeight: C.loadoutWeight, accepts: C.accepts }));
 
   out.push('## Hats', '', 'Won by finishing a battle that sets `hat` (bosses carry the same id in `boss.hat`).', '');
   out.push(table(['hat', 'name', 'from'], Object.entries(HATS).map(([id, h]) => [code(id), h.name, h.from])), '');
@@ -111,7 +151,7 @@ export function renderPrimitives(C) {
     "booms: [{ from: [0.46, 0.35], to: [0.79, 0.36], hp: 70, fort: 0, name: 'the Boca Chica boom' }],", '```', '',
     'Every battle must stay navigable: `npm run check` (tests/navcheck.mjs) asks the route planner (`src/sim/navgrid.js`)',
     'for a way from each of your fleet\'s slots to every enemy, fort landing, exit, chest, reach ring, working harbour and',
-    'boom, for the biggest ship you could bring (never less than 1.2x a man-o\'-war), with three beams of clear water',
+    'boom, for the biggest ship you could bring (the great ship), with three beams of clear water',
     'beyond her own clearance in every channel, at every stage of the tide. It names the battle, the screen size, the',
     'ship and the objective it could not reach.', '');
 

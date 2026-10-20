@@ -38,10 +38,11 @@ register('data:text/javascript,' + encodeURIComponent(HOOKS));
 const src = (p) => new URL('../src/' + p, import.meta.url).href;
 
 export async function loadContent() {
-  const [battles, ships, hats, endless, goals, abilities, events, terrain, hazards, land, lands] = await Promise.all([
+  const [battles, ships, hats, endless, goals, abilities, events, terrain, hazards, land, lands, guns, slots, ammo, flagship] = await Promise.all([
     import(src('config/battles.js')), import(src('config/ships.js')), import(src('config/hats.js')), import(src('config/endless.js')),
     import(src('sim/goals/index.js')), import(src('sim/abilities/index.js')), import(src('sim/events.js')),
     import(src('sim/terrain.js')), import(src('sim/hazards.js')), import(src('sim/land.js')), import(src('config/lands.js')),
+    import(src('config/guns.js')), import(src('config/slots.js')), import(src('config/ammo.js')), import(src('config/flagship.js')),
   ]);
   return {
     BATTLES: battles.BATTLES, REGIONS: battles.REGIONS, FLEET_SLOTS: battles.FLEET_SLOTS,
@@ -52,5 +53,9 @@ export async function loadContent() {
     RAKE: hazards.RAKE, CRIT: hazards.CRIT,
     LANDMARKS: land.LANDMARKS, LAND_FIELDS: land.LAND_FIELDS, LANDMARK_PLACE: land.LANDMARK_PLACE, LAND_STYLES: land.LAND_STYLES,
     LANDS: lands.LANDS, landOf: land.landOf, checkLand: land.checkLand,
+    // Guns and slots (src/config/guns.js, src/config/slots.js, src/config/flagship.js).
+    GUNS: guns.GUNS, GUN_PARAMS: guns.GUN_PARAMS, POSITIONS: slots.POSITIONS, SLOT_PARAMS: slots.SLOT_PARAMS, WEIGHT: slots.WEIGHT,
+    checkLoadout: slots.checkLoadout, checkSlots: slots.checkSlots, loadoutWeight: slots.loadoutWeight, accepts: slots.accepts, FLAGSHIP: flagship.FLAGSHIP,
+    AMMO: ammo.AMMO,
   };
 }
