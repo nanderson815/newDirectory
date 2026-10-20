@@ -47,78 +47,83 @@ export const MED_BATTLES = [
     ],
     events: [
       { at: 45, banner: ['Galleys round Cape Malabata!', 'Two more and a fire galley, rowing hard'],
-        spawn: [{ type: 'galley', name: 'Fath', x: 0.94, y: 0.42, h: 180 }, { type: 'galley', name: 'Ra’d', x: 0.94, y: 0.5, h: 180 },
-          { type: 'firegalley', name: 'Shihab', x: 0.9, y: 0.34, h: 160 }] },
+        spawn: [{ type: 'galley', name: 'Fath', x: 0.95, y: 0.5, h: 180 }, { type: 'galley', name: 'Ra’d', x: 0.95, y: 0.44, h: 180 },
+          { type: 'firegalley', name: 'Shihab', x: 0.9, y: 0.38, h: 160 }] },
     ],
-    // Defend the harbour from inside it: you start in Tangier Bay behind the Mole, Spain a smudge across the
-    // Straits, and the galleys come at you from open water and round the cape to the east.
-    fleetAt: { slots: [[0.36, 0.79], [0.26, 0.73], [0.46, 0.86], [0.58, 0.86], [0.7, 0.86]], h: -90 },
+    // A bowl with a breakwater: Tangier Bay is a round bite out of the African shore, and the Mole runs out
+    // across it from the town to York Castle on its rock, so the bay behind it is a pond the galleys can only
+    // enter round the castle's end. You start in the pond. Cape Malabata stands up tall at the east end and hides
+    // the second wave until it is round; Spain is a smudge across the Straits.
+    fleetAt: { slots: [[0.4, 0.83], [0.3, 0.84], [0.5, 0.86], [0.6, 0.84], [0.36, 0.89]], h: -30 },
     coast: [
-      { side: 'bottom', depth: 0.2, rough: 0.12, seed: 4, coves: [{ at: 0.56, width: 0.62, depth: 0.12 }], capes: [{ at: 0.06, width: 0.18, depth: 0.05 }, { at: 0.97, width: 0.14, depth: 0.12 }] },
+      { side: 'bottom', depth: 0.26, rough: 0.1, seed: 4, coves: [{ at: 0.42, width: 0.72, depth: 0.18 }], capes: [{ at: 0.92, width: 0.22, depth: 0.16 }] },
       { side: 'top', depth: 0.05, rough: 0.4, seed: 5 },
     ],
-    islands: [{ x: 0.62, y: 0.76, r: 30, stretch: 3.6, angle: -12 }, { x: 0.2, y: 0.5, r: 38, stretch: 1.4, angle: 30 }],
+    islands: [{ x: 0.52, y: 0.73, r: 36 }, { x: 0.3, y: 0.745, r: 18, stretch: 8, angle: -6 }, { x: 0.2, y: 0.46, r: 38, stretch: 1.4, angle: 30 }],
     forts: [{ island: 0, name: 'York Castle', hp: 260, guns: 3, need: 10, team: 'player' }],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 2.02, hpMul: 2.5 },
   },
   {
     id: 'gibraltar', world: W, region: 'straits', roman: 'II', year: 1666, name: 'Under the Rock', foe: 'Salé rovers',
-    faction: 'barbary', reward: 740, wind: -90, sea: 1.5,
+    faction: 'barbary', reward: 740, wind: 180, sea: 1.9,
     brief: 'Two Salé polacres have taken the merchantman Hopewell and run for the Atlantic with the Levanter behind them. Sink the polacres before they clear the Straits. The Rock steals the wind in its lee; keep to the African side.',
     goals: [
       { kind: 'hunt', ships: ['Ghazala', 'Najma'] },
       { kind: 'take', ships: 'Hopewell', bonus: true, gold: 160 },
     ],
     enemy: [
-      { type: 'polacre', name: 'Ghazala', x: 0.5, y: 0.4, h: -90, abilities: { flee: { below: 0.55, speed: 1.2, say: 'She crowds on sail for the Atlantic!' } } },
-      { type: 'polacre', name: 'Najma', x: 0.6, y: 0.33, h: -90, abilities: { flee: { below: 0.55, speed: 1.2, say: 'She crowds on sail for the Atlantic!' } } },
-      { type: 'merchant', name: 'Hopewell', x: 0.42, y: 0.48, h: -90, abilities: { flee: { below: 0.6, speed: 1.1, say: 'The prize crew runs for it!' } } },
-      { type: 'tartane', name: 'Rih', x: 0.48, y: 0.26, h: -90 },
+      { type: 'polacre', name: 'Ghazala', x: 0.4, y: 0.5, h: 180, abilities: { flee: { below: 0.55, speed: 1.2, say: 'She crowds on sail for the Atlantic!' } } },
+      { type: 'polacre', name: 'Najma', x: 0.46, y: 0.44, h: 180, abilities: { flee: { below: 0.55, speed: 1.2, say: 'She crowds on sail for the Atlantic!' } } },
+      { type: 'merchant', name: 'Hopewell', x: 0.5, y: 0.55, h: 180, abilities: { flee: { below: 0.6, speed: 1.1, say: 'The prize crew runs for it!' } } },
+      { type: 'tartane', name: 'Rih', x: 0.3, y: 0.46, h: 180 },
     ],
     events: [
-      { at: 30, banner: ['A galley out of Ceuta!', 'She rows across to cover the rovers'], spawn: [{ type: 'galley', name: 'Sayf', x: 0.66, y: 0.14, h: 120 }] },
+      { at: 30, banner: ['A galley out of Ceuta!', 'She rows across to cover the rovers'], spawn: [{ type: 'galley', name: 'Sayf', x: 0.72, y: 0.62, h: -150 }] },
     ],
-    // A long chase down a corridor of water: the Rock juts from the European shore and Jebel Musa from the
-    // African, with a reef in the wide water astern, the wind dead behind the quarry and the Rock's lee across
-    // the middle. The Atlantic pours in down the corridor (src/sim/flow.js), so the run west is a fight against it.
-    fleetAt: { slots: [[0.5, 0.82], [0.38, 0.86], [0.62, 0.86], [0.44, 0.92], [0.56, 0.92]], h: -90 },
+    // The Straits run ACROSS the chart: Spain along the top, Africa along the bottom, the Atlantic off the left
+    // edge. The Rock stands down from the Spanish shore like a tooth with the Bay of Algeciras tucked in behind it,
+    // Jebel Musa and Ceuta's hill rise from the African side. The quarry runs west before the Levanter; the Rock
+    // throws its lee over the bay and the northern water, so the African side keeps the wind, and the Atlantic
+    // pours in down the middle (src/sim/flow.js) against everyone running west. The edges of the shore water are
+    // slack: hug a coast to cheat the current, but mind the lee.
+    fleetAt: { slots: [[0.88, 0.5], [0.92, 0.44], [0.92, 0.56], [0.96, 0.47], [0.96, 0.53]], h: 180 },
     coast: [
-      { side: 'left', depth: 0.22, rough: 0.15, seed: 3, capes: [{ at: 0.38, width: 0.24, depth: 0.16 }] },
-      { side: 'right', depth: 0.2, rough: 0.15, seed: 9, capes: [{ at: 0.62, width: 0.22, depth: 0.14 }] },
+      { side: 'top', depth: 0.3, rough: 0.12, seed: 3, capes: [{ at: 0.66, width: 0.14, depth: 0.15 }, { at: 0.04, width: 0.14, depth: 0.04 }], coves: [{ at: 0.42, width: 0.36, depth: 0.15 }] },
+      { side: 'bottom', depth: 0.3, rough: 0.15, seed: 9, capes: [{ at: 0.28, width: 0.3, depth: 0.07 }, { at: 0.84, width: 0.14, depth: 0.1 }], coves: [{ at: 0.6, width: 0.2, depth: 0.06 }] },
     ],
-    reefs: [{ x: 0.5, y: 0.72, r: 14, stretch: 5, angle: 90 }],
-    shoals: [{ x: 0.66, y: 0.46, r: 44, stretch: 1.8, angle: 80 }],
-    currents: [{ x: 0.5, y: 0.42, r: 110, stretch: 5, angle: 90, speed: 10 }],
+    currents: [{ x: 0.48, y: 0.52, r: 130, stretch: 4, angle: 0, speed: 10 }],
+    reefs: [{ x: 0.62, y: 0.51, r: 12, stretch: 3, angle: 20 }],
     islands: [],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 2.0, hpMul: 3.14 },
   },
   {
     id: 'sale', world: W, region: 'straits', roman: 'III', year: 1666, name: 'The Rover of Salé', foe: 'Reis Ibrahim',
     where: 'off the bar of Salé',
-    faction: 'barbary', goal: 'boss', hat: 'rover', reward: 840, wind: 90, sea: 1.3,
+    faction: 'barbary', goal: 'boss', hat: 'rover', reward: 840, wind: 10, sea: 1.35,
     goals: [{ kind: 'boss' }, { kind: 'hunt', ships: 'Barq', bonus: true, gold: 140 }],
     brief: 'Reis Ibrahim lies in the river mouth behind the bar of Salé, under the guns of the Kasbah. His polacre slips over the sandbar where your big ships would stick fast: go round it. Hurt him and he will run for the open sea.',
     enemy: [
-      { type: 'polacre', name: 'Burak', x: 0.5, y: 0.2, h: 90, hp: 720, chasers: 2,
+      { type: 'polacre', name: 'Burak', x: 0.8, y: 0.42, h: 180, hp: 720, chasers: 2,
         abilities: { flee: { below: 0.28, speed: 1.15, say: 'Reis Ibrahim makes for the open sea!' }, grapple: { below: 0.55 } },
         boss: { captain: 'Reis Ibrahim', title: 'Burak', hat: 'rover' } },
-      { type: 'galley', name: 'Saqr', x: 0.32, y: 0.24, h: 90 },
-      { type: 'galley', name: 'Nasr', x: 0.68, y: 0.24, h: 90 },
-      { type: 'tartane', name: 'Qamar', x: 0.4, y: 0.15, h: 90 },
-      { type: 'felucca', name: 'Barq', x: 0.6, y: 0.14, h: 90, abilities: { flee: { below: 0.9, speed: 1.1, say: 'The felucca runs for Rabat!' } } },
+      { type: 'galley', name: 'Saqr', x: 0.5, y: 0.32, h: 180 },
+      { type: 'galley', name: 'Nasr', x: 0.5, y: 0.56, h: 180 },
+      { type: 'tartane', name: 'Qamar', x: 0.72, y: 0.36, h: 180 },
+      { type: 'felucca', name: 'Barq', x: 0.86, y: 0.46, h: 180, abilities: { flee: { below: 0.9, speed: 1.1, say: 'The felucca runs for Rabat!' } } },
     ],
     events: [
       { bossHp: 0.6, banner: ['Rovers out of Rabat!', 'Two tartanes slip along the shore'],
-        spawn: [{ type: 'tartane', name: 'Rih', x: 0.06, y: 0.42, h: 0 }, { type: 'tartane', name: 'Zahra', x: 0.94, y: 0.42, h: 180 }] },
+        spawn: [{ type: 'tartane', name: 'Rih', x: 0.5, y: 0.06, h: 90 }, { type: 'tartane', name: 'Zahra', x: 0.5, y: 0.94, h: -90 }] },
     ],
-    // A river-mouth lair: a deep cove behind a sandbar that light corsairs cross and your ships of the line must
-    // go round, the Kasbah on its rock covering the anchorage. The tide falls at 80 s and the bar dries: then even
-    // the corsairs must use the channels.
-    coast: { side: 'top', depth: 0.3, rough: 0.15, seed: 6, coves: [{ at: 0.5, width: 0.8, depth: 0.2 }] },
-    fleetAt: { slots: [[0.5, 0.58], [0.38, 0.62], [0.62, 0.62], [0.44, 0.68], [0.56, 0.68]], h: -90 },
-    shoals: [{ x: 0.5, y: 0.34, r: 36, stretch: 3, angle: 0, tidal: true }],
+    // A river-mouth lair on an Atlantic shore: the Bou Regreg cuts deep into the coast between Salé and Rabat,
+    // and Reis Ibrahim lies in its mouth. A sandbar lies across the mouth: the light corsairs cross it, your ships
+    // of the line must take the one deep channel, which runs right under the Kasbah on its rock. Or wait: the tide
+    // falls at 80 s and the bar dries, and then even the corsairs must come out by the Kasbah's channel.
+    coast: { side: 'right', depth: 0.34, rough: 0.12, seed: 6, coves: [{ at: 0.43, width: 0.3, depth: 0.2 }, { at: 0.43, width: 0.14, depth: 0.1 }] },
+    fleetAt: { slots: [[0.16, 0.44], [0.1, 0.38], [0.1, 0.5], [0.05, 0.41], [0.05, 0.47]], h: 0 },
+    shoals: [{ x: 0.67, y: 0.34, r: 34, stretch: 2.4, angle: 90, tidal: true }],
     tide: { level: 0.5, turns: [{ at: 80, to: 0.2, secs: 16 }] },
-    islands: [{ x: 0.19, y: 0.18, r: 28 }, { x: 0.82, y: 0.6, r: 40 }, { x: 0.16, y: 0.5, r: 32, stretch: 1.6, angle: 60 }],
+    islands: [{ x: 0.64, y: 0.53, r: 44 }, { x: 0.3, y: 0.16, r: 34, stretch: 1.5, angle: 30 }, { x: 0.36, y: 0.8, r: 40 }],
     forts: [{ island: 0, name: 'the Kasbah', hp: 300, guns: 3, need: 15 }],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 1.54, hpMul: 2.04 },
   },
@@ -130,23 +135,29 @@ export const MED_BATTLES = [
     brief: 'Not a breath of wind in the Bay of Bougie, and the Algerine galleys have found you. Your ships barely carry steerage way; theirs are rowed. Anchor and swing your broadsides onto them, and wait for the breeze.',
     goals: [{ kind: 'sink' }, { kind: 'timer', secs: 170, bonus: true, gold: 150 }],
     enemy: [
-      { type: 'galley', name: 'Asad', x: 0.24, y: 0.22, h: 60 },
-      { type: 'galley', name: 'Saqr', x: 0.36, y: 0.18, h: 80 },
-      { type: 'polacre', name: 'Sa’ada', x: 0.62, y: 0.27, h: 90 },
-      { type: 'galley', name: 'Fath', x: 0.84, y: 0.9, h: -110 },
-      { type: 'firegalley', name: 'Shihab', x: 0.14, y: 0.88, h: -70 },
+      { type: 'galley', name: 'Asad', x: 0.3, y: 0.28, h: 60 },
+      { type: 'galley', name: 'Saqr', x: 0.44, y: 0.22, h: 80 },
+      { type: 'polacre', name: 'Sa’ada', x: 0.62, y: 0.3, h: 90 },
+      { type: 'galley', name: 'Fath', x: 0.16, y: 0.74, h: -30 },
+      { type: 'firegalley', name: 'Shihab', x: 0.08, y: 0.64, h: -20 },
     ],
     events: [
       { at: 30, banner: ['More oars round Cape Carbon!', 'Two galleys from the east'],
-        spawn: [{ type: 'galley', name: 'Ra’d', x: 0.95, y: 0.42, h: 180 }, { type: 'galley', name: 'Sayf', x: 0.95, y: 0.5, h: 180 }] },
+        spawn: [{ type: 'galley', name: 'Ra’d', x: 0.94, y: 0.06, h: 150 }, { type: 'galley', name: 'Sayf', x: 0.86, y: 0.04, h: 120 }] },
       { at: 70, breeze: 1, wind: 45, banner: ['A breeze at last!', 'Your sails fill: now the galleys are in reach'] },
     ],
-    // A flat calm in a wide bay: you start becalmed in the middle with galleys in a cove ahead and two more
-    // astern; rocky islets to anchor behind, and a sandbank the shallow galleys cross and you can't.
-    fleetAt: { slots: [[0.5, 0.54], [0.4, 0.58], [0.6, 0.58], [0.45, 0.66], [0.56, 0.66]], h: -90 },
-    coast: { side: 'top', depth: 0.16, rough: 0.3, seed: 8, capes: [{ at: 0.84, width: 0.28, depth: 0.12 }], coves: [{ at: 0.28, width: 0.34, depth: 0.09 }] },
-    islands: [{ x: 0.2, y: 0.5, r: 46 }, { x: 0.82, y: 0.66, r: 38, stretch: 1.6, angle: 30 }, { x: 0.5, y: 0.84, r: 34 }],
-    shoals: [{ x: 0.52, y: 0.36, r: 50, stretch: 2.4, angle: -10 }],
+    // A flat calm in the corner of a gulf: the Kabylie shore closes the bottom and the right of the chart, Bougie
+    // in the corner and Cape Carbon standing out from the right-hand shore. You start becalmed in the gulf with
+    // a sandbank across its mouth that the galleys row over and you can't, and three rocky islets about you to
+    // anchor behind: pick one so the galleys must come round it into your broadside. The breeze, when it comes,
+    // blows you out past the cape.
+    fleetAt: { slots: [[0.56, 0.68], [0.46, 0.7], [0.64, 0.74], [0.52, 0.76], [0.42, 0.78]], h: -60 },
+    coast: [
+      { side: 'right', depth: 0.2, rough: 0.25, seed: 8, capes: [{ at: 0.3, width: 0.12, depth: 0.3 }], coves: [{ at: 0.68, width: 0.3, depth: 0.12 }] },
+      { side: 'bottom', depth: 0.14, rough: 0.3, seed: 11, coves: [{ at: 0.6, width: 0.5, depth: 0.08 }], capes: [{ at: 0.06, width: 0.16, depth: 0.06 }] },
+    ],
+    islands: [{ x: 0.3, y: 0.6, r: 50 }, { x: 0.7, y: 0.58, r: 36, stretch: 1.6, angle: -30 }, { x: 0.46, y: 0.88, r: 30 }],
+    shoals: [{ x: 0.5, y: 0.46, r: 46, stretch: 3, angle: -20 }],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 2.38, hpMul: 3.12 },
   },
   {
@@ -154,28 +165,31 @@ export const MED_BATTLES = [
     faction: 'barbary', reward: 820, wind: -60, sea: 1.35,
     brief: 'Sixty English seamen lie in the bagnio of Algiers. Silence the battery on the Mole, anchor a ship with marines off the harbour while the boats go in, then see the captives’ boat safely out to sea.',
     goals: [
-      { kind: 'rescue', x: 0.78, y: 0.53, r: 0.075, need: 10, fort: 'the Mole Battery', town: 'the bagnio of Algiers', captives: 60,
+      { kind: 'rescue', x: 0.38, y: 0.57, r: 0.075, need: 10, fort: 'the Mole Battery', town: 'the bagnio of Algiers', captives: 60,
         boat: { type: 'felucca', name: 'Deliverance', hp: 110 } },
       { kind: 'hunt', ships: 'Asad', bonus: true, gold: 160 },
     ],
     enemy: [
-      { type: 'polacre', name: 'Sa’ada', x: 0.48, y: 0.24, h: 90 },
-      { type: 'polacre', name: 'Qamar', x: 0.6, y: 0.64, h: 180 },
-      { type: 'galley', name: 'Asad', x: 0.6, y: 0.92, h: -120, abilities: { flee: { below: 0.45 } } },
-      { type: 'galley', name: 'Saqr', x: 0.5, y: 0.16, h: 90 },
+      { type: 'polacre', name: 'Sa’ada', x: 0.6, y: 0.24, h: 90 },
+      { type: 'polacre', name: 'Qamar', x: 0.66, y: 0.6, h: 180 },
+      { type: 'galley', name: 'Asad', x: 0.44, y: 0.9, h: -60, abilities: { flee: { below: 0.45 } } },
+      { type: 'galley', name: 'Saqr', x: 0.74, y: 0.14, h: 90 },
     ],
     events: [
       { at: 55, banner: ['Galleys out of the harbour!', 'The Dey sends his own'],
-        spawn: [{ type: 'galley', name: 'Fath', x: 0.72, y: 0.62, h: 180 }, { type: 'galley', name: 'Ra’d', x: 0.7, y: 0.42, h: 180 }] },
+        spawn: [{ type: 'galley', name: 'Fath', x: 0.32, y: 0.62, h: 0 }, { type: 'galley', name: 'Ra’d', x: 0.44, y: 0.64, h: 0 }] },
       { at: 110, banner: ['Polacres from the west!', 'Algiers’ cruisers come home'],
-        spawn: [{ type: 'polacre', name: 'Nasr', x: 0.2, y: 0.08, h: 60 }, { type: 'polacre', name: 'Sayf', x: 0.45, y: 0.06, h: 90 }] },
+        spawn: [{ type: 'polacre', name: 'Nasr', x: 0.42, y: 0.06, h: 60 }, { type: 'polacre', name: 'Sayf', x: 0.6, y: 0.04, h: 90 }] },
     ],
-    // A harbour assault: the city along the right-hand shore with its harbour cove, the Mole Battery on its rock
-    // off the mouth, and a reef north of it; the captives' boat must run up the coast to the open sea.
-    fleetAt: { slots: [[0.45, 0.74], [0.32, 0.78], [0.58, 0.78], [0.38, 0.84], [0.52, 0.84]], h: -90 },
-    coast: { side: 'right', depth: 0.24, rough: 0.12, seed: 2, coves: [{ at: 0.52, width: 0.4, depth: 0.12 }], capes: [{ at: 0.2, width: 0.16, depth: 0.07 }] },
-    islands: [{ x: 0.57, y: 0.44, r: 40 }, { x: 0.16, y: 0.6, r: 40, stretch: 1.6, angle: 70 }],
-    reefs: [{ x: 0.32, y: 0.3, r: 14, stretch: 5, angle: 25 }],
+    // A harbour behind a mole: the white city climbs the left-hand shore, and from it the Mole runs straight out
+    // to sea to the Peñón, the lighthouse rock where the Mole Battery stands. The harbour lies in the crook below
+    // the Mole, the ring at its heart, so the battery covers it from the end of the arm: silence it, anchor in the
+    // crook, and the captives' boat must row out round the Peñón and the whole length of the chart to the open
+    // sea at the top, past the reef north of the Mole.
+    fleetAt: { slots: [[0.66, 0.78], [0.56, 0.8], [0.76, 0.8], [0.62, 0.86], [0.72, 0.86]], h: -120 },
+    coast: { side: 'left', depth: 0.3, rough: 0.1, seed: 2, coves: [{ at: 0.57, width: 0.22, depth: 0.1 }], capes: [{ at: 0.86, width: 0.16, depth: 0.06 }] },
+    islands: [{ x: 0.55, y: 0.47, r: 42 }, { x: 0.4, y: 0.47, r: 18, stretch: 6, angle: 0 }, { x: 0.84, y: 0.4, r: 40, stretch: 1.6, angle: 70 }],
+    reefs: [{ x: 0.5, y: 0.3, r: 14, stretch: 5, angle: 20 }],
     forts: [{ island: 0, name: 'the Mole Battery', hp: 280, guns: 3, need: 10 }],
     ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 2.68, hpMul: 3.33 },
   },
@@ -189,23 +203,27 @@ export const MED_BATTLES = [
       { kind: 'timer', secs: 180, bonus: true, gold: 170 },
     ],
     enemy: [
-      { type: 'kalyon', name: 'Mubarak', x: 0.3, y: 0.22, h: 0, abilities: { moored: true } },
-      { type: 'polacre', name: 'Hilal', x: 0.5, y: 0.2, h: 0, abilities: { moored: true } },
-      { type: 'galley', name: 'Asad', x: 0.66, y: 0.24, h: 180, abilities: { moored: true } },
-      { type: 'polacre', name: 'Nur', x: 0.84, y: 0.22, h: 180, abilities: { moored: true } },
-      { type: 'galley', name: 'Saqr', x: 0.18, y: 0.5, h: 90 },
-      { type: 'galley', name: 'Nasr', x: 0.82, y: 0.52, h: 90 },
+      { type: 'kalyon', name: 'Mubarak', x: 0.3, y: 0.2, h: 0, abilities: { moored: true } },
+      { type: 'polacre', name: 'Hilal', x: 0.46, y: 0.17, h: 0, abilities: { moored: true } },
+      { type: 'galley', name: 'Asad', x: 0.6, y: 0.2, h: 180, abilities: { moored: true } },
+      { type: 'polacre', name: 'Nur', x: 0.74, y: 0.24, h: 180, abilities: { moored: true } },
+      { type: 'galley', name: 'Saqr', x: 0.2, y: 0.46, h: 90 },
+      { type: 'galley', name: 'Nasr', x: 0.84, y: 0.48, h: 90 },
     ],
     events: [
       { banner: ['Fireships in company', 'Little Unicorn and Prosperous: steer them like any ship'],
-        spawn: [{ type: 'fireship', name: 'Little Unicorn', team: 'player', x: 0.36, y: 0.72, h: -90 },
-          { type: 'fireship', name: 'Prosperous', team: 'player', x: 0.64, y: 0.72, h: -90 }] },
+        spawn: [{ type: 'fireship', name: 'Little Unicorn', team: 'player', x: 0.3, y: 0.6, h: -90 },
+          { type: 'fireship', name: 'Prosperous', team: 'player', x: 0.4, y: 0.62, h: -90 }] },
     ],
-    // A raid on a lagoon: a long spit, a sandbank and the fort close the harbour mouth; small ships (your
-    // fireships) cross the sandbank with the wind behind them, ships of the line go round either end.
-    coast: { side: 'top', depth: 0.12, rough: 0.25, seed: 4 },
-    islands: [{ x: 0.4, y: 0.36, r: 28, stretch: 5, angle: 0 }, { x: 0.73, y: 0.36, r: 34 }],
-    shoals: [{ x: 0.62, y: 0.36, r: 30, stretch: 2.4, angle: 0 }],
+    // A raid on a lagoon: the Lake of Tunis is a round bowl bitten out of the shore, closed across its mouth by
+    // the spit of La Goletta, so it shows as a pond behind a line. The west half of the mouth is a broad sandbank
+    // your fireships cross with the wind behind them; the only way in for a ship of the line is the canal at the
+    // spit's east end, under the guns of La Goletta. Go in by the canal and draw the fort, or keep the big ships
+    // outside and send the fireships over the bank.
+    coast: { side: 'top', depth: 0.34, rough: 0.12, seed: 4, coves: [{ at: 0.5, width: 0.9, depth: 0.24 }] },
+    islands: [{ x: 0.44, y: 0.31, r: 22, stretch: 6, angle: -4 }, { x: 0.62, y: 0.3, r: 34 }],
+    shoals: [{ x: 0.17, y: 0.31, r: 44, stretch: 2.6, angle: 4 }],
+    fleetAt: { slots: [[0.6, 0.66], [0.5, 0.7], [0.7, 0.7], [0.56, 0.76], [0.66, 0.76]], h: -90 },
     forts: [{ island: 1, name: 'La Goletta', hp: 300, guns: 3, need: 15 }],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 2.06, hpMul: 2.75 },
   },
@@ -215,43 +233,48 @@ export const MED_BATTLES = [
     brief: 'Kara Hasan Reis, Admiral of Algiers, comes out at the head of his line with the wind behind him. His ships fight faster near him; break them apart. The channel up to him runs between the shore and a long island.',
     goals: [{ kind: 'boss' }, { kind: 'take', ships: 'Sa’ada', bonus: true, gold: 170 }],
     enemy: [
-      { type: 'kalyon', name: 'Mubarak', x: 0.32, y: 0.12, h: 90, hp: 720, chasers: 2,
+      { type: 'kalyon', name: 'Mubarak', x: 0.4, y: 0.2, h: 60, hp: 720, chasers: 2,
         abilities: { rally: { radius: 210, reload: 0.72 } },
         boss: { captain: 'Kara Hasan Reis', title: 'Mubarak', hat: 'kalpak' } },
-      { type: 'polacre', name: 'Sa’ada', x: 0.46, y: 0.17, h: 90 },
-      { type: 'polacre', name: 'Qamar', x: 0.24, y: 0.26, h: 90 },
-      { type: 'galley', name: 'Saqr', x: 0.56, y: 0.24, h: 100 },
-      { type: 'galley', name: 'Nasr', x: 0.8, y: 0.18, h: 110 },
+      { type: 'polacre', name: 'Sa’ada', x: 0.54, y: 0.2, h: 70 },
+      { type: 'polacre', name: 'Qamar', x: 0.34, y: 0.3, h: 60 },
+      { type: 'galley', name: 'Saqr', x: 0.62, y: 0.28, h: 80 },
+      { type: 'galley', name: 'Nasr', x: 0.8, y: 0.2, h: 100 },
     ],
     events: [
       { bossHp: 0.6, banner: ['The Dey’s galleys row out!', 'Two more from the harbour'],
-        spawn: [{ type: 'galley', name: 'Fath', x: 0.2, y: 0.1, h: 30 }, { type: 'galley', name: 'Ra’d', x: 0.3, y: 0.06, h: 60 }] },
+        spawn: [{ type: 'galley', name: 'Fath', x: 0.32, y: 0.14, h: 30 }, { type: 'galley', name: 'Ra’d', x: 0.44, y: 0.12, h: 60 }] },
       { bossHp: 0.3, banner: ['The Mubarak is hulled!', 'Hasan Reis fights on from the quarterdeck'] },
     ],
-    // An upwind fight: the admiral's line comes down on the wind from his harbour, and you beat up to him through
-    // a broad channel between the shore and a long island, or round the island's far side past a reef.
-    fleetAt: { slots: [[0.46, 0.72], [0.34, 0.76], [0.58, 0.76], [0.4, 0.82], [0.52, 0.82]], h: -90 },
-    coast: { side: 'left', depth: 0.18, rough: 0.25, seed: 7, coves: [{ at: 0.16, width: 0.3, depth: 0.1 }] },
-    islands: [{ x: 0.7, y: 0.48, r: 40, stretch: 4.5, angle: 90 }, { x: 0.3, y: 0.9, r: 40 }],
-    reefs: [{ x: 0.86, y: 0.28, r: 14, stretch: 4, angle: -40 }],
+    // An upwind fight across a chain: the admiral's harbour is tucked into the top-left corner of the chart, and
+    // a chain of rocky islets runs from it diagonally down across the sea, reefs filling one of its gaps. His
+    // line comes down the wind on your side of the chain; you beat up to him. Each gap you choose splits his
+    // line (his ships fight faster near him), and the islets are cover while you claw up to windward.
+    fleetAt: { slots: [[0.66, 0.84], [0.56, 0.86], [0.76, 0.86], [0.62, 0.92], [0.72, 0.92]], h: -110 },
+    coast: [
+      { side: 'left', depth: 0.22, rough: 0.25, seed: 7, coves: [{ at: 0.1, width: 0.1, depth: 0.08 }] },
+      { side: 'top', depth: 0.12, rough: 0.2, seed: 17, coves: [{ at: 0.3, width: 0.24, depth: 0.06 }] },
+    ],
+    islands: [{ x: 0.3, y: 0.44, r: 54, stretch: 1.3, angle: 30 }, { x: 0.52, y: 0.53, r: 36 }, { x: 0.72, y: 0.62, r: 58, stretch: 1.5, angle: 35 }, { x: 0.92, y: 0.72, r: 34 }],
+    reefs: [{ x: 0.62, y: 0.575, r: 14, stretch: 3, angle: 30 }],
     ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 2.17, hpMul: 3.22 },
   },
 
   // ---------- Malta and Sicily ----------
   {
     id: 'knights', world: W, region: 'malta', roman: 'VIII', year: 1668, name: 'The Knights’ Galleys', foe: 'Tripoli corsairs',
-    where: 'off Valletta', faction: 'barbary', reward: 880, wind: -90, sea: 1.4,
+    where: 'off Valletta', faction: 'barbary', reward: 880, wind: -90, sea: 1.5,
     brief: 'You lie in the Grand Harbour with two galleys of the Knights of St John when a Tripoli squadron is sighted off the mouth. Sortie together and sink them; the Knights fight their own way, but lose either galley and the Grand Master will never forgive you.',
     goals: [
       { kind: 'sink' },
       { kind: 'protect', allies: [
-        { type: 'galley', name: 'San Giovanni', x: 0.4, y: 0.68, h: -90, hp: 340, up: { marines: 2 } },
-        { type: 'galley', name: 'Santa Ubaldesca', x: 0.6, y: 0.68, h: -90, hp: 340, up: { marines: 2 } },
+        { type: 'galley', name: 'San Giovanni', x: 0.46, y: 0.7, h: -90, hp: 340, up: { marines: 2 } },
+        { type: 'galley', name: 'Santa Ubaldesca', x: 0.58, y: 0.72, h: -90, hp: 340, up: { marines: 2 } },
       ] },
       { kind: 'take', ships: 'Rih', bonus: true, gold: 150 },
     ],
     enemy: [
-      { type: 'polacre', name: 'Nur', x: 0.5, y: 0.36, h: 90 },
+      { type: 'polacre', name: 'Nur', x: 0.42, y: 0.4, h: 90 },
       { type: 'polacre', name: 'Shihab', x: 0.72, y: 0.42, h: 120 },
       { type: 'galley', name: 'Asad', x: 0.34, y: 0.44, h: 70 },
       { type: 'galley', name: 'Saqr', x: 0.84, y: 0.32, h: 110 },
@@ -261,17 +284,22 @@ export const MED_BATTLES = [
       { at: 50, banner: ['Galleys from behind Gozo!', 'They mean to take the Knights in the flank'],
         spawn: [{ type: 'galley', name: 'Fath', x: 0.06, y: 0.36, h: 20 }, { type: 'galley', name: 'Nasr', x: 0.08, y: 0.5, h: 0 }] },
     ],
-    // A sortie: you start inside the Grand Harbour, Fort St Elmo on the western horn of its mouth, and fight
-    // the corsairs in the channel off it, with Gozo and Comino to the north to hide galleys behind.
-    fleetAt: { slots: [[0.5, 0.74], [0.42, 0.78], [0.58, 0.78], [0.46, 0.84], [0.54, 0.84]], h: -90 },
-    coast: { side: 'bottom', depth: 0.32, rough: 0.12, seed: 1, coves: [{ at: 0.5, width: 0.5, depth: 0.24 }] },
-    islands: [{ x: 0.3, y: 0.72, r: 26 }, { x: 0.22, y: 0.2, r: 70, stretch: 1.8, angle: -10 }, { x: 0.64, y: 0.27, r: 34 }],
+    // A sortie from a harbour of fingers: Malta's high shore fills the bottom of the chart, cut by two long
+    // inlets, Marsamxett and the Grand Harbour, with the thin ridge of Valletta between them and Fort St Elmo on
+    // its point. Senglea and Birgu stick up into the Grand Harbour like fingers from its far shore, the dockyard
+    // creeks between them. You start inside, and must get the Knights out of the narrow mouth before the corsairs
+    // cork it; Gozo and Comino across the channel to the north hide the galleys' second wave.
+    fleetAt: { slots: [[0.52, 0.76], [0.44, 0.8], [0.56, 0.84], [0.48, 0.88], [0.6, 0.9]], h: -90 },
+    coast: { side: 'bottom', depth: 0.34, rough: 0.08, seed: 1,
+      coves: [{ at: 0.2, width: 0.22, depth: 0.2 }, { at: 0.62, width: 0.5, depth: 0.3 }],
+      capes: [{ at: 0.68, width: 0.05, depth: 0.14 }, { at: 0.78, width: 0.05, depth: 0.16 }] },
+    islands: [{ x: 0.34, y: 0.655, r: 36 }, { x: 0.22, y: 0.16, r: 120, stretch: 1.6, angle: -12 }, { x: 0.54, y: 0.3, r: 36 }],
     forts: [{ island: 0, name: 'Fort St Elmo', hp: 240, guns: 3, need: 10, team: 'player' }],
     ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 1.56, hpMul: 2.12 },
   },
   {
     id: 'passero', world: W, region: 'malta', roman: 'IX', year: 1668, name: 'Storm off Cape Passero', foe: 'Tripoli rovers',
-    where: 'off the coast of Sicily', faction: 'barbary', reward: 900, wind: 0, sea: 1.4, weather: 'storm',
+    where: 'off the coast of Sicily', faction: 'barbary', reward: 900, wind: -20, sea: 1.4, weather: 'storm',
     brief: 'A Tripoli squadron is running down the Sicilian coast and the sky to the south is black. Sink them before the gale sets you all on the rocks of Cape Passero: when it blows, ships run faster, guns throw wild and the rain hides everything.',
     goals: [{ kind: 'sink' }, { kind: 'timer', secs: 200, bonus: true, gold: 170 }],
     enemy: [
@@ -283,19 +311,21 @@ export const MED_BATTLES = [
     ],
     events: [
       { at: 30, breeze: 1.25, banner: ['The sky darkens to the south', 'The wind is getting up'] },
-      { at: 55, breeze: 1.55, fog: 260, wind: 30, banner: ['A gale off Cape Passero!', 'Rain squalls: you can barely see your own bowsprit'] },
+      { at: 55, breeze: 1.55, fog: 260, wind: -40, banner: ['A gale off Cape Passero!', 'Rain squalls: you can barely see your own bowsprit'] },
       { at: 75, banner: ['Rovers running before the gale!', 'Two polacres out of the murk'],
         spawn: [{ type: 'polacre', name: 'Fath', x: 0.06, y: 0.5, h: 0 }, { type: 'polacre', name: 'Sayf', x: 0.06, y: 0.62, h: -20 }] },
-      { at: 135, breeze: 1.1, fog: 0, wind: -30, banner: ['The storm blows through', 'Finish them while the sky clears'] },
+      { at: 135, breeze: 1.1, fog: 0, wind: 10, banner: ['The storm blows through', 'Finish them while the sky clears'] },
     ],
-    // A lee shore in a rising gale: Cape Passero and its islet stand out from the Sicilian shore with reefs off
-    // them, the wind blows you onto it, and the open sea to the west is where you claw off.
-    // The set round the cape (src/sim/flow.js) carries you toward the reefs and the lee shore.
+    // A lee shore in a rising gale, cut in two by a finger of rock: Cape Passero runs out from the Sicilian shore
+    // on the right most of the way across the chart, with its islet and a reef beyond the tip, so the only way
+    // between the two halves is the gap out by the left edge. The rovers come down from the north; the gale
+    // blows from the south-west, straight onto the cape's southern face, and the set round the tip
+    // (src/sim/flow.js) carries you toward the reef and the rocks. Claw off to the west, or be pinned.
     fleetAt: { slots: [[0.48, 0.84], [0.38, 0.88], [0.58, 0.86], [0.44, 0.94], [0.56, 0.93]], h: -90 },
-    coast: { side: 'right', depth: 0.22, rough: 0.3, seed: 12, capes: [{ at: 0.6, width: 0.3, depth: 0.22 }] },
-    islands: [{ x: 0.32, y: 0.66, r: 40 }, { x: 0.12, y: 0.86, r: 42, stretch: 1.5, angle: -20 }],
-    reefs: [{ x: 0.28, y: 0.44, r: 14, stretch: 5, angle: 60 }, { x: 0.58, y: 0.34, r: 16, stretch: 2, angle: 10 }, { x: 0.36, y: 0.58, r: 12, stretch: 3, angle: 90 }],
-    currents: [{ x: 0.52, y: 0.5, r: 90, stretch: 3, angle: 90, dir: 60, speed: 11 }],
+    coast: { side: 'right', depth: 0.12, rough: 0.3, seed: 12, capes: [{ at: 0.5, width: 0.1, depth: 0.48 }, { at: 0.86, width: 0.2, depth: 0.08 }] },
+    islands: [{ x: 0.34, y: 0.5, r: 40 }, { x: 0.16, y: 0.74, r: 36, stretch: 1.5, angle: -20 }],
+    reefs: [{ x: 0.25, y: 0.5, r: 12, stretch: 3, angle: 0 }, { x: 0.7, y: 0.7, r: 16, stretch: 2, angle: 10 }, { x: 0.62, y: 0.3, r: 12, stretch: 3, angle: 80 }],
+    currents: [{ x: 0.4, y: 0.6, r: 90, stretch: 3, angle: 0, dir: -20, speed: 11 }],
     ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 2.93, hpMul: 3.56 },
   },
   {
@@ -345,16 +375,18 @@ export const MED_BATTLES = [
     ],
     events: [
       { at: 16, banner: ['Galleys from the Morea shore!', 'They lay in wait in the coves'],
-        spawn: [{ type: 'galley', name: 'Saqr', x: 0.22, y: 0.68, h: 0 }, { type: 'galley', name: 'Nasr', x: 0.22, y: 0.32, h: 20 }] },
+        spawn: [{ type: 'galley', name: 'Saqr', x: 0.9, y: 0.34, h: 180 }, { type: 'galley', name: 'Nasr', x: 0.9, y: 0.52, h: 200 }] },
       { at: 40, banner: ['Corsairs from behind Cephalonia!', 'Two polacres come round the island'],
-        spawn: [{ type: 'polacre', name: 'Shihab', x: 0.94, y: 0.18, h: 150 }, { type: 'polacre', name: 'Fath', x: 0.93, y: 0.48, h: 180 }] },
+        spawn: [{ type: 'polacre', name: 'Shihab', x: 0.05, y: 0.5, h: -30 }, { type: 'polacre', name: 'Fath', x: 0.06, y: 0.08, h: 30 }] },
     ],
-    // A long channel and an ambush: the convoy's road runs up between the Morea's coves and the long island of
-    // Cephalonia, with an islet splitting it; corsairs wait in the coves and behind the island, off the screen.
-    // A current sets up the channel (src/sim/flow.js): it carries the convoy and the corsairs row against it.
-    coast: { side: 'left', depth: 0.16, rough: 0.3, seed: 14, coves: [{ at: 0.3, width: 0.16, depth: 0.07 }, { at: 0.68, width: 0.14, depth: 0.07 }] },
-    islands: [{ x: 0.8, y: 0.32, r: 46, stretch: 7, angle: 92 }, { x: 0.82, y: 0.8, r: 60, stretch: 1.5, angle: 60 }, { x: 0.44, y: 0.55, r: 34 }],
-    currents: [{ x: 0.5, y: 0.5, r: 100, stretch: 5, angle: -90, speed: 9 }],
+    // Two great islands and the water between: Zante's bulk fills the lower right, Cephalonia's the upper left,
+    // and the convoy's road is the diagonal sound between them, past an islet that splits it, to the open sea at
+    // the top. The Morea's shore and its coves close the right-hand edge; corsairs lie in the coves and behind
+    // Cephalonia. A current sets up the sound (src/sim/flow.js): it carries the convoy and the corsairs row
+    // against it, while the inshore water off either island is slack.
+    coast: { side: 'right', depth: 0.08, rough: 0.35, seed: 14, coves: [{ at: 0.42, width: 0.16, depth: 0.05 }], capes: [{ at: 0.18, width: 0.24, depth: 0.1 }] },
+    islands: [{ x: 0.15, y: 0.3, r: 165, stretch: 2, angle: 72 }, { x: 0.74, y: 0.7, r: 150, stretch: 1.6, angle: -50 }, { x: 0.5, y: 0.47, r: 40 }],
+    currents: [{ x: 0.48, y: 0.5, r: 110, stretch: 5, angle: -72, speed: 9 }],
     ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.64, hpMul: 2.53 },
   },
   {
