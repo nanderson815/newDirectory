@@ -24,6 +24,9 @@
 //                     WORLDS?, FACTIONS? })
 //   (the ? ones add checks when given)
 //
+//   - ship looks (src/config/looks.js), when C.checkLook is given: every ship def's `look` (known fields, known
+//     catalogue entries, lanterns 1-3).
+//
 //   - guns and slots (src/config/guns.js, src/config/slots.js), when C.GUNS and C.checkLoadout are given: every gun
 //     entry against GUN_PARAMS, every class's slot table (checkSlots), and every ship def's `loadout` against its
 //     class (unknown slot or gun, a gun its slot won't take, overweight).
@@ -113,6 +116,8 @@ export function validateContent(C) {
     if (d.loadout !== undefined && C.checkLoadout && TYPES[d.type]) {
       for (const m of C.checkLoadout(TYPES[d.type], d.loadout, { chasers: d.chasers || 0 })) bad(at, m);
     }
+    // Her look (src/config/looks.js): known fields and catalogue entries; enemy-only fashions are fine here.
+    if (d.look !== undefined && C.checkLook) for (const m of C.checkLook(d.look, { foe: true })) bad(at, m);
     if (opts.B) onIsland(at, opts.B, { ...d, ship: true });
   }
   // Ships (and points like chests) mustn't start on land; a ship mustn't start aground or on a reef. p.type

@@ -46,6 +46,9 @@ export function makeShip(def, team, place, rot, id, ai) {
     mastsDown: 0, rudderT: 0, fireT: 0,
     rig: T.rig || 'square', shallow: !!T.shallow, escort: !!def.escort, ally: !!def.ally, exits: !!(def.escort || def.exits), flag: false,
     faction: def.faction || null, hidden: false,
+    // Her cosmetics (src/config/looks.js): your ships' from the save, an enemy's from her def (or, when it says
+    // nothing, her faction's palette at render time).
+    look: def.look || null,
   };
   summarize(s, T);
   initAbilities(s, { ...T.abilities, ...def.abilities });
@@ -79,7 +82,7 @@ export function createBattle(idx, size, fleet) {
   // fleetAt puts the campaign fleet somewhere other than the bottom of the chart (an ambush, an enemy astern).
   const lay = fleetLayout(B, FLEET_SLOTS);
   const playerDefs = B.player || fleet.map((f, i) => ({
-    type: f.cls, name: f.name, x: lay.slots[i][0], y: lay.slots[i][1], h: lay.h, up: f.up, loadout: f.loadout,
+    type: f.cls, name: f.name, x: lay.slots[i][0], y: lay.slots[i][1], h: lay.h, up: f.up, loadout: f.loadout, look: f.look,
   }));
   for (const d of playerDefs) ships.push(makeShip(d, 'player', place, rot, id++, B.ai));
   for (const d of B.enemy) ships.push(makeShip({ ...d, faction: B.faction }, 'enemy', place, rot, id++, B.ai));

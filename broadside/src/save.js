@@ -6,30 +6,27 @@ import { AMMO_COSTS, BOARDING } from './config/ammo.js';
 import { FLAGSHIP } from './config/flagship.js';
 import { GUNS } from './config/guns.js';
 import { classSlots, defaultLoadout, fullLoadout, loadoutWeight, accepts, slotCount, weightFactors } from './config/slots.js';
+import { LOOK_FIELDS, LOOK_DEFAULT, lookItem, cleanLook } from './config/looks.js';
 import { S } from './state.js';
 
 // Campaign progress lives in this browser only (localStorage), so it's a per-player convenience:
 // losing it costs progress, never breaks the game.
 //
 // Save v2 (stored under KEY):
-//   { v: 2, gold, stars: { battleId: 1-3 }, hats: [hatId], hired, best?, tips?: [tipId],
+//   { v: 2, gold, stars: { battleId: 1-3 }, hats: [hatId], hired, best?, tips?: [tipId], wardrobe?: ['field:id'],
 //     fleet: [{ name, cls, up: { upgradeId: level, chain?: 1, grape?: 1 }, loadout: { slotId: gunId }, look: {} }] }
 // `loadout` is only filled for a class with slots (the great ship, src/config/slots.js); for the rest it stays {}.
-// `look` is the ship's cosmetics (LOOK_FIELDS), empty until the shipyard has a way to set them.
+// `look` is the ship's cosmetics (LOOK_FIELDS in src/config/looks.js: paint, cloth, emblem, figurehead, flag,
+// lanterns, gilding); a missing field is the usual look. `wardrobe` lists the looks bought at the shipyard
+// ("emblem:rose"): bought once, any ship may wear them. Looks a hat unlocks need no entry.
 // A v1 save (under LEGACY_KEY, no loadout or look) is migrated on load and left where it was as a backup.
 export const SAVE_VERSION = 2;
 const KEY = 'broadside.save.v2';
 const LEGACY_KEY = 'broadside.save.v1';
 
-// What a ship's `look` may hold, for the 3D shipyard to fill. Every field is optional; a missing one means the
-// class's usual look (src/render/models.js). Values are plain JSON.
-export const LOOK_FIELDS = {
-  paint: '{ hull, wale, trim }: hull paint colours as "#rrggbb"',
-  sails: '{ cloth: "#rrggbb", emblem: id | null }: the colour of her canvas and a device painted on the main course',
-  figurehead: 'id of a figurehead carving (a lion, a mermaid, a saint...)',
-  flags: '{ ensign: id, pennant: id }: the colours she flies',
-  lanterns: 'how many stern lanterns she shows (1-3)',
-};
+// What a ship's `look` may hold (src/config/looks.js). Every field is optional; a missing one means the usual
+// look. Values are plain JSON; anything the catalogue doesn't know is dropped on load.
+export { LOOK_FIELDS };
 
 const ship = (name, cls) => ({ name, cls, up: {}, loadout: defaultLoadout(TYPES[cls] || {}), look: {} });
 
@@ -52,9 +49,11 @@ export function migrate(s) {
   const fleet = s.fleet.map((f) => {
     const T = TYPES[f.cls] || {};
     const loadout = f.loadout && typeof f.loadout === 'object' ? (T.slots ? fullLoadout(T, f.loadout) : f.loadout) : defaultLoadout(T);
-    return { ...f, up: f.up || {}, loadout, look: f.look && typeof f.look === 'object' ? f.look : {} };
+    return { ...f, up: f.up || {}, loadout, look: cleanLook(f.look) };
   });
-  return { ...s, v: SAVE_VERSION, fleet };
+  const out = { ...s, v: SAVE_VERSION, fleet };
+  if (s.wardrobe !== undefined) out.wardrobe = Array.isArray(s.wardrobe) ? s.wardrobe.filter((w) => typeof w === 'string' && lookItem(...w.split(':'))) : [];
+  return out;
 }
 
 function read(key) {
@@ -168,6 +167,33 @@ export function fitGun(i, slotId, gun) {
   writeSave();
   return true;
 }
+// ---------- Looks ----------
+// What she wears, with the usual look wherever her own says nothing.
+export const lookOf = (f) => ({ ...LOOK_DEFAULT, ...(f.look || {}) });
+// Wearing look entry `id` in `field` on fleet ship f: whether it is hers already, the squadron owns it (free, bought
+// or won with a hat), what it costs if not, and the hat that unlocks it.
+export function lookOffer(f, field, id) {
+  const item = lookItem(field, id);
+  if (!item || item.foe) return null;
+  const worn = String(lookOf(f)[field]) === String(id);
+  const locked = !worn && !!item.hat && !save.hats.includes(item.hat);
+  const owned = worn || (!locked && (item.hat || !item.cost || (save.wardrobe || []).includes(`${field}:${id}`)));
+  return { item, worn, owned: !!owned, locked, hat: item.hat || null, cost: owned || locked ? null : item.cost };
+}
+// Dresses fleet ship i: free if the squadron owns it, else bought (and kept in the wardrobe for every ship).
+export function wearLook(i, field, id) {
+  const f = save.fleet[i], o = f && lookOffer(f, field, id);
+  if (!o || o.locked || o.worn) return false;
+  if (!o.owned) {
+    if (!spend(o.cost)) return false;
+    save.wardrobe = [...(save.wardrobe || []), `${field}:${id}`];
+  }
+  const v = field === 'lanterns' ? +id : id;
+  f.look = { ...cleanLook(f.look), [field]: v };
+  writeSave();
+  return true;
+}
+
 export function upgradeOffer(f, id) {
   const U = UPGRADES.find((u) => u.id === id);
   const level = lvl(f, id);
