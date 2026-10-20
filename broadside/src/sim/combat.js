@@ -329,7 +329,8 @@ export function updateMines(dt) {
     if (m.arm > 0) { m.arm -= dt; continue; }
     for (const s of G.ships) {
       if (s.team === m.team || !afloat(s)) continue;
-      if (Math.hypot(s.x - m.x, s.y - m.y) < s.L * 0.42 + 8) {
+      // 0.56 L is the reach a mine had before the fleet pass cut hulls to 3/4, so mines bite as often as they did.
+      if (Math.hypot(s.x - m.x, s.y - m.y) < s.L * 0.56 + 8) {
         explodeMine(m, s);
         G.mines.splice(i, 1);
         break;

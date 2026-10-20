@@ -82,7 +82,8 @@ function burst(b) {
   for (const o of G.ships) {
     if (o.team === b.team || !afloat(o)) continue;
     const d = Math.hypot(o.x - b.x, o.y - b.y);
-    if (d < b.radius + o.L * 0.3) hitShip(o, { dmg: Math.round(b.dmg * (1 - 0.5 * clamp(d / b.radius, 0, 1))), team: b.team, x: o.x, y: o.y, shell: true });
+    // (0.4 L: as far as a shell's burst reached before hulls were cut to 3/4.)
+    if (d < b.radius + o.L * 0.4) hitShip(o, { dmg: Math.round(b.dmg * (1 - 0.5 * clamp(d / b.radius, 0, 1))), team: b.team, x: o.x, y: o.y, shell: true });
   }
   for (const f of G.forts) {
     if (f.team === b.team || f.state !== 'active') continue;
