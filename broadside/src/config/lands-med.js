@@ -14,7 +14,7 @@ export const MED_LANDS = {
       { kind: 'castle', coast: 0, at: 0.1, inland: 90 },
       { kind: 'church', coast: 0, at: 0.32, inland: 70 },
       { kind: 'peak', coast: 0, at: 0.92, inland: 90, height: 55, size: 0.5, lee: 2 },
-      { kind: 'lighthouse', island: 0, at: -60, d: 0.6 },
+      { kind: 'lighthouse', island: 0, at: -60, d: 0.8 },
       { kind: 'harbour', island: 1, at: 90, rate: 2.5, stock: 140 },
       { kind: 'town', coast: 1, at: 0.6, inland: 24, houses: 3, look: 'spanish', name: 'Tarifa' },
       { kind: 'windmill', coast: 1, at: 0.3, inland: 20 },
@@ -77,7 +77,7 @@ export const MED_LANDS = {
       { kind: 'town', coast: 0, at: 0.54, inland: 60, houses: 10, look: 'city', name: 'Algiers' },
       { kind: 'castle', coast: 0, at: 0.44, inland: 120 },
       { kind: 'harbour', coast: 0, at: 0.6, rate: 0, team: 'enemy' },
-      { kind: 'lighthouse', island: 0, at: 0, d: 0.4 },
+      { kind: 'lighthouse', island: 0, at: 0, d: 0.8 },
       { kind: 'windmill', coast: 0, at: 0.76, inland: 60 },
       { kind: 'ruin', island: 2, at: 0, d: 0.2 },
       { kind: 'stacks', island: 2, at: 200, count: 2 },
@@ -190,19 +190,19 @@ export const MED_LANDS = {
   },
 
   // ---------- Candia ----------
-  // The ruined city behind its walls, the Venetian mole with the Koules fort at its end (its carpenters patch
-  // your hulls in the mole's lee), the Sultan's siege lines along the shore either side.
+  // The ruined city behind its walls, the Venetian harbour in their face (its carpenters patch your hulls) with
+  // the Koules fort at its mouth, the Sultan's siege lines along the shore either side.
   candia: {
     style: 'candia',
-    relief: [{ island: 0, height: 0.7, cliffs: 0.6, at: 0 }, { island: 1, height: 0.2, cliffs: 0 }, { island: 2, height: 0.9, cliffs: 0.4 }],
+    relief: [{ island: 0, height: 0.7, cliffs: 0.6, at: 0 }, { island: 1, height: 0.9, cliffs: 0.4 }],
     landmarks: [
-      { kind: 'town', coast: 0, at: 0.5, inland: 60, houses: 10, look: 'city', name: 'Candia', team: 'player' },
-      { kind: 'harbour', island: 1, at: 90, rate: 3, stock: 200 },
-      { kind: 'castle', island: 1, at: 0, d: 0.75 },
-      { kind: 'church', coast: 0, at: 0.42, inland: 100 },
+      { kind: 'town', coast: 0, at: 0.52, inland: 70, houses: 10, look: 'city', name: 'Candia', team: 'player' },
+      { kind: 'harbour', coast: 0, at: 0.45, rate: 3, stock: 200 },
+      { kind: 'castle', coast: 0, at: 0.41, inland: 30 },
+      { kind: 'church', coast: 0, at: 0.56, inland: 120 },
       { kind: 'ruin', coast: 0, at: 0.2, inland: 40 },
       { kind: 'ruin', coast: 0, at: 0.82, inland: 40 },
-      { kind: 'stacks', island: 2, at: 200, count: 2 },
+      { kind: 'stacks', island: 1, at: 200, count: 2 },
     ],
   },
   // Night off Dia: the Venetian lantern on the Cretan shore lights the water; Dia's peak and old stones, and

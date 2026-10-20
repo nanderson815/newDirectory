@@ -50,16 +50,17 @@ export const MED_BATTLES = [
         spawn: [{ type: 'galley', name: 'Fath', x: 0.95, y: 0.5, h: 180 }, { type: 'galley', name: 'Ra’d', x: 0.95, y: 0.44, h: 180 },
           { type: 'firegalley', name: 'Shihab', x: 0.9, y: 0.38, h: 160 }] },
     ],
-    // A bowl with a breakwater: Tangier Bay is a round bite out of the African shore, and the Mole runs out
-    // across it from the town to York Castle on its rock, so the bay behind it is a pond the galleys can only
-    // enter round the castle's end. You start in the pond. Cape Malabata stands up tall at the east end and hides
-    // the second wave until it is round; Spain is a smudge across the Straits.
-    fleetAt: { slots: [[0.4, 0.83], [0.3, 0.84], [0.5, 0.86], [0.6, 0.84], [0.36, 0.89]], h: -30 },
+    // A breakwater on a long, low shore: the African coast runs flat along the bottom of the chart, Tangier on
+    // its headland at the west end and Cape Malabata standing up tall at the east, hiding the second wave until
+    // it is round. From the town's headland the Mole runs straight out east to York Castle on its rock, walling off
+    // a long pond between the arm and the beach: you start in it, the galleys can only reach you round the
+    // castle's end, and the castle fires down both sides of the arm. Spain is a smudge across the Straits.
+    fleetAt: { slots: [[0.48, 0.85], [0.38, 0.85], [0.58, 0.86], [0.68, 0.84], [0.28, 0.86]], h: 0 },
     coast: [
-      { side: 'bottom', depth: 0.26, rough: 0.1, seed: 4, coves: [{ at: 0.42, width: 0.72, depth: 0.18 }], capes: [{ at: 0.92, width: 0.22, depth: 0.16 }] },
+      { side: 'bottom', depth: 0.075, rough: 0.2, seed: 4, capes: [{ at: 0.16, width: 0.16, depth: 0.19 }, { at: 0.93, width: 0.16, depth: 0.36 }] },
       { side: 'top', depth: 0.05, rough: 0.4, seed: 5 },
     ],
-    islands: [{ x: 0.52, y: 0.73, r: 36 }, { x: 0.3, y: 0.745, r: 18, stretch: 8, angle: -6 }, { x: 0.2, y: 0.46, r: 38, stretch: 1.4, angle: 30 }],
+    islands: [{ x: 0.54, y: 0.74, r: 38 }, { x: 0.37, y: 0.75, r: 18, stretch: 8, angle: -4 }, { x: 0.2, y: 0.42, r: 38, stretch: 1.4, angle: 30 }],
     forts: [{ island: 0, name: 'York Castle', hp: 260, guns: 3, need: 10, team: 'player' }],
     ai: { spread: 0.1, reloadMul: 1.0, dmgMul: 2.02, hpMul: 2.5 },
   },
@@ -137,13 +138,13 @@ export const MED_BATTLES = [
     enemy: [
       { type: 'galley', name: 'Asad', x: 0.3, y: 0.28, h: 60 },
       { type: 'galley', name: 'Saqr', x: 0.44, y: 0.22, h: 80 },
-      { type: 'polacre', name: 'Sa’ada', x: 0.62, y: 0.3, h: 90 },
+      { type: 'polacre', name: 'Sa’ada', x: 0.42, y: 0.36, h: 90 },
       { type: 'galley', name: 'Fath', x: 0.16, y: 0.74, h: -30 },
       { type: 'firegalley', name: 'Shihab', x: 0.08, y: 0.64, h: -20 },
     ],
     events: [
       { at: 30, banner: ['More oars round Cape Carbon!', 'Two galleys from the east'],
-        spawn: [{ type: 'galley', name: 'Ra’d', x: 0.94, y: 0.06, h: 150 }, { type: 'galley', name: 'Sayf', x: 0.86, y: 0.04, h: 120 }] },
+        spawn: [{ type: 'galley', name: 'Ra’d', x: 0.72, y: 0.08, h: 150 }, { type: 'galley', name: 'Sayf', x: 0.62, y: 0.04, h: 120 }] },
       { at: 70, breeze: 1, wind: 45, banner: ['A breeze at last!', 'Your sails fill: now the galleys are in reach'] },
     ],
     // A flat calm in the corner of a gulf: the Kabylie shore closes the bottom and the right of the chart, Bougie
@@ -243,7 +244,7 @@ export const MED_BATTLES = [
     ],
     events: [
       { bossHp: 0.6, banner: ['The Dey’s galleys row out!', 'Two more from the harbour'],
-        spawn: [{ type: 'galley', name: 'Fath', x: 0.32, y: 0.14, h: 30 }, { type: 'galley', name: 'Ra’d', x: 0.44, y: 0.12, h: 60 }] },
+        spawn: [{ type: 'galley', name: 'Fath', x: 0.32, y: 0.14, h: 30 }, { type: 'galley', name: 'Ra’d', x: 0.46, y: 0.18, h: 60 }] },
       { bossHp: 0.3, banner: ['The Mubarak is hulled!', 'Hasan Reis fights on from the quarterdeck'] },
     ],
     // An upwind fight across a chain: the admiral's harbour is tucked into the top-left corner of the chart, and
@@ -255,7 +256,7 @@ export const MED_BATTLES = [
       { side: 'left', depth: 0.22, rough: 0.25, seed: 7, coves: [{ at: 0.1, width: 0.1, depth: 0.08 }] },
       { side: 'top', depth: 0.12, rough: 0.2, seed: 17, coves: [{ at: 0.3, width: 0.24, depth: 0.06 }] },
     ],
-    islands: [{ x: 0.3, y: 0.44, r: 54, stretch: 1.3, angle: 30 }, { x: 0.52, y: 0.53, r: 36 }, { x: 0.72, y: 0.62, r: 58, stretch: 1.5, angle: 35 }, { x: 0.92, y: 0.72, r: 34 }],
+    islands: [{ x: 0.3, y: 0.44, r: 70, stretch: 1.4, angle: 30 }, { x: 0.52, y: 0.53, r: 48 }, { x: 0.73, y: 0.62, r: 74, stretch: 1.5, angle: 35 }, { x: 0.93, y: 0.72, r: 40 }],
     reefs: [{ x: 0.62, y: 0.575, r: 14, stretch: 3, angle: 30 }],
     ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 2.17, hpMul: 3.22 },
   },
@@ -289,7 +290,7 @@ export const MED_BATTLES = [
     // its point. Senglea and Birgu stick up into the Grand Harbour like fingers from its far shore, the dockyard
     // creeks between them. You start inside, and must get the Knights out of the narrow mouth before the corsairs
     // cork it; Gozo and Comino across the channel to the north hide the galleys' second wave.
-    fleetAt: { slots: [[0.52, 0.76], [0.44, 0.8], [0.56, 0.84], [0.48, 0.88], [0.6, 0.9]], h: -90 },
+    fleetAt: { slots: [[0.56, 0.76], [0.52, 0.81], [0.6, 0.83], [0.55, 0.87], [0.6, 0.91]], h: -90 },
     coast: { side: 'bottom', depth: 0.34, rough: 0.08, seed: 1,
       coves: [{ at: 0.2, width: 0.22, depth: 0.2 }, { at: 0.62, width: 0.5, depth: 0.3 }],
       capes: [{ at: 0.68, width: 0.05, depth: 0.14 }, { at: 0.78, width: 0.05, depth: 0.16 }] },
@@ -358,26 +359,26 @@ export const MED_BATTLES = [
   {
     id: 'zante', world: W, region: 'morea', roman: 'XI', year: 1669, name: 'The Currant Ships', foe: 'Dulcigno corsairs',
     where: 'between Zante and Cephalonia', faction: 'barbary', reward: 920, wind: 0, sea: 1.6,
-    fleetAt: { slots: [[0.45, 0.76], [0.3, 0.82], [0.56, 0.8], [0.36, 0.92], [0.5, 0.94]], h: -90 },
+    fleetAt: { slots: [[0.38, 0.76], [0.26, 0.8], [0.48, 0.8], [0.2, 0.88], [0.62, 0.9]], h: -90 },
     brief: 'Three Levant Company ships are loaded with Zante currants for the London Christmas puddings. They sail up the channel on their own; the Dulcigno corsairs wait in the coves of the Morea and behind Cephalonia. Two must get through.',
     goals: [
       { kind: 'escort', need: 2, ships: [
-        { type: 'merchant', name: 'Levant Merchant', x: 0.4, y: 0.88, h: -90, hp: 200, up: { marines: 2 } },
-        { type: 'merchant', name: 'Smyrna Factor', x: 0.54, y: 0.86, h: -90, hp: 200, up: { marines: 2 } },
-        { type: 'merchant', name: 'Zante Rose', x: 0.62, y: 0.92, h: -90, hp: 200, up: { marines: 2 } },
+        { type: 'merchant', name: 'Levant Merchant', x: 0.32, y: 0.88, h: -90, hp: 200, up: { marines: 2 } },
+        { type: 'merchant', name: 'Smyrna Factor', x: 0.44, y: 0.87, h: -90, hp: 200, up: { marines: 2 } },
+        { type: 'merchant', name: 'Zante Rose', x: 0.4, y: 0.94, h: -90, hp: 200, up: { marines: 2 } },
       ] },
       { kind: 'hunt', ships: 'Asad', bonus: true, gold: 170 },
     ],
     enemy: [
       { type: 'polacre', name: 'Nur', x: 0.5, y: 0.22, h: 90 },
-      { type: 'polacre', name: 'Hilal', x: 0.34, y: 0.14, h: 90 },
+      { type: 'polacre', name: 'Hilal', x: 0.44, y: 0.1, h: 90 },
       { type: 'galley', name: 'Asad', x: 0.6, y: 0.1, h: 90, abilities: { flee: { below: 0.4 } } },
     ],
     events: [
       { at: 16, banner: ['Galleys from the Morea shore!', 'They lay in wait in the coves'],
-        spawn: [{ type: 'galley', name: 'Saqr', x: 0.9, y: 0.34, h: 180 }, { type: 'galley', name: 'Nasr', x: 0.9, y: 0.52, h: 200 }] },
+        spawn: [{ type: 'galley', name: 'Saqr', x: 0.84, y: 0.36, h: 180 }, { type: 'galley', name: 'Nasr', x: 0.82, y: 0.46, h: 200 }] },
       { at: 40, banner: ['Corsairs from behind Cephalonia!', 'Two polacres come round the island'],
-        spawn: [{ type: 'polacre', name: 'Shihab', x: 0.05, y: 0.5, h: -30 }, { type: 'polacre', name: 'Fath', x: 0.06, y: 0.08, h: 30 }] },
+        spawn: [{ type: 'polacre', name: 'Shihab', x: 0.05, y: 0.6, h: -30 }, { type: 'polacre', name: 'Fath', x: 0.3, y: 0.04, h: 30 }] },
     ],
     // Two great islands and the water between: Zante's bulk fills the lower right, Cephalonia's the upper left,
     // and the convoy's road is the diagonal sound between them, past an islet that splits it, to the open sea at
@@ -385,7 +386,7 @@ export const MED_BATTLES = [
     // Cephalonia. A current sets up the sound (src/sim/flow.js): it carries the convoy and the corsairs row
     // against it, while the inshore water off either island is slack.
     coast: { side: 'right', depth: 0.08, rough: 0.35, seed: 14, coves: [{ at: 0.42, width: 0.16, depth: 0.05 }], capes: [{ at: 0.18, width: 0.24, depth: 0.1 }] },
-    islands: [{ x: 0.15, y: 0.3, r: 165, stretch: 2, angle: 72 }, { x: 0.74, y: 0.7, r: 150, stretch: 1.6, angle: -50 }, { x: 0.5, y: 0.47, r: 40 }],
+    islands: [{ x: 0.12, y: 0.32, r: 150, stretch: 2, angle: 72 }, { x: 0.78, y: 0.67, r: 150, stretch: 1.6, angle: -50 }, { x: 0.5, y: 0.48, r: 40 }],
     currents: [{ x: 0.48, y: 0.5, r: 110, stretch: 5, angle: -72, speed: 9 }],
     ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.64, hpMul: 2.53 },
   },
@@ -443,19 +444,18 @@ export const MED_BATTLES = [
       { at: 75, banner: ['The Kapudan’s squadron!', 'A kalyon and a galleass bear down'],
         spawn: [{ type: 'kalyon', name: 'Fatih', x: 0.94, y: 0.3, h: 180 }, { type: 'galleass', name: 'Ejder', x: 0.94, y: 0.42, h: 170 }] },
       { at: 100, banner: ['The Santa Giustina!', 'A Venetian galleass comes out to stand with you'],
-        spawn: [{ type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, x: 0.44, y: 0.5, h: 0, hp: 380 }] },
+        spawn: [{ type: 'galleass', name: 'Santa Giustina', team: 'player', ally: true, x: 0.5, y: 0.44, h: 0, hp: 380 }] },
       { at: 122, banner: ['The final assault!', 'Fire galleys and the last kalyons'],
         spawn: [{ type: 'firegalley', name: 'Alev', x: 0.94, y: 0.62, h: 180 }, { type: 'kalyon', name: 'Zafer', x: 0.9, y: 0.94, h: -150 }] },
     ],
-    // A fortress front: Crete is the left-hand edge, and the walls of Candia jut out from it as a broad, square
-    // bastioned block in the middle of the chart, the Ottoman siege lines dug along the shore above and below
-    // it. The Venetian mole runs straight out from the walls with the harbour (repairs) in its lee, and the
-    // Sabbionara bastion stands on the block's seaward corner below. The Sultan's ships come at it from the open
-    // sea on the right, the bomb galleys along the coast from the west (the top); one islet in the roads is the
-    // only cover between.
-    coast: { side: 'left', depth: 0.12, rough: 0.06, seed: 16, capes: [{ at: 0.5, width: 0.34, depth: 0.18 }] },
-    islands: [{ x: 0.34, y: 0.6, r: 40 }, { x: 0.39, y: 0.44, r: 15, stretch: 6, angle: 0 }, { x: 0.68, y: 0.6, r: 48, stretch: 1.4, angle: 70 }],
-    fleetAt: { slots: [[0.5, 0.5], [0.46, 0.4], [0.58, 0.44], [0.54, 0.56], [0.62, 0.52]], h: 0 },
+    // A fortress front: Crete is the left-hand edge, and the walls of Candia jut far out from it as a broad,
+    // square bastioned block in the middle of the chart, the Ottoman siege lines dug along the shore above and
+    // below it. The little Venetian harbour (repairs) is a notch in the block's face, the Sabbionara bastion
+    // stands on its seaward corner below. The Sultan's ships come at it from the open sea on the right, the bomb
+    // galleys along the coast from the west (the top); one islet in the roads is the only cover between.
+    coast: { side: 'left', depth: 0.1, rough: 0.05, seed: 16, capes: [{ at: 0.5, width: 0.3, depth: 0.3 }], coves: [{ at: 0.45, width: 0.07, depth: 0.12 }] },
+    islands: [{ x: 0.42, y: 0.58, r: 40 }, { x: 0.7, y: 0.62, r: 48, stretch: 1.4, angle: 70 }],
+    fleetAt: { slots: [[0.56, 0.5], [0.54, 0.42], [0.62, 0.45], [0.58, 0.57], [0.66, 0.53]], h: 0 },
     ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.42, hpMul: 2.19 },
   },
   {

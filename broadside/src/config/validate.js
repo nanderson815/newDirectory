@@ -38,8 +38,11 @@ const GOAL_COMMON = ['bonus', 'gold'];
 const POSITIVE_STATS = ['L', 'B', 'hp', 'speed', 'turn'];
 // Enemy gunnery and hull multipliers every battle needs (see the header of battles.js).
 const AI_FIELDS = ['spread', 'reloadMul', 'dmgMul', 'hpMul'];
-// Nominal portrait maps (the real one depends on the screen) for "starts on an island" checks.
-const MAPS = [[520, 1100], [620, 930]];
+// Nominal portrait screens (the real one depends on the screen) for "starts on an island" checks, each grown
+// to the battle's own sea as the game builds it (SEA_SCALE 1.45 in src/render/camera.js, times its `sea`), so
+// islands, reefs and shoals (sized in map units) are measured against the chart they really sit on.
+const SCREENS = [[520, 1100], [620, 930]];
+const mapsFor = (B) => { const k = 1.45 * (B && isNum(B.sea) ? B.sea : 1); return SCREENS.map(([W, H]) => [W * k, H * k]); };
 const ISLAND_MARGIN = 12;
 
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -128,7 +131,7 @@ export function validateContent(C) {
       const T = p.type ? TYPES[p.type] || null : null;
       for (const [key, R] of Object.entries(C.TERRAIN)) {
         if (!R.blocks || ((key === 'shoals' || key === 'reefs') && !p.ship)) continue;
-        const why = MAPS.map(([W, H]) => R.blocks(B, p, T, W, H)).find(Boolean);
+        const why = mapsFor(B).map(([W, H]) => R.blocks(B, p, T, W, H)).find(Boolean);
         if (why) bad(at, why);
       }
       return;
@@ -136,7 +139,7 @@ export function validateContent(C) {
     if (!Array.isArray(B.islands)) return;
     B.islands.forEach((is, i) => {
       if (!is || !isNum(is.r) || !isFrac(is.x) || !isFrac(is.y)) return;
-      if (MAPS.some(([W, H]) => Math.hypot((p.x - is.x) * W, (p.y - is.y) * H) < is.r + ISLAND_MARGIN)) bad(at, `is on (or touching) island ${i}`);
+      if (mapsFor(B).some(([W, H]) => Math.hypot((p.x - is.x) * W, (p.y - is.y) * H) < is.r + ISLAND_MARGIN)) bad(at, `is on (or touching) island ${i}`);
     });
   }
 
@@ -335,7 +338,7 @@ export function validateContent(C) {
     }
     checkGoals(where, B);
     checkEvents(where, B);
-    if (C.checkLand) for (const m of C.checkLand(C.landOf ? C.landOf(B) : B.land, B, MAPS)) bad(where, m);
+    if (C.checkLand) for (const m of C.checkLand(C.landOf ? C.landOf(B) : B.land, B, mapsFor(B))) bad(where, m);
   });
   if (C.LANDS) for (const id of Object.keys(C.LANDS)) if (!seen.has(id)) bad(`LANDS.${id}`, 'is not a battle id (src/config/lands.js is keyed by battle id)');
 
