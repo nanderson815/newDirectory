@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { TAU, PI } from '../util.js';
-import { toon, withOutline } from './gl.js';
+import { R, toon, withOutline } from './gl.js';
+import { bakeStatic } from './models.js';
 import { wx, wz } from './camera.js';
 import { buildShoal, rng } from './terrain.js';
 import { capsuleRadius, TIDE } from '../sim/terrain.js';
@@ -59,16 +60,16 @@ function currentMesh(G) {
         vec2 d = normalize(vDir.xy); vec2 n = vec2(-d.y, d.x);
         float along = dot(vP, d), across = dot(vP, n);
         // Lanes of streaks across the flow, each with its own length and phase, sliding downstream.
-        float lane = floor(across / 11.0), r = hash(lane * 1.7 + 3.1);
-        float inLane = 1.0 - smoothstep(0.08, 0.32, abs(fract(across / 11.0) - 0.5));
-        float len = 38.0 + r * 46.0;
+        float lane = floor(across / 17.0), r = hash(lane * 1.7 + 3.1);
+        float inLane = 1.0 - smoothstep(0.03, 0.14, abs(fract(across / 17.0) - 0.5));
+        float len = 60.0 + r * 70.0;
         float s = fract((along - uT * vDir.z * 1.1) / len + r * 7.0);
-        float dash = smoothstep(0.0, 0.12, s) * (1.0 - smoothstep(0.32 + r * 0.2, 0.55 + r * 0.2, s));
-        float a = dash * inLane * vFade * (0.22 + 0.16 * step(0.55, r));
+        float dash = smoothstep(0.0, 0.1, s) * (1.0 - smoothstep(0.16 + r * 0.12, 0.3 + r * 0.12, s));
+        float a = dash * inLane * vFade * step(0.35, r) * (0.15 + 0.1 * step(0.7, r));
         if (a < 0.01) discard;
         gl_FragColor = vec4(uCol, a);
       }`,
-    transparent: true, depthWrite: false,
+    transparent: true, depthWrite: false, side: THREE.DoubleSide,
   }));
   m.renderOrder = 0.7;
   m.frustumCulled = false;
@@ -76,71 +77,79 @@ function currentMesh(G) {
 }
 
 // ---------- Tidal shoals ----------
-// Each tidal shoal is drawn like any other (render/terrain.js) on materials of its own, whose opacity follows
-// the tide, plus a patch of dry sand that shows as it uncovers.
+// The tidal shoals are drawn like any other (render/terrain.js), but baked on their own: their water in one mesh
+// whose opacity follows the tide, and the dry sand that shows at low water in another.
+const glassMat = () => new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false });
 function tidalShoals(G) {
   const list = (G.shoals || []).filter((c) => c.tidal);
   if (!list.length) return null;
-  const grp = new THREE.Group(), mats = [], sand = [];
+  const water = new THREE.Group(), dryG = new THREE.Group();
   list.forEach((c, i) => {
-    const g = buildShoal(c, rng(311 + i * 17 + Math.round(c.x)));
-    g.traverse((o) => {
-      if (!o.isMesh) return;
-      const old = o.material;
-      o.material = old.clone();
-      if (!old.userData.shared) old.dispose();
-      o.material.userData = { base: o.material.opacity };
-      mats.push(o.material);
-    });
-    grp.add(g);
+    water.add(buildShoal(c, rng(311 + i * 17 + Math.round(c.x))));
     // Dry sand: the bar as it stands out of the water at low tide.
     const sh = new THREE.Shape(), n = c.hl ? 40 : 28;
     for (let k = 0; k <= n; k++) {
       const a = (k / n) * TAU, r = capsuleRadius(c, a) * (0.8 + 0.06 * Math.sin(a * 3 + i));
       if (k === 0) sh.moveTo(Math.cos(a) * r, -Math.sin(a) * r); else sh.lineTo(Math.cos(a) * r, -Math.sin(a) * r);
     }
-    const dry = new THREE.Mesh(new THREE.ShapeGeometry(sh, 8).rotateX(-PI / 2), new THREE.MeshBasicMaterial({ color: '#efd9a0', transparent: true, opacity: 0, depthWrite: false }));
+    const dry = new THREE.Mesh(new THREE.ShapeGeometry(sh, 8).rotateX(-PI / 2), new THREE.MeshBasicMaterial({ color: '#efd9a0', transparent: true, opacity: 0.85, depthWrite: false }));
     dry.position.set(wx(c.x), 0.26, wz(c.y));
-    dry.renderOrder = 0.55;
-    grp.add(dry);
-    sand.push(dry.material);
+    dryG.add(dry);
   });
-  return { grp, mats, sand };
+  const out = new THREE.Group();
+  const meshes = [];
+  for (const [g, order] of [[water, 0.5], [dryG, 0.55]]) {
+    const baked = bakeStatic(g, null, null, null, { indexed: true }).glass;
+    g.traverse((o) => { if (o.isMesh) { if (!o.material.userData.shared) o.material.dispose(); o.geometry.dispose(); } });
+    const m = new THREE.Mesh(baked, glassMat());
+    m.renderOrder = order;
+    out.add(m);
+    meshes.push(m);
+  }
+  return { grp: out, water: meshes[0].material, sand: meshes[1].material };
 }
 
 // ---------- Booms ----------
 const LOG = '#7a5634', IRON = '#3a3633';
-let logGeo = null, linkGeo = null; // made fresh each battle: the scene disposes what it drops
+// One half of a boom, baked to two meshes (wood and its ink): logs and chain from the shore post toward the middle.
+function boomHalf(b, side) {
+  const logGeo = new THREE.CylinderGeometry(4.2, 4.2, 15, 8).rotateZ(PI / 2), linkGeo = new THREE.TorusGeometry(2.4, 0.8, 5, 8);
+  const postGeo = new THREE.CylinderGeometry(3, 3.6, 16, 6);
+  const tmp = new THREE.Group();
+  const n = Math.max(2, Math.round(b.hl / 17));
+  for (let k = 0; k < n; k++) {
+    const x = -side * (9 + k * 17);
+    const log = new THREE.Mesh(logGeo, toon(k % 2 ? LOG : '#8a6440'));
+    log.position.set(x, 1.6, 0);
+    log.rotation.x = (k % 3) * 0.7;
+    withOutline(log, 0.12);
+    tmp.add(log);
+    const link = new THREE.Mesh(linkGeo, toon(IRON));
+    link.position.set(x - side * 8.5, 2.4, 0);
+    link.rotation.y = PI / 2;
+    tmp.add(link);
+  }
+  const post = new THREE.Mesh(postGeo, toon('#5d4330'));
+  post.position.set(0, 5, 0);
+  withOutline(post, 0.1);
+  tmp.add(post);
+  const baked = bakeStatic(tmp, null, null, null, { indexed: true });
+  for (const g of [logGeo, linkGeo, postGeo]) g.dispose();
+  const pivot = new THREE.Group();
+  if (baked.solid) pivot.add(new THREE.Mesh(baked.solid, R.vcToon));
+  if (baked.ink) pivot.add(new THREE.Mesh(baked.ink, R.inkMat));
+  return pivot;
+}
 function boomMesh(b) {
-  logGeo = new THREE.CylinderGeometry(2.6, 2.6, 13, 7).rotateZ(PI / 2);
-  linkGeo = new THREE.TorusGeometry(1.7, 0.55, 5, 8);
   // Two halves pivoting on their shore ends, so the boom can swing open from the middle.
   const root = new THREE.Group();
   root.position.set(wx(b.x), 0, wz(b.y));
   root.rotation.y = -b.ang;
   const halves = [];
   for (const side of [-1, 1]) {
-    const pivot = new THREE.Group();
+    const pivot = boomHalf(b, side);
     pivot.position.x = side * b.hl;
     root.add(pivot);
-    const n = Math.max(2, Math.round(b.hl / 15));
-    for (let k = 0; k < n; k++) {
-      const x = -side * (8 + k * 15);
-      const log = new THREE.Mesh(logGeo, toon(LOG));
-      log.position.set(x, 1.1, 0);
-      log.rotation.x = (k % 3) * 0.7;
-      withOutline(log, 0.12);
-      pivot.add(log);
-      const link = new THREE.Mesh(linkGeo, toon(IRON));
-      link.position.set(x - side * 7.5, 1.6, 0);
-      link.rotation.y = PI / 2;
-      pivot.add(link);
-    }
-    // A mooring post on the shore end.
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.6, 12, 6), toon('#5d4330'));
-    post.position.set(0, 4, 0);
-    withOutline(post, 0.1);
-    pivot.add(post);
     halves.push({ g: pivot, side });
   }
   return { root, halves, b };
@@ -167,9 +176,8 @@ export function syncSeaMarks(G, clock) {
     const lv = G.tide.level;
     // High water hides the bar (a faint paler patch), half tide shows it as a shoal, low water dries it.
     const water = 0.18 + 0.82 * (1 - smooth(TIDE.dry, TIDE.covered + 0.15, lv)) + 0 * lv;
-    for (const m of L.tide.mats) m.opacity = m.userData.base * Math.min(1, water + 0.12);
-    const dry = 1 - smooth(TIDE.dry - 0.12, TIDE.dry + 0.1, lv);
-    for (const m of L.tide.sand) m.opacity = 0.85 * dry;
+    L.tide.water.opacity = Math.min(1, water + 0.12);
+    L.tide.sand.opacity = 1 - smooth(TIDE.dry - 0.12, TIDE.dry + 0.1, lv);
   }
   for (const m of L.booms) {
     const b = m.b;
