@@ -253,10 +253,10 @@ export const MED_BATTLES = [
     // line (his ships fight faster near him), and the islets are cover while you claw up to windward.
     fleetAt: { slots: [[0.66, 0.84], [0.56, 0.86], [0.76, 0.86], [0.62, 0.92], [0.72, 0.92]], h: -110 },
     coast: [
-      { side: 'left', depth: 0.22, rough: 0.25, seed: 7, coves: [{ at: 0.1, width: 0.1, depth: 0.08 }] },
+      { side: 'left', depth: 0.14, rough: 0.25, seed: 7, coves: [{ at: 0.1, width: 0.1, depth: 0.06 }] },
       { side: 'top', depth: 0.12, rough: 0.2, seed: 17, coves: [{ at: 0.3, width: 0.24, depth: 0.06 }] },
     ],
-    islands: [{ x: 0.22, y: 0.42, r: 80, stretch: 1.4, angle: 30 }, { x: 0.48, y: 0.52, r: 56 }, { x: 0.7, y: 0.62, r: 72, stretch: 1.5, angle: 35 }],
+    islands: [{ x: 0.2, y: 0.42, r: 72, stretch: 1.6, angle: 30 }, { x: 0.48, y: 0.52, r: 54 }, { x: 0.7, y: 0.62, r: 68, stretch: 1.5, angle: 35 }],
     reefs: [{ x: 0.59, y: 0.57, r: 14, stretch: 3, angle: 30 }],
     ai: { spread: 0.095, reloadMul: 1.0, dmgMul: 2.17, hpMul: 3.22 },
   },
@@ -386,7 +386,7 @@ export const MED_BATTLES = [
     // Cephalonia. A current sets up the sound (src/sim/flow.js): it carries the convoy and the corsairs row
     // against it, while the inshore water off either island is slack.
     coast: { side: 'right', depth: 0.08, rough: 0.35, seed: 14, coves: [{ at: 0.42, width: 0.16, depth: 0.05 }], capes: [{ at: 0.18, width: 0.24, depth: 0.1 }] },
-    islands: [{ x: 0.12, y: 0.32, r: 150, stretch: 2, angle: 72 }, { x: 0.78, y: 0.67, r: 150, stretch: 1.6, angle: -50 }, { x: 0.5, y: 0.48, r: 40 }],
+    islands: [{ x: 0.12, y: 0.32, r: 118, stretch: 2.3, angle: 72 }, { x: 0.78, y: 0.67, r: 118, stretch: 1.8, angle: -50 }, { x: 0.5, y: 0.48, r: 40 }],
     currents: [{ x: 0.48, y: 0.5, r: 110, stretch: 5, angle: -72, speed: 9 }],
     ai: { spread: 0.09, reloadMul: 1.0, dmgMul: 1.64, hpMul: 2.53 },
   },
@@ -493,7 +493,7 @@ export const MED_BATTLES = [
   // ---------- The Dardanelles ----------
   {
     id: 'narrows', world: W, region: 'dardanelles', roman: 'XV', year: 1670, name: 'The Castles of the Narrows', foe: 'the castles',
-    faction: 'ottoman', reward: 1020, wind: -90, sea: 1.5,
+    faction: 'ottoman', reward: 1020, wind: -90, sea: 1.4,
     brief: 'The Levant Company’s ships are held at Gallipoli. Run Resolute up the Dardanelles past the castles of Kilitbahir and Çanakkale and out at the top of the chart, with the fleet to draw their fire. The castles’ guns cover the Narrows from both shores.',
     goals: [{ kind: 'breakthrough' }, { kind: 'timer', secs: 150, bonus: true, gold: 190 }],
     enemy: [
@@ -513,8 +513,8 @@ export const MED_BATTLES = [
     // cheat it, or swing wide and fight the stream.
     fleetAt: { slots: [[0.46, 0.86], [0.36, 0.88], [0.56, 0.9], [0.42, 0.94], [0.52, 0.95]], h: -90 },
     coast: [
-      { side: 'left', depth: 0.1, rough: 0.12, seed: 2, capes: [{ at: 0.66, width: 0.13, depth: 0.42 }, { at: 0.12, width: 0.12, depth: 0.2 }] },
-      { side: 'right', depth: 0.1, rough: 0.12, seed: 13, capes: [{ at: 0.34, width: 0.13, depth: 0.42 }, { at: 0.9, width: 0.12, depth: 0.2 }] },
+      { side: 'left', depth: 0.06, rough: 0.12, seed: 2, capes: [{ at: 0.66, width: 0.13, depth: 0.46 }, { at: 0.12, width: 0.12, depth: 0.24 }] },
+      { side: 'right', depth: 0.06, rough: 0.12, seed: 13, capes: [{ at: 0.34, width: 0.13, depth: 0.46 }, { at: 0.9, width: 0.12, depth: 0.24 }] },
     ],
     islands: [{ x: 0.51, y: 0.66, r: 40 }, { x: 0.49, y: 0.34, r: 40 }],
     currents: [{ x: 0.3, y: 0.3, r: 100, stretch: 2.5, angle: 90, speed: 12 }, { x: 0.5, y: 0.5, r: 90, stretch: 2, angle: 50, speed: 11 },
@@ -555,7 +555,7 @@ export const MED_BATTLES = [
     // break it, an islet and a reef to split it, and the bay's banks to drive its heavy ships onto.
     fleetAt: { slots: [[0.46, 0.84], [0.36, 0.86], [0.56, 0.86], [0.41, 0.91], [0.51, 0.91]], h: -90 },
     coast: { side: 'right', depth: 0.34, rough: 0.2, seed: 18, capes: [{ at: 0.06, width: 0.14, depth: 0.08 }], coves: [{ at: 0.56, width: 0.66, depth: 0.28 }] },
-    islands: [{ x: 0.18, y: 0.2, r: 140, stretch: 1.5, angle: -10 }, { x: 0.5, y: 0.58, r: 42 }],
+    islands: [{ x: 0.18, y: 0.2, r: 118, stretch: 1.7, angle: -10 }, { x: 0.5, y: 0.58, r: 42 }],
     reefs: [{ x: 0.3, y: 0.68, r: 14, stretch: 5, angle: 30 }],
     shoals: [{ x: 0.84, y: 0.56, r: 60, stretch: 2.6, angle: 90 }, { x: 0.36, y: 0.48, r: 40, stretch: 1.6, angle: 40 }],
     ai: { spread: 0.085, reloadMul: 1.0, dmgMul: 1.11, hpMul: 1.68 },
