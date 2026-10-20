@@ -1266,7 +1266,9 @@ export function syncLand(G, clock, dt, np, ng) {
   // Lighthouse and castle lamps: a warm light that pulses slowly.
   for (const [x, y, z, ph] of life.lamps) {
     if (ng >= 399) break;
-    const f = 2.6 + 0.6 * Math.sin(clock * 2.2 + ph);
+    // At night a lamp burns brighter and wider (and lays its light on the water below it, for a light).
+    const f = (2.6 + 0.6 * Math.sin(clock * 2.2 + ph)) * (L.night ? 1.7 : 1);
+    if (L.night && ng < 398) { setInst(P.glow, ng, x, 0.4, z + f * 2.5, f * 1.2, 0.04, f * 4); P.glow.setColorAt(ng++, C3.flame); }
     setInst(P.glow, ng, x, y, z, f, f * 1.1, f); P.glow.setColorAt(ng++, C3.flame);
   }
   // Night: the town's windows are lit, a warm point each, flickering now and then.
