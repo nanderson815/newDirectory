@@ -5,6 +5,7 @@ import { abilitySteer } from './abilities/index.js';
 import { eachGoal, hasGoalFlag } from './goals/index.js';
 import { PI, clamp, angDiff } from '../util.js';
 import { corePt, coreDist, grounds, coastGap } from './terrain.js';
+import { formationSteer } from './formation.js';
 
 // Distance a ship's centre must keep from an island's core: the drawn beach plus bevel plus most of the hull.
 export const shoreClear = (is, s) => is.r * 1.05 + s.L * 0.42;
@@ -35,7 +36,7 @@ export const blockedAt = (s, x, y) => penetration(s, x, y) > 0;
 const inShoal = (s, p) => (S.G.shoals || NONE).some((c) => coreDist(c, p.x, p.y) < shoalClear(c, s));
 // Feelers: is the way ahead on heading h clear for `look` units? Sailing out of somewhere she shouldn't be
 // (pushed against a beach, stuck on a shoal) counts as clear as long as it doesn't take her deeper in.
-function wayClear(s, h, look) {
+export function wayClear(s, h, look) {
   const here = Math.max(0, penetration(s, s.x, s.y)), c = Math.cos(h), sn = Math.sin(h);
   for (const k of [0.35, 0.7, 1]) if (penetration(s, s.x + c * look * k, s.y + sn * look * k) > here + 0.5) return false;
   return true;
@@ -45,6 +46,7 @@ function wayClear(s, h, look) {
 const gone = (s, u) => !u || (u.kind === 'fort' ? u.state !== 'active' || u.team === s.team : !afloat(u) || u.team === s.team);
 export function playerSteer(s) {
   const o = s.order;
+  if (o && (o.kind === 'line' || o.kind === 'abreast')) return s.pivot != null ? s.pivot : formationSteer(s);
   if (o && o.kind === 'engage') {
     const t = unitById(o.targetId);
     if (gone(s, t)) s.order = null;
@@ -53,7 +55,7 @@ export function playerSteer(s) {
       const b = Math.atan2(t.y - s.y, t.x - s.x), a1 = b + PI / 2, a2 = b - PI / 2;
       s.pivot = Math.abs(angDiff(s.h, a1)) < Math.abs(angDiff(s.h, a2)) ? a1 : a2;
       return s.pivot;
-    } else return beamSteer(s, t);
+    } else return beamSteer(s, t, o.brg != null ? o : null);
   }
   return followPath(s);
 }
@@ -142,6 +144,7 @@ function weigh(s, t, d) {
 // A runner makes for the edge; abilities (a fireship's run) and goals (salvaging treasure) can take the helm next.
 export function aiSteer(s, dt) {
   const G = S.G;
+  s.closeOn = null;
   if (s.passive) return null;
   // A ship that has broken off runs straight for the nearest edge of the chart, whatever else is going on.
   if (s.fleeing) return avoidIslands(s, edgeHeading(G, s), 160);
@@ -175,6 +178,7 @@ export function aiSteer(s, dt) {
     for (const o of G.ships) {
       if (o.team === s.team || !afloat(o) || o.hp > o.maxHp * 0.4 || Math.hypot(o.x - s.x, o.y - s.y) > 220) continue;
       if (s.marines > Math.round(o.marines * (0.6 + 0.4 * o.hp / o.maxHp)) * 1.2) {
+        s.closeOn = o.id; // she means to lay alongside: her avoidance (src/sim/avoid.js) lets her
         return avoidIslands(s, Math.atan2(o.y - s.y, o.x - s.x), 160);
       }
     }
@@ -183,19 +187,26 @@ export function aiSteer(s, dt) {
 }
 
 // Close on a target, then hold it on the beam at a comfortable range (enemy captains and the player's
-// engage order alike).
-export function beamSteer(s, t) {
+// engage order alike). `st` is a station round the target for a whole-fleet engage order (src/hud/orders.js):
+// { brg, rk, dir }: she works the arc of sea at bearing brg (radians, from the target) at rk of her gun range,
+// sailing to and fro along it with the target on her beam, so the fleet spreads round the target instead of
+// chasing one another round the same ring.
+export const STATION_ARC = 0.45; // half-width of each ship's arc (radians)
+export function beamSteer(s, t, st = null) {
   const G = S.G;
   const dx = t.x - s.x, dy = t.y - s.y, d = Math.hypot(dx, dy);
   const bearing = Math.atan2(dy, dx);
   // Mortar ships stand off at long range; a fort's island keeps everyone a little further out.
   const reach = s.standoff || s.range;
-  const ideal = (s.standoff || s.range * s.ideal) + (t.kind === 'fort' ? G.islands[t.island].r : 0);
+  const ideal = (s.standoff || s.range * (st ? st.rk : s.ideal)) + (t.kind === 'fort' ? G.islands[t.island].r : 0);
   let desired;
   // Raking (src/sim/combat.js): where we sit relative to her bow-stern line. 1 = dead ahead or astern of her.
   const ship = t.kind !== 'fort';
   const fromT = Math.atan2(-dy, -dx), along = ship ? Math.abs(Math.cos(angDiff(t.h, fromT))) : 0;
-  if (d > Math.max(reach, ideal) * 1.1) {
+  if (st && d > Math.max(reach, ideal) * 1.1) {
+    // Make for her own station on the ring.
+    desired = Math.atan2(t.y + Math.sin(st.brg) * ideal - s.y, t.x + Math.cos(st.brg) * ideal - s.x);
+  } else if (d > Math.max(reach, ideal) * 1.1) {
     desired = bearing;
     // Closing on her beam would take her broadside through our bow: come in at an angle, toward her stern.
     if (ship && d < t.range * 1.6 && along < 0.8) {
@@ -209,9 +220,26 @@ export function beamSteer(s, t) {
     desired = Math.atan2(qy - s.y, qx - s.x);
   } else {
     const a1 = bearing + PI / 2, a2 = bearing - PI / 2;
-    const base = Math.abs(angDiff(s.h, a1)) < Math.abs(angDiff(s.h, a2)) ? a1 : a2;
+    let base = Math.abs(angDiff(s.h, a1)) < Math.abs(angDiff(s.h, a2)) ? a1 : a2;
+    if (st) {
+      // Off the end of her arc: go about and work back along it. (Sailing along a1 turns her bearing from the
+      // target down, anticlockwise on the chart; a2 turns it up.)
+      const err = angDiff(Math.atan2(-dy, -dx), st.brg);
+      if (Math.abs(err) > STATION_ARC) st.dir = Math.sign(err);
+      if (st.dir) base = st.dir > 0 ? a2 : a1;
+    }
     const corr = clamp((d - ideal) / ideal, -1, 1) * 0.6;
     desired = base + Math.sign(angDiff(base, bearing)) * corr;
+    // Going about at the end of her arc: from well out she tacks in toward the target, from close in she wears
+    // round away from it, so the turn never carries her through the target nor far out of range.
+    // The way she turns is settled when the turn begins (st.turn), so she can't swing back and forth.
+    if (st && Math.abs(angDiff(s.h, base)) > PI / 2) {
+      if (!st.turn) {
+        const r = Math.max(s.v, 20) / s.turn, inward = d > ideal + r * 0.5 ? 1 : -1;
+        st.turn = inward * (Math.sign(angDiff(s.h, bearing)) || 1);
+      }
+      desired = s.h + st.turn * 1.2;
+    } else if (st) st.turn = 0;
   }
   // Ships with bow chasers like to point at you once they're close.
   if (s.chasers && t.kind !== 'fort' && d < s.range * 0.8 && d > 90 && Math.abs(angDiff(s.h, bearing)) < 0.6) desired = bearing;

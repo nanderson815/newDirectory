@@ -16,7 +16,7 @@ import { PI, clamp, lerp } from '../util.js';
 
 // Ships longer than this run aground on shoals (brigs, frigates and up); sloops, schooners, xebecs, bomb
 // ketches and fireships draw little enough water to sail over them.
-export const SHOAL = { maxL: 64, slow: 0.3, turn: 0.6, bump: 4, dps: 1 };
+export const SHOAL = { maxL: 48, slow: 0.3, turn: 0.6, bump: 4, dps: 1 };
 // A reef holes any hull that crosses it: `dps` hull a second at full speed (40% of it when barely moving),
 // and the ship is slowed while she grinds over.
 export const REEF = { dps: 16, slow: 0.5 };
@@ -203,7 +203,7 @@ export const TERRAIN = {
     check: (v) => checkCapsules('shoals', v),
     blocks(B, p, T, W, H) {
       if (T && T.L <= SHOAL.maxL) return null;
-      const L = T ? T.L : 84;
+      const L = T ? T.L : 63;
       for (let i = 0; i < (B.shoals || []).length; i++) if (isObj(B.shoals[i]) && capsuleGap(B.shoals[i], p, W, H) < L * 0.3) return `starts aground on shoal ${i}`;
       return null;
     },
@@ -213,7 +213,7 @@ export const TERRAIN = {
     params: CAPSULE,
     check: (v) => checkCapsules('reefs', v),
     blocks(B, p, T, W, H) {
-      const Bm = T ? T.B : 30;
+      const Bm = T ? T.B : 22.5;
       for (let i = 0; i < (B.reefs || []).length; i++) if (isObj(B.reefs[i]) && capsuleGap(B.reefs[i], p, W, H) < Bm * 0.3 + 6) return `starts on reef ${i}`;
       return null;
     },
@@ -249,7 +249,7 @@ export const TERRAIN = {
       return out;
     },
     blocks(B, p, T, W, H) {
-      const L = T ? T.L : 84;
+      const L = T ? T.L : 63;
       for (const [i, c] of coastList(B.coast).entries()) {
         if (!isObj(c) || !SIDES.includes(c.side) || !isNum(c.depth)) continue;
         if (coastGapFrac(c, p, W, H) < L * 0.42 + 8) return `is on (or touching) the ${c.side} coast${Array.isArray(B.coast) ? ` (coast[${i}])` : ''}`;

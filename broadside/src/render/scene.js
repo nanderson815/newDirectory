@@ -5,7 +5,7 @@ import { TYPES } from '../config/ships.js';
 import { COL, PI, TAU, clamp, lerp, rand, angDiff } from '../util.js';
 import { R, toon } from './gl.js';
 import { wx, wz, fitCamera } from './camera.js';
-import { buildShipMesh, buildFortMesh, chestGeometries, setShipFading, setShipTorn, FORT_BASE_Y, FORT_SCALE } from './models.js';
+import { buildShipMesh, buildFortMesh, chestGeometries, setShipFading, setShipTorn, FORT_BASE_Y, FORT_SCALE, MODEL_SCALE } from './models.js';
 import { WX, applyWeather, syncWeather } from './weather.js';
 import { lostMasts } from './terrain.js';
 import { buildLand, syncLand, landStats, landLife, fortLook } from './land.js';
@@ -301,7 +301,7 @@ export function syncScene() {
     if (!m || !m.g.visible || m.vis < 0.6 || s.state === 'sunk') continue;
     const c = Math.cos(s.h), sn = Math.sin(s.h);
     const sinking = s.state === 'sinking';
-    const deck = m.tpl.deckY + m.body.position.y;
+    const deck = (m.tpl.deckY + m.body.position.y) * MODEL_SCALE;
     const scale = s.L / 70;
     // Bow spray: sheets of white water thrown off either bow, more and higher the faster she goes.
     const spd = clamp(s.v / (s.speed || 1), 0, 1);

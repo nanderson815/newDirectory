@@ -355,6 +355,11 @@ function twoSided(geo) {
   return [geo, back];
 }
 
+// Ships are drawn at their old art size (before the fleet pass cut every hull to 3/4, src/config/ships.js) and
+// scaled down as a whole, so masts, guns, lanterns and rails shrink with the hull instead of growing chunky on it.
+// A model's length on the water is still exactly its class's L.
+export const MODEL_SCALE = 0.75;
+
 // One model per class, look, gun count and fit-out, built once and cloned per ship
 // (geometry is shared; materials are per ship so it can flash, scorch, tear and fade on its own).
 const templates = new Map();
@@ -367,7 +372,7 @@ export function shipTemplate(s, faction) {
   const key = [s.type, look, s.guns, s.chasers, mortar ? 1 : 0].join(':');
   if (templates.has(key)) return templates.get(key);
   const Lk = LOOKS[look];
-  const L = T.L, B = T.B, d = B * (sp.depth || 0.5);
+  const L = T.L / MODEL_SCALE, B = T.B / MODEL_SCALE, d = B * (sp.depth || 0.5);
   const boss = look === 'boss' || look === 'pirateBoss';
   const root = new THREE.Group();
   const body = new THREE.Group(); body.name = 'body';
@@ -615,13 +620,14 @@ export function shipTemplate(s, faction) {
 export function buildShipMesh(s, faction) {
   const tpl = shipTemplate(s, faction);
   const g = tpl.root.clone(true);
+  g.scale.setScalar(MODEL_SCALE);
   const u = {
     uFade: { value: 1 }, uMast: { value: new THREE.Vector4(0, 0, 0, -1) },
     uMastH: { value: tpl.breakH.clone() }, uSail: { value: new THREE.Vector4(1, 1, 0, -1) },
   };
   const ref = {
     g, u, tpl, rigs: [], pivots: [], body: null, flagPivot: null, hullMat: null, rigMat: null, inkMat: null,
-    top: tpl.top, vis: 1, boom: 0, oar: 0, torn: tpl.torn, mats: [],
+    top: tpl.top * MODEL_SCALE, vis: 1, boom: 0, oar: 0, torn: tpl.torn, mats: [],
   };
   g.traverse((o) => {
     if (o.name === 'body') ref.body = o;

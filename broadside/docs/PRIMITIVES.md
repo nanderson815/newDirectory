@@ -327,16 +327,16 @@ length × beam. Enemy hulls are multiplied by the battle's `ai.hpMul` unless the
 
 | type | label | hp | guns | reload | speed | turn | range | marines | masts | L × B | rig | abilities |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `sloop` | Sloop | 70 | 3 | 2.4 | 62 | 1.35 | 235 | 10 | 2 | 60 × 22 | square |  |
-| `brig` | Brig | 85 | 3 | 2.6 | 57 | 1.15 | 240 | 15 | 2 | 66 × 24 | square |  |
-| `frigate` | Frigate | 130 | 5 | 3 | 50 | 0.85 | 255 | 20 | 3 | 84 × 30 | square |  |
-| `manowar` | Man-o'-war | 210 | 7 | 3.3 | 43 | 0.62 | 280 | 30 | 3 | 104 × 38 | square |  |
-| `galleon` | Galleon | 150 | 6 | 3.4 | 42 | 0.65 | 270 | 20 | 3 | 92 × 34 | square |  |
-| `schooner` | Schooner | 60 | 2 | 2.2 | 70 | 1.5 | 220 | 12 | 2 | 56 × 18 | fore-aft |  |
-| `xebec` | Xebec | 75 | 3 | 2.5 | 58 | 1.4 | 230 | 18 | 3 | 62 × 18 | lateen | oars |
-| `bomb` | Bomb ketch | 95 | 2 | 3 | 44 | 0.9 | 220 | 10 | 2 | 64 × 24 | square | mortar {"range":430,"reload":6.5,"dmg":22,"radius":36} |
-| `fireship` | Fireship | 40 | 0 | 9 | 62 | 1.25 | 0 | 0 | 2 | 54 × 20 | square | fireship |
-| `merchant` | Merchantman | 130 | 1 | 4 | 36 | 0.7 | 200 | 6 | 3 | 74 × 30 | square |  |
+| `sloop` | Sloop | 70 | 3 | 2.4 | 62 | 1.35 | 235 | 10 | 2 | 45 × 16.5 | square |  |
+| `brig` | Brig | 85 | 3 | 2.6 | 57 | 1.15 | 240 | 15 | 2 | 49.5 × 18 | square |  |
+| `frigate` | Frigate | 130 | 5 | 3 | 50 | 0.85 | 255 | 20 | 3 | 63 × 22.5 | square |  |
+| `manowar` | Man-o'-war | 210 | 7 | 3.3 | 43 | 0.62 | 280 | 30 | 3 | 78 × 28.5 | square |  |
+| `galleon` | Galleon | 150 | 6 | 3.4 | 42 | 0.65 | 270 | 20 | 3 | 69 × 25.5 | square |  |
+| `schooner` | Schooner | 60 | 2 | 2.2 | 70 | 1.5 | 220 | 12 | 2 | 42 × 13.5 | fore-aft |  |
+| `xebec` | Xebec | 75 | 3 | 2.5 | 58 | 1.4 | 230 | 18 | 3 | 46.5 × 13.5 | lateen | oars |
+| `bomb` | Bomb ketch | 95 | 2 | 3 | 44 | 0.9 | 220 | 10 | 2 | 48 × 18 | square | mortar {"range":430,"reload":6.5,"dmg":22,"radius":36} |
+| `fireship` | Fireship | 40 | 0 | 9 | 62 | 1.25 | 0 | 0 | 2 | 40.5 × 15 | square | fireship |
+| `merchant` | Merchantman | 130 | 1 | 4 | 36 | 0.7 | 200 | 6 | 3 | 55.5 × 22.5 | square |  |
 
 Other flags: `merchant`: `merchant` = `true`.
 
@@ -374,7 +374,7 @@ Land. Ships sail round it and shot can’t pass it; a fort stands on one. A stre
 
 ### `shoals`
 
-Shallow, pale water. Ships longer than 64 (brigs and up) run aground: they crawl at 30% speed and 60% helm, lose 4 hull as they strike and 1 a second while they grind on. Sloops, schooners, xebecs, bomb ketches and fireships sail over. Captains and drawn courses steer big ships round them.
+Shallow, pale water. Ships longer than 48 (brigs and up) run aground: they crawl at 30% speed and 60% helm, lose 4 hull as they strike and 1 a second while they grind on. Sloops, schooners, xebecs, bomb ketches and fireships sail over. Captains and drawn courses steer big ships round them.
 
 | field | description |
 |---|---|
