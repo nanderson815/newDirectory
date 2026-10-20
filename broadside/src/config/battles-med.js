@@ -228,7 +228,7 @@ export const MED_BATTLES = [
     shoals: [{ x: 0.17, y: 0.66, r: 46, stretch: 2.6, angle: -4 }],
     fleetAt: { slots: [[0.5, 0.3], [0.42, 0.26], [0.58, 0.26], [0.46, 0.2], [0.54, 0.2]], h: 90 },
     forts: [{ island: 1, name: 'La Goletta', hp: 300, guns: 3, need: 15 }],
-    ai: { spread: 0.1, reloadMul: 0.8, dmgMul: 2.6, hpMul: 2.75 },
+    ai: { spread: 0.1, reloadMul: 0.8, dmgMul: 2.45, hpMul: 2.75 },
   },
   {
     id: 'algiers', world: W, region: 'barbary', roman: 'VII', year: 1668, name: 'The Admiral of Algiers', foe: 'Kara Hasan Reis',
